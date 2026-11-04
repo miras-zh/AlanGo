@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/theme/ThemeProvider";
 import { loginWithEmail } from "@/lib/registration";
-import { switchTestAccount } from "@/lib/auth";
+import { loginAsGuest, switchTestAccount } from "@/lib/auth";
 import { PasswordInput } from "@/components/PasswordInput";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
@@ -27,13 +27,19 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password) {
+    const trimmed = email.trim();
+    if (trimmed.toLowerCase() === "guest" || trimmed.toLowerCase() === "гость") {
+      await handleGuestLogin();
+      return;
+    }
+
+    if (!trimmed || !password) {
       Alert.alert("Ошибка", "Введите логин и пароль");
       return;
     }
     setLoading(true);
     try {
-      const res = await loginWithEmail({ email: email.trim(), password });
+      const res = await loginWithEmail({ email: trimmed, password });
       hapticSuccess();
       if (res?.user?.role === "business") {
         router.replace("/business");
@@ -47,7 +53,21 @@ export default function LoginScreen() {
     }
   };
 
-  const handleQuickDevLogin = async (key: "dev.arena1" | "dev.arena2" | "dev.client") => {
+  const handleGuestLogin = async () => {
+    hapticSelection();
+    setLoading(true);
+    try {
+      await loginAsGuest();
+      hapticSuccess();
+      router.replace("/(tabs)");
+    } catch (err) {
+      Alert.alert("Ошибка", getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickDevLogin = async (key: "dev.arena1" | "dev.arena2" | "dev.client" | "guest") => {
     hapticSelection();
     setLoading(true);
     try {
@@ -68,10 +88,21 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: "#0B0F0D" }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Back Button */}
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-        </Pressable>
+        {/* Top Bar with Back and Guest Skip button */}
+        <View style={styles.topBar}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          </Pressable>
+
+          <Pressable
+            onPress={handleGuestLogin}
+            disabled={loading}
+            style={styles.skipGuestPill}
+          >
+            <Ionicons name="person-outline" size={15} color="#22C55E" />
+            <Text style={styles.skipGuestText}>Войти как гость</Text>
+          </Pressable>
+        </View>
 
         {/* Title */}
         <View style={styles.header}>
@@ -136,6 +167,20 @@ export default function LoginScreen() {
               </View>
               <Ionicons name="chevron-forward" size={16} color="#8E9B94" />
             </Pressable>
+
+            <Pressable
+              style={[styles.devBtn, styles.devBtnGuest]}
+              onPress={() => handleQuickDevLogin("guest")}
+            >
+              <View style={[styles.devBtnIconWrap, { backgroundColor: "rgba(34, 197, 94, 0.15)" }]}>
+                <Ionicons name="sparkles" size={18} color="#22C55E" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.devBtnName, { color: "#22C55E" }]}>Войти как гость</Text>
+                <Text style={styles.devBtnDesc}>Без пароля • 5 экранов клиента</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#22C55E" />
+            </Pressable>
           </View>
         </View>
 
@@ -175,6 +220,15 @@ export default function LoginScreen() {
               {loading ? "Авторизация..." : "Войти"}
             </Text>
           </Pressable>
+
+          <Pressable
+            onPress={handleGuestLogin}
+            disabled={loading}
+            style={styles.guestOutlineBtn}
+          >
+            <Ionicons name="person-outline" size={18} color="#22C55E" />
+            <Text style={styles.guestOutlineBtnText}>Войти как гость</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -189,6 +243,12 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
   backBtn: {
     width: 40,
     height: 40,
@@ -196,7 +256,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#161D19",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+  },
+  skipGuestPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.3)",
+  },
+  skipGuestText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#22C55E",
   },
   header: {
     marginBottom: 24,
@@ -256,6 +331,10 @@ const styles = StyleSheet.create({
     borderColor: "#243329",
     padding: 12,
     gap: 12,
+  },
+  devBtnGuest: {
+    backgroundColor: "#122018",
+    borderColor: "rgba(34, 197, 94, 0.35)",
   },
   devBtnIconWrap: {
     width: 36,
@@ -327,5 +406,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: "#0B0F0D",
+  },
+  guestOutlineBtn: {
+    height: 50,
+    backgroundColor: "transparent",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#22C55E",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+  },
+  guestOutlineBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#22C55E",
   },
 });

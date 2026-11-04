@@ -246,6 +246,63 @@ export default function ProfileScreen() {
               </View>
               <Ionicons name="chevron-forward" size={16} color="#60A5FA" />
             </Pressable>
+
+            <Pressable
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#161F1A",
+                padding: 12,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: "rgba(156, 163, 175, 0.3)",
+                gap: 10,
+              }}
+              onPress={async () => {
+                hapticSelection();
+                await switchTestAccount("guest");
+              }}
+            >
+              <Ionicons name="sparkles" size={20} color="#9CA3AF" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: "#FFFFFF" }}>
+                  Войти как гость
+                </Text>
+                <Text style={{ fontSize: 11, color: "#6B7C72" }}>
+                  Свободный просмотр 5 экранов без роли бизнеса
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            </Pressable>
+
+            <Pressable
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#1B221E",
+                padding: 12,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: "rgba(34, 197, 94, 0.4)",
+                gap: 10,
+                marginTop: 4,
+              }}
+              onPress={() => {
+                hapticSelection();
+                router.push("/login");
+              }}
+            >
+              <Ionicons name="log-in-outline" size={20} color="#22C55E" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: "#22C55E" }}>
+                  Экран входа / Авторизация
+                </Text>
+                <Text style={{ fontSize: 11, color: "#8E9B94" }}>
+                  Вход по логину или выбор тестового аккаунта
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#22C55E" />
+            </Pressable>
           </View>
         </View>
 

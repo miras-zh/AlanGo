@@ -239,7 +239,7 @@ export async function clearRefreshToken(): Promise<void> {
 }
 
 export async function switchTestAccount(
-  accountKey: "dev.arena1" | "dev.arena2" | "dev.client",
+  accountKey: "dev.arena1" | "dev.arena2" | "dev.client" | "guest",
 ): Promise<SessionUser> {
   const accountMap: Record<string, SessionUser> = {
     "dev.arena1": {
@@ -277,6 +277,17 @@ export async function switchTestAccount(
       bio: "Любитель спорта. Играю в футбол и баскетбол.",
       plan: "pro",
     },
+    guest: {
+      id: "guest",
+      email: "guest@alango.kz",
+      name: "Гость",
+      role: "guest",
+      phone: "",
+      city: "Астана",
+      avatar_url: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300",
+      bio: "Гостевой аккаунт для свободного просмотра площадок, залов и событий.",
+      plan: "standard",
+    },
   };
 
   const target = accountMap[accountKey] || accountMap["dev.client"];
@@ -286,5 +297,9 @@ export async function switchTestAccount(
     user: target,
   });
   return target;
+}
+
+export async function loginAsGuest(): Promise<SessionUser> {
+  return switchTestAccount("guest");
 }
 

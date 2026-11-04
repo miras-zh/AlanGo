@@ -88,11 +88,11 @@ export default function BusinessProfileScreen() {
     }
   };
 
-  const handleSwitch = async (account: "dev.arena1" | "dev.arena2" | "dev.client") => {
+  const handleSwitch = async (account: "dev.arena1" | "dev.arena2" | "dev.client" | "guest") => {
     hapticImpact();
     const updated = await switchTestAccount(account);
     setUser(updated);
-    if (account === "dev.client") {
+    if (account === "dev.client" || account === "guest") {
       router.replace("/(tabs)");
     } else {
       loadData();
@@ -245,6 +245,20 @@ export default function BusinessProfileScreen() {
               </Text>
             </View>
             <Ionicons name="arrow-forward" size={18} color="#22C55E" />
+          </Pressable>
+
+          <Pressable
+            style={[styles.switchBtn, { borderColor: "rgba(156, 163, 175, 0.3)" }]}
+            onPress={() => handleSwitch("guest")}
+          >
+            <Ionicons name="sparkles" size={18} color="#9CA3AF" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.switchBtnTitle}>Войти как гость</Text>
+              <Text style={styles.switchBtnSub}>
+                Просмотр 5 экранов приложения без авторизации
+              </Text>
+            </View>
+            <Ionicons name="arrow-forward" size={18} color="#9CA3AF" />
           </Pressable>
         </View>
 
