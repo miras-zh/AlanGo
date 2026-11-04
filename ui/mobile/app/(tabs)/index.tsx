@@ -287,7 +287,10 @@ export default function HomeScreen() {
               <Pressable
                 key={hall.id}
                 style={styles.hallCard}
-                onPress={() => openBooking(hall)}
+                onPress={() => {
+                  hapticSelection();
+                  router.push(`/hall/${hall.id}`);
+                }}
               >
                 {/* Image Container with Badges */}
                 <View style={styles.hallImageWrap}>

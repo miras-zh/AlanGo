@@ -6,6 +6,7 @@ export interface SessionUser {
   email: string;
   name: string;
   role?: string;
+  arenaId?: number;
   avatar_url?: string;
   phone?: string;
   bio?: string;
@@ -236,3 +237,54 @@ export async function clearRefreshToken(): Promise<void> {
   cachedRefreshToken = null;
   await storageDelete(REFRESH_TOKEN_KEY);
 }
+
+export async function switchTestAccount(
+  accountKey: "dev.arena1" | "dev.arena2" | "dev.client",
+): Promise<SessionUser> {
+  const accountMap: Record<string, SessionUser> = {
+    "dev.arena1": {
+      id: 1,
+      email: "dev.arena1@sportrent.kz",
+      name: "Astana Arena Sport",
+      role: "business",
+      arenaId: 1,
+      phone: "+7 (701) 111-22-33",
+      city: "Астана",
+      avatar_url: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=300",
+      bio: "Крупнейший мультиспортивный комплекс столицы. 3 крытых зала европейского уровня.",
+      plan: "pro",
+    },
+    "dev.arena2": {
+      id: 2,
+      email: "dev.arena2@sportrent.kz",
+      name: "Nomad Pro Complex",
+      role: "business",
+      arenaId: 2,
+      phone: "+7 (702) 444-55-66",
+      city: "Астана",
+      avatar_url: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=300",
+      bio: "Премиальный спортивный кластер: футбол, баскетбол, падл и сквош.",
+      plan: "pro",
+    },
+    "dev.client": {
+      id: 3,
+      email: "client@sportrent.kz",
+      name: "Мико Аскаров",
+      role: "client",
+      phone: "+7 (777) 123-45-67",
+      city: "Астана",
+      avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300",
+      bio: "Любитель спорта. Играю в футбол и баскетбол.",
+      plan: "pro",
+    },
+  };
+
+  const target = accountMap[accountKey] || accountMap["dev.client"];
+  await saveSession({
+    token: `mock_jwt_token_${accountKey}`,
+    refreshToken: `mock_refresh_${accountKey}`,
+    user: target,
+  });
+  return target;
+}
+

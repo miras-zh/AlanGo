@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { getSessionUser, MOCK_USER, subscribeAuth } from "@/lib/auth";
+import { getSessionUser, MOCK_USER, subscribeAuth, switchTestAccount } from "@/lib/auth";
 import {
   changeMySubscriptionPlan,
   fetchMySubscription,
@@ -167,6 +167,85 @@ export default function ProfileScreen() {
                 </Pressable>
               );
             })}
+          </View>
+        </View>
+
+        {/* Business Arena Switcher Card */}
+        <View style={[styles.card, { borderColor: "rgba(34, 197, 94, 0.3)", backgroundColor: "#111814" }]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconWrap, { backgroundColor: "rgba(34, 197, 94, 0.15)" }]}>
+              <Ionicons name="business" size={20} color="#22C55E" />
+            </View>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.cardTitle}>Бизнес-кабинет (Аренда залов)</Text>
+              <Text style={styles.cardSubtitle}>
+                Управление спорткомплексом, залами, ценами и графиком
+              </Text>
+            </View>
+          </View>
+
+          <Text style={{ fontSize: 12, color: "#8E9B94", marginTop: 8, marginBottom: 12 }}>
+            Быстрый вход в тестовые бизнес-аккаунты (3 зала: Футбол, Баскетбол, Теннис):
+          </Text>
+
+          <View style={{ gap: 8 }}>
+            <Pressable
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#161F1A",
+                padding: 12,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: "rgba(34, 197, 94, 0.3)",
+                gap: 10,
+              }}
+              onPress={async () => {
+                hapticSelection();
+                await switchTestAccount("dev.arena1");
+                router.push("/business");
+              }}
+            >
+              <Ionicons name="business-outline" size={20} color="#22C55E" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: "#FFFFFF" }}>
+                  🏢 dev.arena1 (Astana Arena Sport)
+                </Text>
+                <Text style={{ fontSize: 11, color: "#6B7C72" }}>
+                  Пароль: 12345 • 3 зала • ул. Нур-Султан 12
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#22C55E" />
+            </Pressable>
+
+            <Pressable
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#161F1A",
+                padding: 12,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: "rgba(96, 165, 250, 0.3)",
+                gap: 10,
+              }}
+              onPress={async () => {
+                hapticSelection();
+                await switchTestAccount("dev.arena2");
+                router.push("/business");
+              }}
+            >
+              <Ionicons name="business-outline" size={20} color="#60A5FA" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: "#FFFFFF" }}>
+                  🏢 dev.arena2 (Nomad Pro Complex)
+                </Text>
+                <Text style={{ fontSize: 11, color: "#6B7C72" }}>
+                  Пароль: 12345 • 3 зала • пр. Туран 54
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#60A5FA" />
+            </Pressable>
           </View>
         </View>
 

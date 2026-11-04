@@ -25,6 +25,11 @@ export async function setHapticsEnabled(enabled: boolean): Promise<void> {
   }
 }
 
+export function hapticImpact(style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Medium): void {
+  if (!cachedEnabled) return;
+  Haptics.impactAsync(style).catch(() => {});
+}
+
 export function hapticSelection(): void {
   if (!cachedEnabled) return;
   Haptics.selectionAsync().catch(() => {});

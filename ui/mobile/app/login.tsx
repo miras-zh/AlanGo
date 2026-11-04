@@ -12,18 +12,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/theme/ThemeProvider";
-import { useI18n } from "@/lib/i18n";
 import { loginWithEmail } from "@/lib/registration";
-import { signInWithApple } from "@/lib/appleAuth";
-import { signInWithGoogle } from "@/lib/googleAuth";
-import { AppleSignInButton } from "@/components/AppleSignInButton";
+import { switchTestAccount } from "@/lib/auth";
 import { PasswordInput } from "@/components/PasswordInput";
 import { getErrorMessage } from "@/lib/errorMessage";
-import { hapticSuccess } from "@/lib/haptics";
+import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 export default function LoginScreen() {
   const { colors } = useAppTheme();
-  const { t } = useI18n();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,14 +27,18 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      Alert.alert("Ошибка", "Введите email и пароль");
+      Alert.alert("Ошибка", "Введите логин и пароль");
       return;
     }
     setLoading(true);
     try {
-      await loginWithEmail({ email: email.trim(), password });
+      const res = await loginWithEmail({ email: email.trim(), password });
       hapticSuccess();
-      router.replace("/(tabs)");
+      if (res?.user?.role === "business") {
+        router.replace("/business");
+      } else {
+        router.replace("/(tabs)");
+      }
     } catch (err) {
       Alert.alert("Ошибка входа", getErrorMessage(err));
     } finally {
@@ -46,131 +46,275 @@ export default function LoginScreen() {
     }
   };
 
-  const handleApple = async () => {
+  const handleQuickDevLogin = async (key: "dev.arena1" | "dev.arena2" | "dev.client") => {
+    hapticSelection();
+    setLoading(true);
     try {
-      const res = await signInWithApple();
-      if (!res) return;
+      const user = await switchTestAccount(key);
       hapticSuccess();
-      if (res.needsName) {
-        router.replace("/apple-name");
+      if (user.role === "business") {
+        router.replace("/business");
       } else {
         router.replace("/(tabs)");
       }
     } catch (err) {
-      Alert.alert("Apple Sign-In", getErrorMessage(err));
-    }
-  };
-
-  const handleGoogle = async () => {
-    try {
-      const res = await signInWithGoogle();
-      if (!res) return;
-      hapticSuccess();
-      router.replace("/(tabs)");
-    } catch (err) {
-      Alert.alert("Google Sign-In", getErrorMessage(err));
+      Alert.alert("Ошибка", getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: "#0B0F0D" }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-          <Ionicons name="close" size={24} color={colors.text} />
+        {/* Back Button */}
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </Pressable>
 
-        <Text style={[styles.title, { color: colors.text }]}>{t("auth.signIn")}</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Войдите по Email, через Apple или Google
-        </Text>
+        {/* Title */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Вход в SportRent</Text>
+          <Text style={styles.subtitle}>
+            Введите учетные данные или выберите тестовый аккаунт для проверки экранов
+          </Text>
+        </View>
 
+        {/* --- QUICK DEV TEST ACCOUNTS (1-TAP) --- */}
+        <View style={styles.devCard}>
+          <View style={styles.devCardHeader}>
+            <Ionicons name="flash" size={16} color="#22C55E" />
+            <Text style={styles.devCardTitle}>Быстрый вход для тестирования</Text>
+          </View>
+          <Text style={styles.devCardSub}>Пароль для всех аккаунтов: 12345</Text>
+
+          <View style={styles.devBtnCol}>
+            <Pressable
+              style={styles.devBtn}
+              onPress={() => handleQuickDevLogin("dev.arena1")}
+            >
+              <View style={styles.devBtnIconWrap}>
+                <Ionicons name="business" size={18} color="#22C55E" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.devBtnName}>dev.arena1 (Бизнес)</Text>
+                <Text style={styles.devBtnDesc}>Astana Arena Sport • 3 зала</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#8E9B94" />
+            </Pressable>
+
+            <Pressable
+              style={styles.devBtn}
+              onPress={() => handleQuickDevLogin("dev.arena2")}
+            >
+              <View style={styles.devBtnIconWrap}>
+                <Ionicons name="business" size={18} color="#22C55E" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.devBtnName}>dev.arena2 (Бизнес)</Text>
+                <Text style={styles.devBtnDesc}>Nomad Pro Complex • 3 зала</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#8E9B94" />
+            </Pressable>
+
+            <Pressable
+              style={styles.devBtn}
+              onPress={() => handleQuickDevLogin("dev.client")}
+            >
+              <View style={[styles.devBtnIconWrap, { backgroundColor: "#182635" }]}>
+                <Ionicons name="person" size={18} color="#3B82F6" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.devBtnName}>dev.client (Игрок / Клиент)</Text>
+                <Text style={styles.devBtnDesc}>Мико Аскаров • 5 экранов клиента</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#8E9B94" />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Divider */}
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>ИЛИ ВХОД ВРУЧНУЮ</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        {/* Form */}
         <View style={styles.form}>
+          <Text style={styles.label}>Логин или Email</Text>
           <TextInput
+            placeholder="dev.arena1 или email"
+            placeholderTextColor="#6B7C72"
             value={email}
             onChangeText={setEmail}
-            placeholder={t("auth.email")}
-            placeholderTextColor={colors.textMuted}
-            keyboardType="email-address"
             autoCapitalize="none"
-            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
+            style={styles.input}
           />
 
+          <Text style={styles.label}>Пароль</Text>
           <PasswordInput
+            placeholder="12345"
+            placeholderTextColor="#6B7C72"
             value={password}
             onChangeText={setPassword}
-            placeholder={t("auth.password")}
           />
-
-          <Pressable onPress={() => router.push("/forgot-password")}>
-            <Text style={[styles.forgotText, { color: colors.accent }]}>{t("auth.forgotPassword")}</Text>
-          </Pressable>
 
           <Pressable
             onPress={handleLogin}
             disabled={loading}
-            style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
+            style={styles.primaryBtn}
           >
             <Text style={styles.primaryBtnText}>
-              {loading ? t("common.loading") : t("auth.signIn")}
+              {loading ? "Авторизация..." : "Войти"}
             </Text>
           </Pressable>
         </View>
-
-        <View style={styles.socialSection}>
-          <AppleSignInButton onPress={handleApple} />
-          <Pressable
-            onPress={handleGoogle}
-            style={[styles.googleBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <Ionicons name="logo-google" size={18} color={colors.text} />
-            <Text style={[styles.googleBtnText, { color: colors.text }]}>
-              Продолжить через Google
-            </Text>
-          </Pressable>
-        </View>
-
-        <Pressable onPress={() => router.replace("/register")} style={styles.switchBtn}>
-          <Text style={{ color: colors.textSecondary }}>
-            Нет аккаунта? <Text style={{ color: colors.accent, fontWeight: "700" }}>{t("auth.signUp")}</Text>
-          </Text>
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { padding: 24 },
-  closeBtn: { alignSelf: "flex-end", padding: 4 },
-  title: { fontSize: 28, fontWeight: "800", marginTop: 8 },
-  subtitle: { fontSize: 14, marginTop: 6, marginBottom: 24 },
-  form: { gap: 14 },
-  input: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 15,
+  container: {
+    flex: 1,
   },
-  forgotText: { fontSize: 13, fontWeight: "600", alignSelf: "flex-end" },
-  primaryBtn: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 4,
+  scroll: {
+    padding: 20,
+    paddingBottom: 40,
   },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-  socialSection: { marginTop: 24, gap: 12 },
-  googleBtn: {
-    flexDirection: "row",
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#161D19",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    paddingVertical: 13,
+    marginBottom: 20,
+  },
+  header: {
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#8E9B94",
+    marginTop: 6,
+    lineHeight: 20,
+  },
+
+  // Dev Quick Login Card
+  devCard: {
+    backgroundColor: "#141A17",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#1E2A22",
+    padding: 16,
+    marginBottom: 24,
+  },
+  devCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 2,
+  },
+  devCardTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  devCardSub: {
+    fontSize: 12,
+    color: "#8E9B94",
+    marginBottom: 12,
+  },
+  devBtnCol: {
+    gap: 8,
+  },
+  devBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1A231E",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#243329",
+    padding: 12,
+    gap: 12,
+  },
+  devBtnIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#142A1D",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  devBtnName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  devBtnDesc: {
+    fontSize: 12,
+    color: "#8E9B94",
+    marginTop: 1,
+  },
+
+  // Divider
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#1F2823",
+  },
+  dividerText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#6B7C72",
+    letterSpacing: 0.5,
+  },
+
+  // Form
+  form: {
+    gap: 12,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#8E9B94",
+    marginTop: 4,
+  },
+  input: {
+    height: 48,
+    backgroundColor: "#161D19",
     borderRadius: 12,
     borderWidth: 1,
+    borderColor: "#232F28",
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: "#FFFFFF",
   },
-  googleBtnText: { fontSize: 15, fontWeight: "600" },
-  switchBtn: { marginTop: 28, alignItems: "center" },
+  primaryBtn: {
+    height: 50,
+    backgroundColor: "#22C55E",
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+  },
+  primaryBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0B0F0D",
+  },
 });

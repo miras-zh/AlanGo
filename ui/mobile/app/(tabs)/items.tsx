@@ -12,23 +12,23 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "@/theme/ThemeProvider";
 import {
-  createItem,
-  deleteItem,
   ItemEntity,
-  listItems,
   MOCK_SPORT_VENUES,
 } from "@/lib/items";
+import { getStoredHalls, Hall, saveNewHall } from "@/lib/sportRentData";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getErrorMessage } from "@/lib/errorMessage";
 
 const CATEGORIES = ["Все", "Футбол", "Баскетбол", "Теннис", "Волейбол", "Сквош и падл"];
 
 export default function ItemsScreen() {
+  const router = useRouter();
   const { colors } = useAppTheme();
-  const [items, setItems] = useState<ItemEntity[]>(MOCK_SPORT_VENUES);
+  const [halls, setHalls] = useState<Hall[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Все");
@@ -45,22 +45,32 @@ export default function ItemsScreen() {
 
   const loadVenues = useCallback(async () => {
     try {
-      const res = await listItems({
-        category: selectedCategory === "Все" ? undefined : selectedCategory,
-        q: search.trim() || undefined,
-      });
-      setItems(res.items || MOCK_SPORT_VENUES);
+      const stored = await getStoredHalls();
+      setHalls(stored);
     } catch {
-      setItems(MOCK_SPORT_VENUES);
+      // fallback
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedCategory, search]);
+  }, []);
 
   useEffect(() => {
     loadVenues();
   }, [loadVenues]);
+
+  const filteredHalls = halls.filter((h) => {
+    const matchCat =
+      selectedCategory === "Все" ||
+      h.sportType.toLowerCase() === selectedCategory.toLowerCase();
+    const q = search.trim().toLowerCase();
+    const matchSearch =
+      !q ||
+      h.title.toLowerCase().includes(q) ||
+      h.arenaTitle.toLowerCase().includes(q) ||
+      h.arenaAddress.toLowerCase().includes(q);
+    return matchCat && matchSearch;
+  });
 
   const handleCreate = async () => {
     if (!title.trim()) {
@@ -69,24 +79,14 @@ export default function ItemsScreen() {
     }
     setSaving(true);
     try {
-      const newItem: ItemEntity = {
-        id: Date.now(),
-        user_id: 1,
+      await saveNewHall(1, {
         title: title.trim(),
+        sportType: category as any,
+        pricePerHour: parseInt(price) || 12000,
         description: description.trim() || "Новый спортивный зал",
-        category,
-        price: parseInt(price) || 12000,
-        status: "active",
-        image_url: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800",
-        metadata: {
-          location: location.trim(),
-          rating: 5.0,
-          reviewsCount: 1,
-        },
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      setItems((prev) => [newItem, ...prev]);
+        arenaAddress: location.trim() || "г. Астана",
+      });
+      await loadVenues();
       setModalOpen(false);
       setTitle("");
       setDescription("");
@@ -157,7 +157,7 @@ export default function ItemsScreen() {
 
       {/* Halls List */}
       <FlatList
-        data={items}
+        data={filteredHalls}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
         refreshControl={
@@ -171,12 +171,18 @@ export default function ItemsScreen() {
           />
         }
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image source={{ uri: item.image_url }} style={styles.cardImage} />
+          <Pressable
+            style={styles.card}
+            onPress={() => {
+              hapticSelection();
+              router.push(`/hall/${item.id}`);
+            }}
+          >
+            <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
             <View style={styles.cardRating}>
               <Ionicons name="star" size={12} color="#22C55E" />
               <Text style={styles.ratingText}>
-                {item.metadata?.rating || 4.8} ({item.metadata?.reviewsCount || 80})
+                {item.rating || 4.8} ({item.reviewsCount || 80})
               </Text>
             </View>
 
@@ -184,48 +190,45 @@ export default function ItemsScreen() {
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
                 <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryBadgeText}>{item.category}</Text>
+                  <Text style={styles.categoryBadgeText}>{item.sportType}</Text>
                 </View>
               </View>
 
-              <View style={styles.locationRow}>
-                <Ionicons name="location-outline" size={14} color="#8E9B94" />
-                <Text style={styles.locationText}>
-                  {item.metadata?.location || "г. Астана"}
+              <Pressable
+                style={styles.locationRow}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  hapticSelection();
+                  router.push(`/arena/${item.arenaId}`);
+                }}
+              >
+                <Ionicons name="location-outline" size={14} color="#22C55E" />
+                <Text style={[styles.locationText, { color: "#22C55E" }]}>
+                  {item.arenaTitle} • {item.arenaAddress}
                 </Text>
-              </View>
+              </Pressable>
 
               <Text style={styles.descText} numberOfLines={2}>
-                {item.description}
+                Покрытие: {item.surfaceType}. {item.description}
               </Text>
 
               <View style={styles.cardFooter}>
                 <Text style={styles.priceText}>
-                  {(item.price || 12000).toLocaleString("ru-RU")} ₸{" "}
+                  {(item.pricePerHour || 12000).toLocaleString("ru-RU")} ₸{" "}
                   <Text style={styles.priceSub}>/ час</Text>
                 </Text>
                 <Pressable
                   style={styles.bookBtn}
                   onPress={() => {
                     hapticSuccess();
-                    Alert.alert(
-                      "Забронировать",
-                      `Зал "${item.title}" свободен на сегодня с 19:00. Забронировать за ${(item.price || 12000).toLocaleString("ru-RU")} ₸?`,
-                      [
-                        { text: "Отмена", style: "cancel" },
-                        {
-                          text: "Подтвердить",
-                          onPress: () => Alert.alert("Успешно!", "Зал забронирован!"),
-                        },
-                      ],
-                    );
+                    router.push(`/hall/${item.id}`);
                   }}
                 >
                   <Text style={styles.bookBtnText}>Забронировать</Text>
                 </Pressable>
               </View>
             </View>
-          </View>
+          </Pressable>
         )}
       />
 

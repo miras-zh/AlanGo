@@ -37,6 +37,9 @@ function RootNavigator() {
         }}
       >
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="business" />
+        <Stack.Screen name="hall/[id]" />
+        <Stack.Screen name="arena/[id]" />
         <Stack.Screen name="login" options={{ presentation: "modal" }} />
         <Stack.Screen name="register" options={{ presentation: "modal" }} />
         <Stack.Screen name="forgot-password" options={{ presentation: "modal" }} />
