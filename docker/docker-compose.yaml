@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-alango}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${DB_PORT:-5436}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
     container_name: alango-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6380}:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -36,8 +36,8 @@ services:
     container_name: alango-mailpit
     restart: unless-stopped
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "${SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_PORT:-8025}:8025"
 
   app:
     build:
@@ -51,7 +51,7 @@ services:
       DB_HOST: db
       REDIS_ADDR: redis:6379
     ports:
-      - "${SERVER_PORT:-8080}:8080"
+      - "${SERVER_PORT:-8092}:${SERVER_PORT:-8092}"
     volumes:
       - ../uploads:/app/uploads
     depends_on:
@@ -65,11 +65,11 @@ services:
       context: ../ui
       dockerfile: ../docker/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8092/api}
     container_name: alango-web
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${WEB_PORT:-3002}:3000"
     depends_on:
       - app
 

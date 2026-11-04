@@ -13,7 +13,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await apiFetch("/auth/forgot-password", {
+      await apiFetch("/password-reset/request", {
         method: "POST",
         skipAuth: true,
         body: JSON.stringify({ email: email.trim() }),

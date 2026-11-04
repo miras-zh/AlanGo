@@ -32,6 +32,8 @@ function getSafeMessaging(): { mod: any; instance: any } | null {
   }
 }
 
+export const initPushNotifications = registerForPushNotifications;
+
 export async function registerForPushNotifications(): Promise<void> {
   if (Platform.OS === "web" || !Device.isDevice) {
     return;

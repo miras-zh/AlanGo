@@ -15,6 +15,6 @@ COPY --from=builder /out/server /app/server
 COPY --from=builder /src/migrations /app/migrations
 
 RUN mkdir -p /app/uploads
-EXPOSE 8090
+EXPOSE 8092
 
 ENTRYPOINT ["/app/server"]

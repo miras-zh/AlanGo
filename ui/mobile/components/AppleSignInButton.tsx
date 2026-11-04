@@ -6,9 +6,10 @@ import { StyleSheet, Text, View } from "react-native";
 
 type AppleSignInButtonProps = {
   mode?: "signin" | "signup";
+  onPress?: () => void | Promise<void>;
 };
 
-export function AppleSignInButton({ mode = "signin" }: AppleSignInButtonProps) {
+export function AppleSignInButton({ mode = "signin", onPress }: AppleSignInButtonProps) {
   const { themeName } = useTheme();
   const { available, signIn, error } = useAppleSignIn();
 
@@ -29,7 +30,7 @@ export function AppleSignInButton({ mode = "signin" }: AppleSignInButtonProps) {
         }
         cornerRadius={radius.control}
         style={styles.button}
-        onPress={signIn}
+        onPress={onPress || signIn}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>

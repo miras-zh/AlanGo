@@ -38,7 +38,7 @@ func NewSender(cfg SenderConfig) *Sender {
 		cfg.Brand = "AlanGo"
 	}
 	if cfg.SiteURL == "" {
-		cfg.SiteURL = "http://localhost:3000"
+		cfg.SiteURL = "http://localhost:3002"
 	}
 	if cfg.Host == "" {
 		log.Println("mail: SMTP not configured — running in dev mode (emails are logged, not sent)")

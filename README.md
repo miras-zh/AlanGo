@@ -1,6 +1,6 @@
 # AlanGo — Full-Stack App Template
 
-Продуктовый каркас (Go 1.25 + PostgreSQL 15 + Redis 7 + Expo 57 React Native + Next.js 16), выделенный из продакшн-архитектуры **Vison (`FotoLink`)** и интегрированный со стандартами воронки **Case Operation**.
+Продуктовый каркас (Go 1.25 + PostgreSQL 15 + Redis 7 + Expo 57 React Native + Next.js 16), интегрированный со стандартами воронки **Case Operation**.
 
 ---
 

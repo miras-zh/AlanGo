@@ -18,11 +18,11 @@ export function subscribeRealtimeEvents(fn: RealtimeListener): () => void {
 export async function connectRealtime(): Promise<void> {
   if (ws || !getAccessToken()) return;
   try {
-    const { ticket } = await apiFetch<{ ticket: string }>("/ws/ticket", {
+    const { ticket } = await apiFetch<{ ticket: string }>("/api/realtime/ticket", {
       method: "POST",
     });
     const wsBase = API_BASE_URL.replace(/^http/, "ws");
-    const socket = new WebSocket(`${wsBase}/ws?ticket=${encodeURIComponent(ticket)}`);
+    const socket = new WebSocket(`${wsBase}/api/realtime/ws?ticket=${encodeURIComponent(ticket)}`);
     ws = socket;
 
     socket.onmessage = (e) => {

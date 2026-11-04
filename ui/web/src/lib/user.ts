@@ -8,7 +8,7 @@ export interface AuthResponse {
 }
 
 export async function loginWithEmail(email: string, password: string): Promise<AuthResponse> {
-  const res = await apiFetch<AuthResponse>("/auth/login", {
+  const res = await apiFetch<AuthResponse>("/login", {
     method: "POST",
     skipAuth: true,
     body: JSON.stringify({ email, password }),
@@ -18,7 +18,7 @@ export async function loginWithEmail(email: string, password: string): Promise<A
 }
 
 export async function registerWithEmail(name: string, email: string, password: string): Promise<AuthResponse> {
-  const res = await apiFetch<AuthResponse>("/auth/register", {
+  const res = await apiFetch<AuthResponse>("/register", {
     method: "POST",
     skipAuth: true,
     body: JSON.stringify({ name, email, password }),
@@ -29,7 +29,7 @@ export async function registerWithEmail(name: string, email: string, password: s
 
 export async function logoutWebSession(): Promise<void> {
   try {
-    await apiFetch("/auth/logout", { method: "POST" });
+    await apiFetch("/logout", { method: "POST" });
   } catch {
     // ignore
   }
@@ -37,7 +37,7 @@ export async function logoutWebSession(): Promise<void> {
 }
 
 export async function fetchMe(): Promise<SessionUser> {
-  const user = await apiFetch<SessionUser>("/users/me");
+  const user = await apiFetch<SessionUser>("/auth/me");
   updateSessionUser(user);
   return user;
 }
@@ -48,7 +48,7 @@ export async function updateMe(patch: {
   bio?: string;
   city?: string;
 }): Promise<SessionUser> {
-  const user = await apiFetch<SessionUser>("/users/me", {
+  const user = await apiFetch<SessionUser>("/profile", {
     method: "PATCH",
     body: JSON.stringify(patch),
   });
@@ -57,6 +57,6 @@ export async function updateMe(patch: {
 }
 
 export async function deleteMyAccount(): Promise<void> {
-  await apiFetch("/users/me", { method: "DELETE" });
+  await apiFetch("/profile", { method: "DELETE" });
   clearSession();
 }

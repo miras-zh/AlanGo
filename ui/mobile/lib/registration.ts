@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { saveSession, clearSession } from "@/lib/auth";
 
 export type StartRegistrationRequest = {
   full_name: string;
@@ -31,11 +32,86 @@ export type VerifyRegistrationResult = {
 
 export async function verifyRegistration(token: string, code: string): Promise<VerifyRegistrationResult> {
   const res = await api.post<VerifyRegistrationResult>("/api/register/verify", { token, code });
+  if (res.data?.token) {
+    const info = res.data.user_info || ({} as any);
+    await saveSession({
+      token: res.data.token,
+      refreshToken: res.data.refresh_token,
+      user: {
+        ...info,
+        id: String(info.id || 0),
+        email: res.data.email,
+        name: info.full_name || res.data.email.split("@")[0],
+      },
+    });
+  }
   return res.data;
 }
 
 export async function resendRegistrationCode(token: string): Promise<void> {
   await api.post("/api/register/resend", { token });
+}
+
+export async function loginWithEmail(
+  payload: { email: string; password: string } | string,
+  passwordArg?: string,
+): Promise<any> {
+  const email = typeof payload === "string" ? payload : payload.email;
+  const password = typeof payload === "string" ? passwordArg! : payload.password;
+  const res = await api.post<any>("/api/login", { email, password });
+  const data = res.data;
+  if (data?.token) {
+    const user = data.user_info || data.user || {};
+    await saveSession({
+      token: data.token,
+      refreshToken: data.refresh_token,
+      user: {
+        ...user,
+        id: String(user.id || 0),
+        email: user.email || email,
+        name: user.full_name || user.name || email.split("@")[0],
+      },
+    });
+  }
+  return data;
+}
+
+export async function registerWithEmail(
+  payload: { name: string; email: string; password: string } | string,
+  emailArg?: string,
+  passwordArg?: string,
+): Promise<any> {
+  const name = typeof payload === "string" ? payload : payload.name;
+  const email = typeof payload === "string" ? emailArg! : payload.email;
+  const password = typeof payload === "string" ? passwordArg! : payload.password;
+  const res = await api.post<any>("/api/register", { full_name: name, email, password });
+  const data = res.data;
+  if (data?.token && (data?.user_info || data?.user)) {
+    const user = data.user_info || data.user;
+    await saveSession({
+      token: data.token,
+      refreshToken: data.refresh_token,
+      user: {
+        ...user,
+        id: String(user.id || 0),
+        email: user.email || email,
+        name: user.full_name || user.name || name,
+      },
+    });
+  }
+  return data;
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await api.post("/api/password-reset/request", { email });
+}
+
+export async function logoutCurrentSession(): Promise<void> {
+  try {
+    await api.post("/api/logout").catch(() => {});
+  } finally {
+    await clearSession();
+  }
 }
 
 export function passwordStrengthError(password: string): string | null {

@@ -9,7 +9,7 @@ import {
   setToken,
 } from "@/lib/auth";
 
-const defaultHost = Platform.OS === "android" ? "http://10.0.2.2:8090" : "http://localhost:8090";
+const defaultHost = Platform.OS === "android" ? "http://10.0.2.2:8092" : "http://localhost:8092";
 
 export const baseURL = process.env.EXPO_PUBLIC_API_URL || defaultHost;
 export const UPLOAD_TIMEOUT_MS = 60000;
@@ -19,6 +19,38 @@ export const api = axios.create({
   timeout: 15000,
   headers: { "X-Client-Type": "mobile" },
 });
+
+export async function apiFetch<T = unknown>(
+  path: string,
+  options: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string | FormData;
+    skipAuth?: boolean;
+  } = {}
+): Promise<T> {
+  const url = path.startsWith("/api") ? path : `/api${path.startsWith("/") ? path : `/${path}`}`;
+  let data: unknown;
+  if (options.body) {
+    if (typeof options.body === "string") {
+      try {
+        data = JSON.parse(options.body);
+      } catch {
+        data = options.body;
+      }
+    } else {
+      data = options.body;
+    }
+  }
+
+  const res = await api.request<T>({
+    url,
+    method: options.method || "GET",
+    data,
+    headers: options.headers,
+  });
+  return res.data;
+}
 
 api.interceptors.request.use(async (config) => {
   const token = await getToken();

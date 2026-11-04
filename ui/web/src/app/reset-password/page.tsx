@@ -17,7 +17,7 @@ function ResetPasswordForm() {
     setError("");
     setLoading(true);
     try {
-      await apiFetch("/auth/reset-password", {
+      await apiFetch("/password-reset/confirm", {
         method: "POST",
         skipAuth: true,
         body: JSON.stringify({ token, new_password: password }),

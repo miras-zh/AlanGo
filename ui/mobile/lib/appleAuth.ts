@@ -1,4 +1,5 @@
 import * as AppleAuthentication from "expo-apple-authentication";
+import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "./api";
 import { saveSession, SessionUser } from "./auth";
 
@@ -49,4 +50,26 @@ export async function signInWithApple(): Promise<AppleSignInResult | null> {
 
   const needsName = !res.user.name || res.user.name === "Apple User";
   return { user: res.user, needsName };
+}
+
+export function useAppleSignIn() {
+  const [available, setAvailable] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    AppleAuthentication.isAvailableAsync().then(setAvailable).catch(() => setAvailable(false));
+  }, []);
+
+  const signIn = useCallback(async () => {
+    try {
+      setError(null);
+      await signInWithApple();
+    } catch (e: any) {
+      if (e?.code !== "ERR_REQUEST_CANCELED") {
+        setError(e?.message || "Ошибка входа Apple");
+      }
+    }
+  }, []);
+
+  return { available, signIn, error };
 }

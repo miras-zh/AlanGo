@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,77 +12,51 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppTheme } from "@/theme/ThemeProvider";
-import { getSessionUser, subscribeAuth } from "@/lib/auth";
+import { getSessionUser, MOCK_USER, subscribeAuth } from "@/lib/auth";
 import {
   changeMySubscriptionPlan,
   fetchMySubscription,
   SubscriptionInfo,
   updateMyProfile,
 } from "@/lib/user";
-import { trackPaywallView, trackSubscribe } from "@/lib/analytics";
-import { hapticSuccess } from "@/lib/haptics";
+import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getErrorMessage } from "@/lib/errorMessage";
 
 export default function ProfileScreen() {
-  const { colors } = useAppTheme();
   const router = useRouter();
-  const [user, setUser] = useState(getSessionUser());
-  const [name, setName] = useState(user?.name || "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [bio, setBio] = useState(user?.bio || "");
+  const [user, setUser] = useState(getSessionUser() || MOCK_USER);
+  const [name, setName] = useState(user?.name || "Мико Аскаров");
+  const [phone, setPhone] = useState(user?.phone || "+7 (777) 123-45-67");
+  const [city, setCity] = useState(user?.city || "Астана");
   const [saving, setSaving] = useState(false);
-  const [sub, setSub] = useState<SubscriptionInfo | null>(null);
+  const [sub, setSub] = useState<SubscriptionInfo | null>({
+    plan: "pro",
+    status: "active",
+    expires_at: "через 25 дней",
+  });
 
   useEffect(() => {
     return subscribeAuth(() => {
-      const u = getSessionUser();
+      const u = getSessionUser() || MOCK_USER;
       setUser(u);
-      if (u) {
-        setName(u.name || "");
-        setPhone(u.phone || "");
-        setBio(u.bio || "");
-      }
+      setName(u.name || "");
+      setPhone(u.phone || "");
+      setCity(u.city || "");
     });
   }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchMySubscription()
-        .then((s) => {
-          setSub(s);
-          trackPaywallView({ current_plan: s.plan });
-        })
-        .catch(() => {});
-    }
-  }, [user]);
+    fetchMySubscription()
+      .then((s) => setSub(s))
+      .catch(() => {});
+  }, []);
 
-  if (!user) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={["top"]}>
-        <View style={styles.center}>
-          <Ionicons name="person-circle-outline" size={56} color={colors.textMuted} />
-          <Text style={[styles.unauthTitle, { color: colors.text }]}>Личный кабинет</Text>
-          <Text style={[styles.unauthSub, { color: colors.textSecondary }]}>
-            Войдите, чтобы управлять профилем, подпиской и настройками приложения.
-          </Text>
-          <Pressable
-            onPress={() => router.push("/login")}
-            style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-          >
-            <Text style={styles.primaryBtnText}>Войти / Регистрация</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const handleSaveProfile = async () => {
+  const handleSave = async () => {
     setSaving(true);
     try {
-      await updateMyProfile({ name: name.trim(), phone: phone.trim(), bio: bio.trim() });
+      await updateMyProfile({ name: name.trim(), phone: phone.trim(), city: city.trim() });
       hapticSuccess();
-      Alert.alert("Готово", "Профиль сохранён");
+      Alert.alert("Успешно", "Данные профиля обновлены!");
     } catch (err) {
       Alert.alert("Ошибка", getErrorMessage(err));
     } finally {
@@ -89,98 +64,144 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleSelectPlan = async (plan: "standard" | "pro" | "vip") => {
+  const handlePlanChange = async (newPlan: string) => {
+    hapticSelection();
     try {
-      await changeMySubscriptionPlan(plan);
-      await trackSubscribe({ plan });
-      const updated = await fetchMySubscription();
+      const updated = await changeMySubscriptionPlan(newPlan);
       setSub(updated);
-      hapticSuccess();
+      Alert.alert("Тариф обновлен", `Вы перешли на тариф ${newPlan.toUpperCase()}`);
     } catch (err) {
       Alert.alert("Ошибка", getErrorMessage(err));
     }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={["top"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: "#0B0F0D" }]} edges={["top"]}>
+      {/* Top Bar */}
+      <View style={styles.topBar}>
+        <Text style={styles.topBarTitle}>Мой профиль</Text>
+        <Pressable
+          style={styles.settingsBtn}
+          onPress={() => {
+            hapticSelection();
+            router.push("/settings");
+          }}
+        >
+          <Ionicons name="settings-outline" size={22} color="#FFFFFF" />
+        </Pressable>
+      </View>
+
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Профиль</Text>
-          <Pressable
-            onPress={() => router.push("/settings")}
-            style={[styles.settingsBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <Ionicons name="settings-outline" size={20} color={colors.text} />
-          </Pressable>
+        {/* User Card */}
+        <View style={styles.userCard}>
+          <Image
+            source={{
+              uri:
+                user?.avatar_url ||
+                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+            }}
+            style={styles.avatar}
+          />
+          <View style={styles.userInfo}>
+            <View style={styles.userNameRow}>
+              <Text style={styles.userName}>{name}</Text>
+              <View style={styles.proBadge}>
+                <Ionicons name="shield-checkmark" size={12} color="#22C55E" />
+                <Text style={styles.proBadgeText}>PRO</Text>
+              </View>
+            </View>
+            <Text style={styles.userEmail}>{user?.email || "miko@sportrent.kz"}</Text>
+            <Text style={styles.userLocation}>📍 {city}</Text>
+          </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
-          <Text style={[styles.emailValue, { color: colors.text }]}>{user.email}</Text>
-
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Имя</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.bg }]}
-          />
-
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Телефон</Text>
-          <TextInput
-            value={phone}
-            onChangeText={setPhone}
-            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.bg }]}
-          />
-
-          <Text style={[styles.label, { color: colors.textSecondary }]}>О себе</Text>
-          <TextInput
-            value={bio}
-            onChangeText={setBio}
-            multiline
-            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.bg }]}
-          />
-
-          <Pressable
-            onPress={handleSaveProfile}
-            disabled={saving}
-            style={[styles.saveBtn, { backgroundColor: colors.accent }]}
-          >
-            <Text style={styles.saveBtnText}>{saving ? "Сохранение..." : "Сохранить профиль"}</Text>
-          </Pressable>
+        {/* Stats Grid */}
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>14</Text>
+            <Text style={styles.statLabel}>Игр сыграно</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>28 ч</Text>
+            <Text style={styles.statLabel}>На корте</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>★ 4.9</Text>
+            <Text style={styles.statLabel}>Рейтинг</Text>
+          </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Тарифный план ({sub?.plan?.toUpperCase() || "STANDARD"})
-          </Text>
-          <View style={styles.planRow}>
-            {(["standard", "pro", "vip"] as const).map((plan) => {
-              const active = sub?.plan === plan;
+        {/* Subscription Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrap}>
+              <Ionicons name="flash" size={20} color="#22C55E" />
+            </View>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.cardTitle}>SportRent Club</Text>
+              <Text style={styles.cardSubtitle}>
+                Скидка 15% на дневные слоты и приоритетное бронирование
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.planSelector}>
+            {[
+              { id: "standard", name: "Базовый", price: "0 ₸" },
+              { id: "pro", name: "PRO Клуб", price: "4 990 ₸ / мес" },
+              { id: "vip", name: "VIP Безлимит", price: "12 990 ₸ / мес" },
+            ].map((p) => {
+              const active = (sub?.plan || "pro") === p.id;
               return (
                 <Pressable
-                  key={plan}
-                  onPress={() => handleSelectPlan(plan)}
-                  style={[
-                    styles.planChip,
-                    {
-                      borderColor: active ? colors.accent : colors.border,
-                      backgroundColor: active ? colors.accentSoft : colors.bg,
-                    },
-                  ]}
+                  key={p.id}
+                  style={[styles.planChip, active && styles.planChipActive]}
+                  onPress={() => handlePlanChange(p.id)}
                 >
-                  <Text
-                    style={{
-                      color: active ? colors.accent : colors.text,
-                      fontWeight: "700",
-                      fontSize: 13,
-                    }}
-                  >
-                    {plan.toUpperCase()}
+                  <Text style={[styles.planName, active && styles.planNameActive]}>
+                    {p.name}
+                  </Text>
+                  <Text style={[styles.planPrice, active && styles.planPriceActive]}>
+                    {p.price}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
+        </View>
+
+        {/* Edit Profile Form */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Персональные данные</Text>
+
+          <Text style={styles.label}>ФИО</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            style={styles.input}
+            placeholderTextColor="#6B7C72"
+          />
+
+          <Text style={styles.label}>Телефон</Text>
+          <TextInput
+            value={phone}
+            onChangeText={setPhone}
+            style={styles.input}
+            placeholderTextColor="#6B7C72"
+            keyboardType="phone-pad"
+          />
+
+          <Text style={styles.label}>Город</Text>
+          <TextInput
+            value={city}
+            onChangeText={setCity}
+            style={styles.input}
+            placeholderTextColor="#6B7C72"
+          />
+
+          <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+            <Text style={styles.saveBtnText}>{saving ? "Сохраняем..." : "Сохранить изменения"}</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -188,51 +209,222 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { padding: 20, gap: 16 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  container: {
+    flex: 1,
   },
-  title: { fontSize: 24, fontWeight: "800" },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  topBarTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
   settingsBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: "#161D19",
     borderWidth: 1,
+    borderColor: "#232F28",
     alignItems: "center",
     justifyContent: "center",
   },
-  card: { padding: 18, borderRadius: 16, borderWidth: 1, gap: 10 },
-  label: { fontSize: 12, fontWeight: "600", marginTop: 4 },
-  emailValue: { fontSize: 15, fontWeight: "700", marginBottom: 4 },
-  input: {
+  scroll: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+    gap: 16,
+  },
+
+  // User Card
+  userCard: {
+    backgroundColor: "#141A17",
+    borderRadius: 20,
     borderWidth: 1,
+    borderColor: "#1F2823",
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  avatar: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 2,
+    borderColor: "#22C55E",
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  proBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.3)",
+  },
+  proBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#22C55E",
+  },
+  userEmail: {
+    fontSize: 13,
+    color: "#8E9B94",
+    marginTop: 3,
+  },
+  userLocation: {
+    fontSize: 12,
+    color: "#6B7C72",
+    marginTop: 3,
+  },
+
+  // Stats
+  statsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: "#141A17",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#1F2823",
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: "#8E9B94",
+  },
+
+  // Generic Card
+  card: {
+    backgroundColor: "#141A17",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#1F2823",
+    padding: 18,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  cardIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#182B1F",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: "#8E9B94",
+    marginTop: 2,
+  },
+  planSelector: {
+    gap: 8,
+  },
+  planChip: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderRadius: 12,
+    backgroundColor: "#19221C",
+    borderWidth: 1,
+    borderColor: "#253329",
+  },
+  planChipActive: {
+    backgroundColor: "#132E1D",
+    borderColor: "#22C55E",
+  },
+  planName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#8E9B94",
+  },
+  planNameActive: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  planPrice: {
+    fontSize: 13,
+    color: "#6B7C72",
+  },
+  planPriceActive: {
+    color: "#22C55E",
+    fontWeight: "700",
+  },
+
+  // Form
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 12,
+  },
+  label: {
+    fontSize: 12,
+    color: "#8E9B94",
+    fontWeight: "600",
+    marginBottom: 6,
+    marginTop: 8,
+  },
+  input: {
+    backgroundColor: "#19221C",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#253329",
+    color: "#FFFFFF",
+    fontSize: 14,
     paddingHorizontal: 14,
     paddingVertical: 11,
-    fontSize: 15,
   },
   saveBtn: {
-    marginTop: 8,
+    backgroundColor: "#22C55E",
     paddingVertical: 13,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
+    marginTop: 20,
   },
-  saveBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 6 },
-  planRow: { flexDirection: "row", gap: 10 },
-  planChip: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: "center",
+  saveBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0B0F0D",
   },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
-  unauthTitle: { fontSize: 20, fontWeight: "700", marginTop: 12 },
-  unauthSub: { fontSize: 14, textAlign: "center", marginTop: 6, marginBottom: 18, lineHeight: 20 },
-  primaryBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 });

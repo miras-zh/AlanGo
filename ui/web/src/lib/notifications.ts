@@ -15,5 +15,5 @@ export async function listNotifications(): Promise<{ items: AppNotification[]; u
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
-  await apiFetch("/notifications/read-all", { method: "POST" });
+  await apiFetch("/notifications/read", { method: "POST" });
 }

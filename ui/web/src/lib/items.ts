@@ -26,7 +26,7 @@ export async function listPublicItems(): Promise<ItemsListResponse> {
 }
 
 export async function listMyItems(): Promise<ItemsListResponse> {
-  return apiFetch<ItemsListResponse>("/items/my");
+  return apiFetch<ItemsListResponse>("/items/me");
 }
 
 export async function createItem(input: {

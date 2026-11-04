@@ -28,6 +28,24 @@ export function backendErrorKey(err: unknown): string | null {
   return null;
 }
 
+export function getErrorMessage(err: unknown, fallback = "Произошла ошибка"): string {
+  if (axios.isAxiosError(err)) {
+    if (typeof err.response?.data === "string" && err.response.data.trim()) {
+      return err.response.data.trim();
+    }
+    const data = err.response?.data as any;
+    if (typeof data?.message === "string" && data.message.trim()) {
+      return data.message.trim();
+    }
+    if (typeof data?.error === "string" && data.error.trim()) {
+      return data.error.trim();
+    }
+    if (err.message) return err.message;
+  }
+  if (err instanceof Error) return err.message;
+  return fallback;
+}
+
 export function useErrorMessage() {
   const t = useT();
   return useCallback(

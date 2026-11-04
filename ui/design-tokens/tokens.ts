@@ -1,30 +1,30 @@
 // Shared design tokens for Web (Next.js) and Mobile (Expo / React Native).
-// Change `accent` / `accentHover` / `bg` here to re-skin the entire application!
+// Generated for AlanGo (Emerald Mint Theme for Sports & Fitness).
 
 export const colors = {
   light: {
-    bg: "#FAFAFC",
+    bg: "#F8FAF9",
     surface: "#FFFFFF",
-    surface2: "#F2F1F7",
-    border: "#E6E4F0",
-    text: "#18171F",
-    muted: "#6E6B7B",
-    accent: "#6D4BFF",
-    accentHover: "#5A38F0",
-    accentSoft: "#EEE9FF",
-    accentSoftText: "#5133D6",
+    surface2: "#F0F5F2",
+    border: "#E1EBE5",
+    text: "#0F1F17",
+    muted: "#5A7065",
+    accent: "#059669",
+    accentHover: "#047857",
+    accentSoft: "#E6F7F0",
+    accentSoftText: "#065F46",
   },
   dark: {
-    bg: "#0E0E14",
-    surface: "#171721",
-    surface2: "#21212E",
-    border: "#2B2B3B",
-    text: "#F3F2F8",
-    muted: "#9694A8",
-    accent: "#8B6DFF",
-    accentHover: "#9D83FF",
-    accentSoft: "#251E42",
-    accentSoftText: "#C7B8FF",
+    bg: "#0B130E",
+    surface: "#131F18",
+    surface2: "#1B2B22",
+    border: "#253A2E",
+    text: "#ECFDF5",
+    muted: "#7DA38E",
+    accent: "#10B981",
+    accentHover: "#34D399",
+    accentSoft: "#1A3B29",
+    accentSoftText: "#A7F3D0",
   },
 } as const;
 

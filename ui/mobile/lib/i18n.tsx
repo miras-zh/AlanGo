@@ -59,8 +59,17 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
 
+export const I18nProvider = LocaleProvider;
+export type AppLocale = Locale;
+
 export function useLocale() {
   return useContext(LocaleContext);
+}
+
+export function useI18n() {
+  const { locale, setLocale } = useLocale();
+  const t = useT();
+  return { locale, setLocale, t };
 }
 
 export function translate(

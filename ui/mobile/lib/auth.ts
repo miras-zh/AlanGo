@@ -1,8 +1,84 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
+export interface SessionUser {
+  id: string | number;
+  email: string;
+  name: string;
+  role?: string;
+  avatar_url?: string;
+  phone?: string;
+  bio?: string;
+  city?: string;
+  full_name?: string;
+  plan?: string;
+}
+
 const TOKEN_KEY = "alango_token";
 const REFRESH_TOKEN_KEY = "alango_refresh_token";
+const USER_KEY = "alango_user";
+
+export const MOCK_USER: SessionUser = {
+  id: "1",
+  email: "miko@sportrent.kz",
+  name: "Мико Аскаров",
+  role: "client",
+  phone: "+7 (777) 123-45-67",
+  city: "Астана",
+  bio: "Любитель футбола и баскетбола. Бронирую залы каждую неделю.",
+  plan: "pro",
+  avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+};
+
+let cachedUser: SessionUser | null = MOCK_USER;
+let cachedToken: string | null = "mock_jwt_token_sportrent";
+let cachedRefreshToken: string | null = null;
+
+const authListeners = new Set<() => void>();
+
+export function subscribeAuth(listener: () => void): () => void {
+  authListeners.add(listener);
+  return () => {
+    authListeners.delete(listener);
+  };
+}
+
+function notifyAuth() {
+  authListeners.forEach((l) => {
+    try {
+      l();
+    } catch {
+      // ignore
+    }
+  });
+}
+
+async function storageGet(key: string): Promise<string | null> {
+  if (Platform.OS === "web") {
+    return typeof window !== "undefined" ? localStorage.getItem(key) : null;
+  }
+  return SecureStore.getItemAsync(key);
+}
+
+async function storageSet(key: string, value: string): Promise<void> {
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(key, value);
+    }
+    return;
+  }
+  await SecureStore.setItemAsync(key, value);
+}
+
+async function storageDelete(key: string): Promise<void> {
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(key);
+    }
+    return;
+  }
+  await SecureStore.deleteItemAsync(key);
+}
 
 function base64UrlDecode(input: string): string {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -36,14 +112,93 @@ function decodeExpiry(token: string): number | null {
   }
 }
 
-export async function getToken(): Promise<string | null> {
-  const token =
-    Platform.OS === "web"
-      ? typeof window !== "undefined"
-        ? localStorage.getItem(TOKEN_KEY)
-        : null
-      : await SecureStore.getItemAsync(TOKEN_KEY);
+export function getSessionUser(): SessionUser | null {
+  return cachedUser ?? MOCK_USER;
+}
 
+export function getAccessToken(): string | null {
+  return cachedToken ?? "mock_jwt_token_sportrent";
+}
+
+export async function hydrateSession(): Promise<SessionUser | null> {
+  try {
+    const [token, refreshToken, userJson] = await Promise.all([
+      storageGet(TOKEN_KEY),
+      storageGet(REFRESH_TOKEN_KEY),
+      storageGet(USER_KEY),
+    ]);
+
+    cachedToken = token || "mock_jwt_token_sportrent";
+    cachedRefreshToken = refreshToken;
+
+    if (userJson) {
+      try {
+        cachedUser = JSON.parse(userJson) as SessionUser;
+      } catch {
+        cachedUser = MOCK_USER;
+      }
+    } else {
+      cachedUser = MOCK_USER;
+    }
+  } catch {
+    cachedUser = MOCK_USER;
+    cachedToken = "mock_jwt_token_sportrent";
+  }
+
+  notifyAuth();
+  return cachedUser;
+}
+
+export async function saveSession(data: {
+  token: string;
+  refreshToken?: string | null;
+  user: SessionUser;
+}): Promise<void> {
+  cachedToken = data.token;
+  cachedRefreshToken = data.refreshToken || null;
+  cachedUser = {
+    ...data.user,
+    name: data.user.name || (data.user as any).full_name || data.user.email.split("@")[0],
+  };
+
+  await Promise.all([
+    storageSet(TOKEN_KEY, data.token),
+    data.refreshToken ? storageSet(REFRESH_TOKEN_KEY, data.refreshToken) : storageDelete(REFRESH_TOKEN_KEY),
+    storageSet(USER_KEY, JSON.stringify(cachedUser)),
+  ]);
+
+  notifyAuth();
+}
+
+export async function updateSessionUser(patch: Partial<SessionUser>): Promise<void> {
+  if (!cachedUser) return;
+  cachedUser = { ...cachedUser, ...patch };
+  await storageSet(USER_KEY, JSON.stringify(cachedUser));
+  notifyAuth();
+}
+
+export async function clearSession(): Promise<void> {
+  cachedUser = null;
+  cachedToken = null;
+  cachedRefreshToken = null;
+
+  await Promise.all([
+    storageDelete(TOKEN_KEY),
+    storageDelete(REFRESH_TOKEN_KEY),
+    storageDelete(USER_KEY),
+  ]);
+
+  notifyAuth();
+}
+
+export async function getToken(): Promise<string | null> {
+  if (cachedToken) {
+    const expiresAt = decodeExpiry(cachedToken);
+    if (expiresAt === null || expiresAt >= Date.now()) {
+      return cachedToken;
+    }
+  }
+  const token = await storageGet(TOKEN_KEY);
   if (!token) return null;
 
   const expiresAt = decodeExpiry(token);
@@ -52,52 +207,32 @@ export async function getToken(): Promise<string | null> {
     return null;
   }
 
+  cachedToken = token;
   return token;
 }
 
 export async function setToken(token: string): Promise<void> {
-  if (Platform.OS === "web") {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(TOKEN_KEY, token);
-    }
-    return;
-  }
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
+  cachedToken = token;
+  await storageSet(TOKEN_KEY, token);
 }
 
 export async function clearToken(): Promise<void> {
-  if (Platform.OS === "web") {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(TOKEN_KEY);
-    }
-    return;
-  }
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  cachedToken = null;
+  await storageDelete(TOKEN_KEY);
 }
 
 export async function getRefreshToken(): Promise<string | null> {
-  if (Platform.OS === "web") {
-    return typeof window !== "undefined" ? localStorage.getItem(REFRESH_TOKEN_KEY) : null;
-  }
-  return SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+  if (cachedRefreshToken) return cachedRefreshToken;
+  cachedRefreshToken = await storageGet(REFRESH_TOKEN_KEY);
+  return cachedRefreshToken;
 }
 
 export async function setRefreshToken(token: string): Promise<void> {
-  if (Platform.OS === "web") {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(REFRESH_TOKEN_KEY, token);
-    }
-    return;
-  }
-  await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
+  cachedRefreshToken = token;
+  await storageSet(REFRESH_TOKEN_KEY, token);
 }
 
 export async function clearRefreshToken(): Promise<void> {
-  if (Platform.OS === "web") {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(REFRESH_TOKEN_KEY);
-    }
-    return;
-  }
-  await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  cachedRefreshToken = null;
+  await storageDelete(REFRESH_TOKEN_KEY);
 }

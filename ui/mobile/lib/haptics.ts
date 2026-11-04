@@ -30,6 +30,8 @@ export function hapticSelection(): void {
   Haptics.selectionAsync().catch(() => {});
 }
 
+export const selectionHaptic = hapticSelection;
+
 export function hapticSuccess(): void {
   if (!cachedEnabled) return;
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});

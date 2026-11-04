@@ -20,7 +20,7 @@ export async function trackEvent(
   metadata?: Record<string, unknown>
 ): Promise<void> {
   try {
-    await apiFetch("/analytics/event", {
+    await apiFetch("/api/analytics/events", {
       method: "POST",
       body: JSON.stringify({
         event,

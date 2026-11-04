@@ -3,7 +3,7 @@
 
 	@api path /api/* /uploads/* /healthz /readyz /metrics
 	handle @api {
-		reverse_proxy api:8090
+		reverse_proxy app:8092
 	}
 
 	handle {
