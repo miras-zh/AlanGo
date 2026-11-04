@@ -1,0 +1,32 @@
+# Binaries & build output
+/bin/
+/app-server
+*.exe
+*.out
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.p8
+*firebase-adminsdk*.json
+GoogleService-Info.plist
+google-services.json
+
+# Runtime uploads
+/uploads/
+
+# Node / Web / Mobile
+node_modules/
+.next/
+.expo/
+dist/
+build/
+ios/
+android/
+*.tsbuildinfo
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

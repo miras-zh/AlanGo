@@ -1,0 +1,12 @@
+{$DOMAIN:localhost} {
+	encode gzip zstd
+
+	@api path /api/* /uploads/* /healthz /readyz /metrics
+	handle @api {
+		reverse_proxy api:8090
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

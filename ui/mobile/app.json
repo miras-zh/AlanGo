@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "AlanGo",
+    "slug": "alango",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "alango",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.studio.alango",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
+    },
+    "android": {
+      "package": "com.studio.alango",
+      "versionCode": 1,
+      "permissions": []
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Приложение использует доступ к галерее для загрузки фото.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#6D4BFF"
+        }
+      ],
+      "expo-status-bar",
+      "expo-web-browser",
+      "expo-apple-authentication",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "platforms": [
+      "ios",
+      "android"
+    ]
+  }
+}
