@@ -157,12 +157,13 @@ export default function HomeScreen() {
         {/* --- 1. HEADER: Logo + Location --- */}
         <View style={styles.header}>
           <View style={styles.logoRow}>
-            <View style={styles.logoBadge}>
-              <View style={styles.logoSlashGreen} />
-              <View style={styles.logoSlashRed} />
-            </View>
+            <Image
+              source={require("@/assets/logo.png")}
+              style={styles.logoIcon}
+              resizeMode="contain"
+            />
             <Text style={styles.logoText}>
-              Sport<Text style={styles.logoTextRed}>Rent</Text>
+              Alan <Text style={styles.logoTextRed}>Go</Text>
             </Text>
           </View>
 
@@ -504,25 +505,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  logoBadge: {
-    width: 24,
-    height: 24,
-    justifyContent: "center",
-  },
-  logoSlashGreen: {
-    width: 18,
-    height: 5,
-    backgroundColor: "#22C55E",
-    borderRadius: 3,
-    transform: [{ skewX: "-25deg" }],
-    marginBottom: 3,
-  },
-  logoSlashRed: {
-    width: 18,
-    height: 5,
-    backgroundColor: "#EF4444",
-    borderRadius: 3,
-    transform: [{ skewX: "-25deg" }],
+  logoIcon: {
+    width: 32,
+    height: 30,
   },
   logoText: {
     fontSize: 22,

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -74,7 +75,12 @@ export default function LoginScreen() {
 
         {/* Title */}
         <View style={styles.header}>
-          <Text style={styles.title}>Вход в SportRent</Text>
+          <Image
+            source={require("@/assets/logo.png")}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>Вход в Alan Go</Text>
           <Text style={styles.subtitle}>
             Введите учетные данные или выберите тестовый аккаунт для проверки экранов
           </Text>
@@ -194,6 +200,11 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 24,
+  },
+  headerLogo: {
+    width: 48,
+    height: 46,
+    marginBottom: 12,
   },
   title: {
     fontSize: 28,
