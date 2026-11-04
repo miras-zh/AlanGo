@@ -142,7 +142,7 @@ export default function BusinessScheduleScreen() {
         <View>
           <Text style={styles.headerTitle}>График работы</Text>
           <Text style={styles.headerSubtitle}>
-            Настройка доступных слотов и рабочих часов арены (модель Vison)
+            Настройка доступных слотов и рабочих часов арены
           </Text>
         </View>
         <Pressable

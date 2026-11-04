@@ -221,7 +221,7 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="time-outline" size={24} color="#3B82F6" />
             </View>
             <View style={styles.actionInfo}>
-              <Text style={styles.actionTitle}>График работы (Vison)</Text>
+              <Text style={styles.actionTitle}>График работы</Text>
               <Text style={styles.actionSubtitle}>
                 Режим работы по дням, время и длительность слотов
               </Text>
