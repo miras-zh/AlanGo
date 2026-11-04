@@ -31,6 +31,14 @@ const TIME_PRESETS = [
 
 const DURATION_OPTIONS = [60, 90, 120];
 
+function formatTime(val: string): string {
+  const cleaned = val.replace(/[^0-9:]/g, "").slice(0, 5);
+  if (!cleaned.includes(":") && cleaned.length >= 3) {
+    return `${cleaned.slice(0, 2)}:${cleaned.slice(2, 4)}`;
+  }
+  return cleaned;
+}
+
 export default function BusinessScheduleScreen() {
   const [schedule, setSchedule] = useState<ScheduleDay[]>(DEFAULT_WEEK_SCHEDULE);
   const [arenaId, setArenaId] = useState(1);
@@ -239,9 +247,12 @@ export default function BusinessScheduleScreen() {
                       value={day.startTime}
                       placeholder="08:00"
                       placeholderTextColor="#6B7C72"
+                      keyboardType="numbers-and-punctuation"
+                      maxLength={5}
+                      returnKeyType="done"
                       onChangeText={(val) => {
                         const copy = [...schedule];
-                        copy[idx].startTime = val;
+                        copy[idx].startTime = formatTime(val);
                         setSchedule(copy);
                       }}
                     />
@@ -254,9 +265,12 @@ export default function BusinessScheduleScreen() {
                       value={day.endTime}
                       placeholder="23:00"
                       placeholderTextColor="#6B7C72"
+                      keyboardType="numbers-and-punctuation"
+                      maxLength={5}
+                      returnKeyType="done"
                       onChangeText={(val) => {
                         const copy = [...schedule];
-                        copy[idx].endTime = val;
+                        copy[idx].endTime = formatTime(val);
                         setSchedule(copy);
                       }}
                     />

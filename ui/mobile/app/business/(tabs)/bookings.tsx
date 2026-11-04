@@ -388,6 +388,7 @@ export default function BusinessBookingsScreen() {
                     style={styles.input}
                     placeholder="19:00 - 20:00"
                     placeholderTextColor="#6B7C72"
+                    keyboardType="numbers-and-punctuation"
                     value={timeSlot}
                     onChangeText={setTimeSlot}
                   />
