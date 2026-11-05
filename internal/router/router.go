@@ -13,6 +13,7 @@ import (
 	"alango/internal/notification"
 	"alango/internal/push"
 	"alango/internal/realtime"
+	"alango/internal/sport"
 	"alango/internal/subscription"
 	"alango/internal/upload"
 	"alango/internal/user"
@@ -96,6 +97,9 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	itemService := item.NewService(db, rdb)
 	itemHandler := item.NewHandler(itemService, uploadService, auditService, hub)
 
+	sportService := sport.NewService(db)
+	sportHandler := sport.NewHandler(sportService)
+
 	// --- Public API endpoints ---
 	r.Handle("/api/register", withPublicFormRateLimit("register", http.HandlerFunc(userHandler.Register), rdb)).Methods("POST")
 	r.HandleFunc("/api/register/verify", userHandler.VerifyRegister).Methods("POST")
@@ -119,6 +123,16 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	// Public items listing & single item fetch
 	r.HandleFunc("/api/items", itemHandler.List).Methods("GET")
 	r.HandleFunc("/api/items/{id:[0-9]+}", itemHandler.GetByID).Methods("GET")
+
+	// --- Public Sport Domain Endpoints (Arenas, Halls, Schedules, Bookings) ---
+	r.HandleFunc("/api/arenas", sportHandler.ListArenas).Methods("GET")
+	r.HandleFunc("/api/arenas/{id:[0-9]+}", sportHandler.GetArena).Methods("GET")
+	r.HandleFunc("/api/arenas/{id:[0-9]+}/schedule", sportHandler.GetSchedule).Methods("GET")
+	r.HandleFunc("/api/halls", sportHandler.ListHalls).Methods("GET")
+	r.HandleFunc("/api/halls/{id:[0-9]+}", sportHandler.GetHall).Methods("GET")
+	r.HandleFunc("/api/bookings", sportHandler.CreateBooking).Methods("POST")
+	r.HandleFunc("/api/bookings", sportHandler.ListBookings).Methods("GET")
+	r.HandleFunc("/api/business/dashboard", sportHandler.GetBusinessDashboard).Methods("GET")
 
 	// --- Authenticated API endpoints ---
 	authRouter := r.PathPrefix("/api").Subrouter()
@@ -144,6 +158,12 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/items/{id:[0-9]+}", itemHandler.Update).Methods("PATCH")
 	authRouter.HandleFunc("/items/{id:[0-9]+}/image", itemHandler.UploadImage).Methods("POST")
 	authRouter.HandleFunc("/items/{id:[0-9]+}", itemHandler.Delete).Methods("DELETE")
+
+	// Authenticated Sport Domain CRUD
+	authRouter.HandleFunc("/arenas/{id:[0-9]+}", sportHandler.UpdateArena).Methods("PATCH")
+	authRouter.HandleFunc("/arenas/{id:[0-9]+}/schedule", sportHandler.SaveSchedule).Methods("PUT")
+	authRouter.HandleFunc("/halls", sportHandler.CreateHall).Methods("POST")
+	authRouter.HandleFunc("/bookings/{id:[0-9]+}/status", sportHandler.UpdateBookingStatus).Methods("PATCH")
 
 	return withSecurityHeaders(withCORS(withRateLimit(withMaxBodySize(r), rdb), cfg.CORSAllowedOrigin))
 }

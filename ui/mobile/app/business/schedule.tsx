@@ -177,7 +177,7 @@ export default function BusinessScheduleScreen() {
         <Text style={styles.sectionHeader}>Дни недели</Text>
 
         {schedule.map((day, idx) => (
-          <View key={day.dayOfWeek} style={styles.dayCard}>
+          <View key={`${day.dayOfWeek ?? idx}-${idx}`} style={styles.dayCard}>
             <View style={styles.dayTopRow}>
               <View style={styles.dayTitleWrap}>
                 <Text style={styles.dayName}>{day.dayName}</Text>

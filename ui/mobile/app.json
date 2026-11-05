@@ -14,11 +14,14 @@
     },
     "ios": {
       "bundleIdentifier": "kz.alango.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        },
         "UIBackgroundModes": [
           "remote-notification"
         ]

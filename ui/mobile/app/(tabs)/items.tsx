@@ -412,7 +412,8 @@ export default function ItemsScreen() {
                 <View style={styles.arenaRatingBadge}>
                   <Ionicons name="star" size={13} color="#22C55E" />
                   <Text style={styles.ratingText}>
-                    {arena.rating} ({arena.reviewsCount})
+                    {arena.rating}
+                    {arena.reviewsCount ? ` (${arena.reviewsCount})` : ""}
                   </Text>
                 </View>
 
@@ -420,7 +421,13 @@ export default function ItemsScreen() {
                 <View style={styles.hallsPillOverlay}>
                   <View style={styles.greenPulseDot} />
                   <Text style={styles.hallsPillText}>
-                    {arena.hallsCount} {arena.hallsCount === 1 ? "зал" : arena.hallsCount < 5 ? "зала" : "залов"} в комплексе
+                    {(arena.hallsCount || arena.halls?.length || 3)}{" "}
+                    {(arena.hallsCount || arena.halls?.length || 3) === 1
+                      ? "зал"
+                      : (arena.hallsCount || arena.halls?.length || 3) < 5
+                      ? "зала"
+                      : "залов"}{" "}
+                    в комплексе
                   </Text>
                 </View>
               </View>

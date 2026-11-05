@@ -1,0 +1,76 @@
+name: alango
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: alango-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: alango
+    volumes:
+      - alango_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - alango_internal
+
+  redis:
+    image: redis:7-alpine
+    container_name: alango-redis
+    restart: unless-stopped
+    volumes:
+      - alango_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - alango_internal
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/app/Dockerfile
+    container_name: alango-api
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: alango
+      DB_SSLMODE: disable
+      REDIS_ADDR: redis:6379
+      SERVER_PORT: 8092
+      UPLOAD_DIR: /app/uploads
+      UPLOAD_PUBLIC_URL: https://alango.78.140.223.90.sslip.io/uploads
+    ports:
+      - "127.0.0.1:8092:8092"
+    volumes:
+      - ../uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - alango_internal
+      - vison_network
+
+volumes:
+  alango_pgdata:
+  alango_redisdata:
+
+networks:
+  alango_internal:
+  vison_network:
+    name: docker_default
+    external: true

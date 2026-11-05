@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { apiFetch } from "@/lib/api";
 
 export type SportType = "Футбол" | "Баскетбол" | "Теннис" | "Волейбол" | "Сквош и падл" | "Другое";
 
@@ -552,7 +553,48 @@ const HALLS_KEY = "sportrent.halls.v1";
 const SCHEDULES_KEY = "sportrent.schedules.v1";
 const BOOKINGS_KEY = "sportrent.bookings.v1";
 
-export async function getStoredArenas(): Promise<Arena[]> {
+export async function getStoredArenas(params?: {
+  q?: string;
+  city?: string;
+  district?: string;
+  sport?: string;
+}): Promise<Arena[]> {
+  try {
+    const query = new URLSearchParams();
+    if (params?.q) query.set("q", params.q);
+    if (params?.city) query.set("city", params.city);
+    if (params?.district) query.set("district", params.district);
+    if (params?.sport) query.set("sport", params.sport);
+    const qs = query.toString();
+    const res = await apiFetch<{ arenas: any[] }>(`/arenas${qs ? `?${qs}` : ""}`);
+    if (res?.arenas && Array.isArray(res.arenas) && res.arenas.length > 0) {
+      const mapped: Arena[] = res.arenas.map((a: any) => ({
+        id: a.id,
+        ownerId: a.ownerId ?? a.owner_id ?? 0,
+        ownerEmail: a.ownerEmail ?? a.owner_email ?? "",
+        title: a.title,
+        category: a.category,
+        district: a.district,
+        city: a.city,
+        address: a.address,
+        phone: a.phone,
+        rating: a.rating ?? 4.8,
+        reviewsCount: a.reviewsCount ?? a.reviews_count ?? 50,
+        imageUrl: a.imageUrl ?? a.image_url ?? "",
+        description: a.description ?? "",
+        features: a.features ?? [],
+        workingHours: a.workingHours ?? a.working_hours ?? "08:00 - 23:00",
+        hallsCount: a.hallsCount ?? a.halls_count ?? (a.halls ? a.halls.length : 3),
+        minPricePerHour: a.minPricePerHour ?? a.min_price_per_hour ?? 12000,
+        sports: a.sports ?? ["Футбол", "Баскетбол", "Теннис"],
+      }));
+      await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(mapped));
+      return mapped;
+    }
+  } catch {
+    // Offline or server down: fallback to cached
+  }
+
   try {
     const raw = await AsyncStorage.getItem(ARENAS_KEY);
     if (raw) {
@@ -570,7 +612,43 @@ export async function getStoredArenas(): Promise<Arena[]> {
   return INITIAL_ARENAS;
 }
 
-export async function getStoredHalls(): Promise<Hall[]> {
+export async function getStoredHalls(params?: {
+  sport?: string;
+  arena_id?: number;
+  q?: string;
+}): Promise<Hall[]> {
+  try {
+    const query = new URLSearchParams();
+    if (params?.sport) query.set("sport", params.sport);
+    if (params?.arena_id) query.set("arena_id", String(params.arena_id));
+    if (params?.q) query.set("q", params.q);
+    const qs = query.toString();
+    const res = await apiFetch<{ halls: any[] }>(`/halls${qs ? `?${qs}` : ""}`);
+    if (res?.halls && Array.isArray(res.halls) && res.halls.length > 0) {
+      const mapped: Hall[] = res.halls.map((h: any) => ({
+        id: h.id,
+        arenaId: h.arenaId ?? h.arena_id,
+        arenaTitle: h.arenaTitle ?? h.arena_title ?? "",
+        arenaAddress: h.arenaAddress ?? h.arena_address ?? "",
+        title: h.title,
+        sportType: h.sportType ?? h.sport_type ?? "Футбол",
+        surfaceType: h.surfaceType ?? h.surface_type ?? "Паркет",
+        equipment: h.equipment ?? [],
+        capacity: h.capacity ?? "",
+        pricePerHour: h.pricePerHour ?? h.price_per_hour ?? 12000,
+        imageUrl: h.imageUrl ?? h.image_url ?? "",
+        status: h.status ?? "active",
+        description: h.description ?? "",
+        rating: h.rating ?? 4.8,
+        reviewsCount: h.reviewsCount ?? h.reviews_count ?? 30,
+      }));
+      await AsyncStorage.setItem(HALLS_KEY, JSON.stringify(mapped));
+      return mapped;
+    }
+  } catch {
+    // Fallback to cached
+  }
+
   try {
     const raw = await AsyncStorage.getItem(HALLS_KEY);
     if (raw) {
@@ -616,6 +694,22 @@ export async function getArenasWithHalls(): Promise<ArenaWithHalls[]> {
 
 export async function getStoredSchedule(arenaId: number): Promise<ScheduleDay[]> {
   try {
+    const res = await apiFetch<{ schedule: any[] }>(`/arenas/${arenaId}/schedule`);
+    if (res?.schedule && Array.isArray(res.schedule) && res.schedule.length > 0) {
+      const mapped: ScheduleDay[] = res.schedule.map((d: any) => ({
+        dayOfWeek: d.dayOfWeek ?? d.day_of_week ?? 0,
+        dayName: d.dayName ?? d.day_name ?? "День",
+        isClosed: d.isClosed ?? d.is_closed ?? false,
+        startTime: d.startTime ?? d.start_time ?? "08:00",
+        endTime: d.endTime ?? d.end_time ?? "23:00",
+        slotDurations: d.slotDurations ?? d.slot_durations ?? [60, 90],
+      }));
+      await AsyncStorage.setItem(`${SCHEDULES_KEY}.${arenaId}`, JSON.stringify(mapped));
+      return mapped;
+    }
+  } catch {}
+
+  try {
     const raw = await AsyncStorage.getItem(`${SCHEDULES_KEY}.${arenaId}`);
     if (raw) return JSON.parse(raw);
   } catch {}
@@ -624,9 +718,52 @@ export async function getStoredSchedule(arenaId: number): Promise<ScheduleDay[]>
 
 export async function saveStoredSchedule(arenaId: number, schedule: ScheduleDay[]): Promise<void> {
   await AsyncStorage.setItem(`${SCHEDULES_KEY}.${arenaId}`, JSON.stringify(schedule));
+  try {
+    await apiFetch(`/arenas/${arenaId}/schedule`, {
+      method: "PUT",
+      body: JSON.stringify({
+        schedule: schedule.map((s) => ({
+          day_of_week: s.dayOfWeek,
+          day_name: s.dayName,
+          is_closed: s.isClosed,
+          start_time: s.startTime,
+          end_time: s.endTime,
+          slot_durations: s.slotDurations,
+        })),
+      }),
+    });
+  } catch {
+    // Saved locally in AsyncStorage
+  }
 }
 
-export async function getStoredBookings(): Promise<Booking[]> {
+export async function getStoredBookings(arenaId?: number): Promise<Booking[]> {
+  try {
+    const res = await apiFetch<{ bookings: any[] }>(
+      `/bookings${arenaId ? `?arena_id=${arenaId}` : ""}`
+    );
+    if (res?.bookings && Array.isArray(res.bookings) && res.bookings.length > 0) {
+      const mapped: Booking[] = res.bookings.map((b) => ({
+        id: b.booking_code || String(b.id),
+        hallId: b.hall_id,
+        hallTitle: b.hall_title || "Зал",
+        sportType: b.sport_type || "Футбол",
+        arenaId: b.arena_id,
+        arenaTitle: b.arena_title || "Спорткомплекс",
+        clientName: b.client_name,
+        clientPhone: b.client_phone,
+        date: b.booking_date,
+        timeSlot: b.time_slot,
+        durationMinutes: b.duration_minutes || 60,
+        totalPrice: b.total_price,
+        status: b.status,
+        createdAt: b.created_at || new Date().toISOString(),
+      }));
+      await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(mapped));
+      return mapped;
+    }
+  } catch {}
+
   try {
     const raw = await AsyncStorage.getItem(BOOKINGS_KEY);
     if (raw) return JSON.parse(raw);
@@ -635,13 +772,39 @@ export async function getStoredBookings(): Promise<Booking[]> {
 }
 
 export async function saveNewBooking(booking: Omit<Booking, "id" | "createdAt">): Promise<Booking> {
-  const current = await getStoredBookings();
-  const created: Booking = {
+  let created: Booking = {
     ...booking,
     id: `SR-${Math.floor(100 + Math.random() * 900)}`,
     createdAt: new Date().toISOString(),
   };
-  const updated = [created, ...current];
+
+  try {
+    const res = await apiFetch<any>("/bookings", {
+      method: "POST",
+      body: JSON.stringify({
+        hall_id: booking.hallId,
+        arena_id: booking.arenaId,
+        client_name: booking.clientName,
+        client_phone: booking.clientPhone,
+        booking_date: booking.date,
+        time_slot: booking.timeSlot,
+        duration_minutes: booking.durationMinutes,
+        total_price: booking.totalPrice,
+      }),
+    });
+    if (res && (res.id || res.booking_code)) {
+      created = {
+        ...booking,
+        id: res.booking_code || String(res.id),
+        createdAt: res.created_at || new Date().toISOString(),
+      };
+    }
+  } catch {
+    // Saved locally in AsyncStorage
+  }
+
+  const current = await getStoredBookings();
+  const updated = [created, ...current.filter((b) => b.id !== created.id)];
   await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
   return created;
 }
@@ -655,6 +818,23 @@ export async function saveUpdatedHall(hall: Hall): Promise<void> {
     halls.unshift(hall);
   }
   await AsyncStorage.setItem(HALLS_KEY, JSON.stringify(halls));
+
+  try {
+    await apiFetch("/halls", {
+      method: "POST",
+      body: JSON.stringify({
+        id: hall.id > 1000000000 ? 0 : hall.id,
+        arena_id: hall.arenaId,
+        title: hall.title,
+        sport_type: hall.sportType,
+        surface_type: hall.surfaceType,
+        price_per_hour: hall.pricePerHour,
+        description: hall.description,
+        capacity: hall.capacity,
+        equipment: hall.equipment,
+      }),
+    });
+  } catch {}
 }
 
 export async function saveUpdatedArena(arena: Arena): Promise<void> {
@@ -666,6 +846,13 @@ export async function saveUpdatedArena(arena: Arena): Promise<void> {
     arenas.unshift(arena);
   }
   await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(arenas));
+
+  try {
+    await apiFetch(`/arenas/${arena.id}`, {
+      method: "PATCH",
+      body: JSON.stringify(arena),
+    });
+  } catch {}
 }
 
 export async function updateBookingStatus(
@@ -678,6 +865,13 @@ export async function updateBookingStatus(
     bookings[idx] = { ...bookings[idx], status };
     await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
   }
+
+  try {
+    await apiFetch(`/bookings/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+  } catch {}
 }
 
 export async function saveNewHall(arenaId: number, data: Partial<Hall>): Promise<Hall> {
@@ -693,10 +887,15 @@ export async function saveNewHall(arenaId: number, data: Partial<Hall>): Promise
     title: data.title || "Новый зал",
     sportType: data.sportType || "Футбол",
     surfaceType: data.surfaceType || "Спортивное покрытие",
-    equipment: data.equipment && data.equipment.length > 0 ? data.equipment : ["Освещение", "Раздевалки"],
+    equipment:
+      data.equipment && data.equipment.length > 0
+        ? data.equipment
+        : ["Освещение", "Раздевалки"],
     capacity: data.capacity || "До 12 человек",
     pricePerHour: data.pricePerHour || 12000,
-    imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800",
+    imageUrl:
+      data.imageUrl ||
+      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800",
     status: data.status || "active",
     description: data.description || "Новая спортивная площадка",
     rating: 5.0,
@@ -705,5 +904,25 @@ export async function saveNewHall(arenaId: number, data: Partial<Hall>): Promise
 
   const updated = [newHall, ...halls];
   await AsyncStorage.setItem(HALLS_KEY, JSON.stringify(updated));
+
+  try {
+    const res = await apiFetch<any>("/halls", {
+      method: "POST",
+      body: JSON.stringify({
+        arena_id: arenaId,
+        title: newHall.title,
+        sport_type: newHall.sportType,
+        surface_type: newHall.surfaceType,
+        price_per_hour: newHall.pricePerHour,
+        description: newHall.description,
+        capacity: newHall.capacity,
+        equipment: newHall.equipment,
+      }),
+    });
+    if (res?.id) {
+      newHall.id = res.id;
+    }
+  } catch {}
+
   return newHall;
 }

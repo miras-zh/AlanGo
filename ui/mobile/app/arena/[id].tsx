@@ -79,7 +79,8 @@ export default function ArenaDetailScreen() {
           <View style={styles.ratingBadge}>
             <Ionicons name="star" size={13} color="#22C55E" />
             <Text style={styles.ratingText}>
-              {arena.rating} ({arena.reviewsCount} отзывов)
+              {arena.rating}
+              {arena.reviewsCount ? ` (${arena.reviewsCount} отзывов)` : ""}
             </Text>
           </View>
         </View>
@@ -150,8 +151,8 @@ export default function ArenaDetailScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>График работы по дням</Text>
           <View style={styles.scheduleList}>
-            {schedule.map((s) => (
-              <View key={s.dayOfWeek} style={styles.scheduleRow}>
+            {schedule.map((s, idx) => (
+              <View key={`${s.dayOfWeek}-${idx}`} style={styles.scheduleRow}>
                 <Text style={styles.scheduleDayName}>{s.dayName}</Text>
                 {s.isClosed ? (
                   <Text style={styles.scheduleClosed}>Выходной</Text>
