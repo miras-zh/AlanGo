@@ -132,3 +132,4 @@ type BusinessDashboard struct {
 	HallsCount   int       `json:"halls_count"`
 	RecentBookings []Booking `json:"recent_bookings"`
 }
+

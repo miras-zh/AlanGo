@@ -34,6 +34,23 @@
   - В `.env` и `.env.example` обновлен `APPLE_BUNDLE_IDS=kz.alango.app`.
 
 ### 📱 Мобильное приложение (iOS / Expo 57)
+- **Иерархия спорткомплексов и аренда залов (Бизнес-модель)**:
+  - Реализован каталог с сегментированным переключателем: **«Спорткомплексы»** (здания с несколькими залами) и **«Отдельные залы»** ([`app/(tabs)/items.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/items.tsx)).
+  - Добавлены фильтры по районам (Есиль, Нура, Алматы) и видам спорта (Футбол, Баскетбол, Теннис, Волейбол, Сквош и падл).
+  - Создан детальный экран спорткомплекса ([`app/arena/[id].tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/arena/[id].tsx)) с инфраструктурой, фото, залами и графиком работы.
+  - На главном экране ([`app/(tabs)/index.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/index.tsx)) добавлена горизонтальная карусель спорткомплексов и арен.
+- **Исправление иконки приложения (Home Screen)**:
+  - Убран внутренний текст *"Alan Go"* из изображения иконки, вызывавший визуальное дублирование названия под иконкой iOS.
+  - Взят чистый векторный ассет из `template_image/icon-improved1.svg` (стилизованная неоновая буква **A** с мячом без надписей) и сгенерированы 1024×1024 ассеты для iOS и Expo.
+- **Аутентификация и гостевой режим ([`app/login.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/login.tsx))**:
+  - Добавлена кнопка **«Войти как гость»** в шапке экрана, быстрая карточка в блоке тестовых аккаунтов и полноразмерная кнопка под формой для входа в 1 касание.
+- **Стабилизация нативной маршрутизации Expo Router**:
+  - Добавлен корневой [`ui/mobile/index.js`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/index.js), восстановивший прямую загрузку живого бандла с Metro в bare React Native.
+  - Выпрямлена иерархия бизнес-кабинета (`app/business/schedule.tsx`, `halls.tsx`, `bookings.tsx`, `profile.tsx`), полностью устранен сбой `Unmatched Route: /business/schedule`.
+- **Синхронизация данных с бэкендом Go**:
+  - В [`sportRentData.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/sportRentData.ts) добавлен двусторонний маппер `snake_case` <-> `camelCase` для арен, залов, расписаний и броней, устранивший ошибки отображения `undefined` в графике работы.
+- **Брендинг**:
+  - Полностью вычищены устаревшие упоминания стороннего сервиса *"Vison"*, везде установлен бренд **AlanGo**.
 - **Подключение к боевому бэкенду**:
   - Создан `ui/mobile/.env` с боевым адресом API: `EXPO_PUBLIC_API_URL=https://alango.78.140.223.90.sslip.io`.
 - **Версионирование**:

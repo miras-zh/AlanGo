@@ -220,3 +220,4 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('bookings_id_seq', (SELECT MAX(id) FROM bookings));
+
