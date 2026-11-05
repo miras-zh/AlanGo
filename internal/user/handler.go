@@ -120,6 +120,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrResendTooSoon), errors.Is(err, ErrEmailSendLimitHit):
 			http.Error(w, err.Error(), http.StatusTooManyRequests)
 		default:
+			log.Printf("ERROR: StartRegistration failed for email %s: %v", req.Email, err)
 			http.Error(w, "failed to start registration", http.StatusInternalServerError)
 		}
 		return
