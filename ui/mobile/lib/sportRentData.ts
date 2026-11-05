@@ -34,6 +34,8 @@ export type Arena = {
   ownerId: number;
   ownerEmail: string;
   title: string;
+  category?: string;
+  district?: string;
   city: string;
   address: string;
   phone: string;
@@ -44,6 +46,8 @@ export type Arena = {
   features: string[];
   workingHours: string;
   hallsCount: number;
+  minPricePerHour?: number;
+  sports?: SportType[];
 };
 
 export type Booking = {
@@ -112,6 +116,8 @@ export const INITIAL_ARENAS: Arena[] = [
     ownerId: 1,
     ownerEmail: "dev.arena1@sportrent.kz",
     title: "Astana Arena Sport",
+    category: "Спорткомплекс",
+    district: "Есиль",
     city: "Астана",
     address: "ул. Нур-Султан 12",
     phone: "+7 (701) 111-22-33",
@@ -129,12 +135,16 @@ export const INITIAL_ARENAS: Arena[] = [
     ],
     workingHours: "08:00 - 24:00 (ежедневно)",
     hallsCount: 3,
+    minPricePerHour: 14000,
+    sports: ["Футбол", "Баскетбол", "Теннис"],
   },
   {
     id: 2,
     ownerId: 2,
     ownerEmail: "dev.arena2@sportrent.kz",
     title: "Nomad Pro Complex",
+    category: "Премиум спорткластер",
+    district: "Есиль",
     city: "Астана",
     address: "пр. Туран 54",
     phone: "+7 (702) 444-55-66",
@@ -152,6 +162,60 @@ export const INITIAL_ARENAS: Arena[] = [
     ],
     workingHours: "07:00 - 23:00 (ежедневно)",
     hallsCount: 3,
+    minPricePerHour: 12000,
+    sports: ["Футбол", "Баскетбол", "Сквош и падл"],
+  },
+  {
+    id: 3,
+    ownerId: 3,
+    ownerEmail: "daulet@sportrent.kz",
+    title: "Daulet Tennis & Padel Club",
+    category: "Теннисный центр",
+    district: "Нура",
+    city: "Астана",
+    address: "пр. Кабанбай батыра 6/1",
+    phone: "+7 (7172) 44-55-66",
+    rating: 4.9,
+    reviewsCount: 142,
+    imageUrl: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800",
+    description: "Национальный ракетный центр: 2 крытых профессиональных корта, панорамный корт для сквоша и падел-тенниса.",
+    features: [
+      "Профессиональное покрытие Hard Cushion",
+      "Магазин экипировки и натяжка струн",
+      "Сауна и ледяная купель",
+      "Кофейня со спортивным меню",
+      "Парковка с зарядкой для электромобилей",
+    ],
+    workingHours: "07:00 - 23:00 (ежедневно)",
+    hallsCount: 2,
+    minPricePerHour: 16000,
+    sports: ["Теннис", "Сквош и падл"],
+  },
+  {
+    id: 4,
+    ownerId: 4,
+    ownerEmail: "barys@sportrent.kz",
+    title: "Barys Universal Arena",
+    category: "Спорткомплекс",
+    district: "Есиль",
+    city: "Астана",
+    address: "пр. Туран 57",
+    phone: "+7 (7172) 61-33-00",
+    rating: 4.8,
+    reviewsCount: 175,
+    imageUrl: "https://images.unsplash.com/photo-1518604666864-742395639b8d?w=800",
+    description: "Многофункциональный комплекс для игровых видов спорта: мини-футбол, баскетбол, волейбол и командные тренировки.",
+    features: [
+      "Вместительные трибуны",
+      "Просторные раздевалки",
+      "Электронные табло со звуковым таймером",
+      "Прокат мячей и инвентаря",
+      "Спортивный массажный кабинет",
+    ],
+    workingHours: "08:00 - 23:00 (ежедневно)",
+    hallsCount: 3,
+    minPricePerHour: 10000,
+    sports: ["Футбол", "Баскетбол", "Волейбол"],
   },
 ];
 
@@ -301,6 +365,123 @@ export const INITIAL_HALLS: Hall[] = [
     rating: 4.9,
     reviewsCount: 110,
   },
+
+  // --- Арена 3: Daulet Tennis & Padel Club (2 зала) ---
+  {
+    id: 301,
+    arenaId: 3,
+    arenaTitle: "Daulet Tennis & Padel Club",
+    arenaAddress: "пр. Кабанбай батыра 6/1",
+    title: "Центральный корт Grand Slam",
+    sportType: "Теннис",
+    surfaceType: "Hard Cushion турнирного уровня ITF",
+    equipment: [
+      "Профессиональное бестеневое освещение 800 Lux",
+      "Судейская вышка и электронный счет",
+      "Пушка для тренировки ударов",
+      "Ракетки Head Speed & Wilson Pro Staff",
+      "Раздевалки с сауной и полотенцами",
+    ],
+    capacity: "Одиночный или парный разряд (до 4 чел)",
+    pricePerHour: 18000,
+    imageUrl: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800",
+    status: "active",
+    description: "Центральный крытый корт национального уровня с мягким покрытием и климат-контролем.",
+    rating: 4.9,
+    reviewsCount: 142,
+  },
+  {
+    id: 302,
+    arenaId: 3,
+    arenaTitle: "Daulet Tennis & Padel Club",
+    arenaAddress: "пр. Кабанбай батыра 6/1",
+    title: "Панорамный падл-корт Sky Padel",
+    sportType: "Сквош и падл",
+    surfaceType: "Испанский монофиламентный ковер + стекло 12 мм",
+    equipment: [
+      "Панорамный стеклянный борт без перекладин",
+      "Профессиональная натяжная сетка",
+      "Прокат топовых ракеток Nox & Bullpadel",
+      "Мячи Bullpadel Gold",
+    ],
+    capacity: "Парная игра (4 человека)",
+    pricePerHour: 16000,
+    imageUrl: "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800",
+    status: "active",
+    description: "Светлый панорамный корт с высокими потолками (10 м) для идеальной игры в падл в любую погоду.",
+    rating: 4.9,
+    reviewsCount: 96,
+  },
+
+  // --- Арена 4: Barys Universal Arena (3 зала) ---
+  {
+    id: 401,
+    arenaId: 4,
+    arenaTitle: "Barys Universal Arena",
+    arenaAddress: "пр. Туран 57",
+    title: "Футзальный манеж Barys",
+    sportType: "Футбол",
+    surfaceType: "Спортивный полиуретановый терафлекс 8 мм",
+    equipment: [
+      "Стандартные футзальные ворота 3x2 м",
+      "Мячи с низким отскоком Select Futsal Super",
+      "Электронное настенное табло",
+      "Трибуны на 200 зрителей",
+      "Раздевалки с душем",
+    ],
+    capacity: "5x5 (до 14 человек)",
+    pricePerHour: 14000,
+    imageUrl: "https://images.unsplash.com/photo-1518604666864-742395639b8d?w=800",
+    status: "active",
+    description: "Универсальный соревновательный манеж для мини-футбола с удобным покрытием и трибунами.",
+    rating: 4.8,
+    reviewsCount: 130,
+  },
+  {
+    id: 402,
+    arenaId: 4,
+    arenaTitle: "Barys Universal Arena",
+    arenaAddress: "пр. Туран 57",
+    title: "Баскетбольная арена Pro",
+    sportType: "Баскетбол",
+    surfaceType: "Паркетная доска из клена Junckers (сертификат FIBA)",
+    equipment: [
+      "Профессиональные гидро-щиты Schelde Sports",
+      "Секундомер атаки 24 сек",
+      "Мячи Spalding TF-1000",
+      "Судейский столик",
+    ],
+    capacity: "5x5 (стандарт FIBA)",
+    pricePerHour: 12000,
+    imageUrl: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800",
+    status: "active",
+    description: "Просторная арена с трибунами для баскетбольных матчей и тренировок.",
+    rating: 4.7,
+    reviewsCount: 88,
+  },
+  {
+    id: 403,
+    arenaId: 4,
+    arenaTitle: "Barys Universal Arena",
+    arenaAddress: "пр. Туран 57",
+    title: "Волейбольный зал Olympus",
+    sportType: "Волейбол",
+    surfaceType: "Французский Gerflor Taraflex Surface",
+    equipment: [
+      "Профессиональные алюминиевые волейбольные стойки",
+      "Сетка с антеннами и карманами",
+      "Судейская вышка",
+      "Мячи Mikasa V200W (олимпийский стандарт)",
+      "Защитные протекторы на стойках",
+    ],
+    capacity: "6x6 (до 16 человек)",
+    pricePerHour: 10000,
+    imageUrl: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800",
+    status: "active",
+    description: "Специализированный волейбольный зал с покрытием олимпийского стандарта для максимального комфорта прыжков.",
+    rating: 4.8,
+    reviewsCount: 64,
+  },
 ];
 
 export const DEFAULT_WEEK_SCHEDULE: ScheduleDay[] = [
@@ -374,7 +555,17 @@ const BOOKINGS_KEY = "sportrent.bookings.v1";
 export async function getStoredArenas(): Promise<Arena[]> {
   try {
     const raw = await AsyncStorage.getItem(ARENAS_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed: Arena[] = JSON.parse(raw);
+      const existingIds = new Set(parsed.map((a) => a.id));
+      const missing = INITIAL_ARENAS.filter((a) => !existingIds.has(a.id));
+      if (missing.length > 0) {
+        const merged = [...parsed, ...missing];
+        await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(merged));
+        return merged;
+      }
+      return parsed;
+    }
   } catch {}
   return INITIAL_ARENAS;
 }
@@ -382,9 +573,45 @@ export async function getStoredArenas(): Promise<Arena[]> {
 export async function getStoredHalls(): Promise<Hall[]> {
   try {
     const raw = await AsyncStorage.getItem(HALLS_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed: Hall[] = JSON.parse(raw);
+      const existingIds = new Set(parsed.map((h) => h.id));
+      const missing = INITIAL_HALLS.filter((h) => !existingIds.has(h.id));
+      if (missing.length > 0) {
+        const merged = [...parsed, ...missing];
+        await AsyncStorage.setItem(HALLS_KEY, JSON.stringify(merged));
+        return merged;
+      }
+      return parsed;
+    }
   } catch {}
   return INITIAL_HALLS;
+}
+
+export type ArenaWithHalls = Arena & {
+  halls: Hall[];
+  minPrice: number;
+  availableSports: SportType[];
+};
+
+export async function getArenasWithHalls(): Promise<ArenaWithHalls[]> {
+  const [arenas, halls] = await Promise.all([getStoredArenas(), getStoredHalls()]);
+  return arenas.map((arena) => {
+    const arenaHalls = halls.filter((h) => h.arenaId === arena.id);
+    const sportsSet = new Set<SportType>(arena.sports || []);
+    let minP = arena.minPricePerHour || 999999;
+    arenaHalls.forEach((h) => {
+      sportsSet.add(h.sportType);
+      if (h.pricePerHour && h.pricePerHour < minP) minP = h.pricePerHour;
+    });
+    return {
+      ...arena,
+      halls: arenaHalls,
+      minPrice: minP === 999999 ? 12000 : minP,
+      availableSports: Array.from(sportsSet),
+      hallsCount: arenaHalls.length || arena.hallsCount,
+    };
+  });
 }
 
 export async function getStoredSchedule(arenaId: number): Promise<ScheduleDay[]> {

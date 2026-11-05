@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { listPublicItems, ItemEntity } from "@/lib/items";
+import { ArenaWithHalls, getArenasWithHalls } from "@/lib/sportRentData";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 const { width } = Dimensions.get("window");
@@ -85,6 +86,7 @@ const CATEGORIES: CategoryItem[] = [
 export default function HomeScreen() {
   const router = useRouter();
   const [items, setItems] = useState<ItemEntity[]>([]);
+  const [arenas, setArenas] = useState<ArenaWithHalls[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -98,12 +100,16 @@ export default function HomeScreen() {
 
   const loadHalls = useCallback(async () => {
     try {
-      const res = await listPublicItems({
-        category: selectedCategory === "all" ? undefined : selectedCategory,
-        q: searchQuery.trim() || undefined,
-        limit: 20,
-      });
+      const [res, loadedArenas] = await Promise.all([
+        listPublicItems({
+          category: selectedCategory === "all" ? undefined : selectedCategory,
+          q: searchQuery.trim() || undefined,
+          limit: 20,
+        }),
+        getArenasWithHalls(),
+      ]);
       setItems(res.items || []);
+      setArenas(loadedArenas);
     } catch {
       // fallback handled in listPublicItems
     } finally {
@@ -259,6 +265,91 @@ export default function HomeScreen() {
             );
           })}
         </View>
+
+        {/* --- 4.5 SECTION: Спорткомплексы и Арены --- */}
+        {arenas.length > 0 && (
+          <View style={styles.arenasSection}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>Спорткомплексы и арены</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Спортивные здания и центры с арендой залов
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => {
+                  hapticSelection();
+                  router.push("/(tabs)/items");
+                }}
+                hitSlop={10}
+                style={styles.seeAllBtn}
+              >
+                <Text style={styles.seeAllText}>Все ({arenas.length})</Text>
+                <Ionicons name="chevron-forward" size={14} color="#22C55E" />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.arenasScroll}
+            >
+              {arenas.map((arena) => (
+                <Pressable
+                  key={arena.id}
+                  style={styles.homeArenaCard}
+                  onPress={() => {
+                    hapticSelection();
+                    router.push(`/arena/${arena.id}`);
+                  }}
+                >
+                  <View style={styles.homeArenaImageWrap}>
+                    <Image source={{ uri: arena.imageUrl }} style={styles.homeArenaImage} />
+                    <View style={styles.homeArenaBadge}>
+                      <Ionicons name="business" size={11} color="#22C55E" />
+                      <Text style={styles.homeArenaBadgeText}>
+                        {arena.category || "Спорткомплекс"}
+                      </Text>
+                    </View>
+                    <View style={styles.homeArenaRating}>
+                      <Ionicons name="star" size={11} color="#22C55E" />
+                      <Text style={styles.homeArenaRatingText}>{arena.rating}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.homeArenaBody}>
+                    <Text style={styles.homeArenaTitle} numberOfLines={1}>
+                      {arena.title}
+                    </Text>
+                    <View style={styles.homeArenaLocationRow}>
+                      <Ionicons name="location-sharp" size={12} color="#22C55E" />
+                      <Text style={styles.homeArenaLocationText} numberOfLines={1}>
+                        {arena.address}
+                      </Text>
+                    </View>
+
+                    <View style={styles.homeArenaSportsRow}>
+                      {arena.availableSports.slice(0, 3).map((sp) => (
+                        <View key={sp} style={styles.homeArenaSportPill}>
+                          <Text style={styles.homeArenaSportText}>{sp}</Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    <View style={styles.homeArenaFooter}>
+                      <Text style={styles.homeArenaHallsCount}>
+                        {arena.hallsCount} {arena.hallsCount === 1 ? "зал" : "зала"}
+                      </Text>
+                      <Text style={styles.homeArenaPrice}>
+                        от {arena.minPrice.toLocaleString("ru-RU")} ₸
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* --- 5. SECTION: Популярные залы --- */}
         <View style={styles.sectionHeader}>
@@ -639,6 +730,11 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     letterSpacing: -0.3,
   },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: "#8E9B94",
+    marginTop: 2,
+  },
   seeAllBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -647,6 +743,121 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 13,
     fontWeight: "600",
+    color: "#22C55E",
+  },
+
+  // Arenas Section
+  arenasSection: {
+    marginBottom: 24,
+  },
+  arenasScroll: {
+    gap: 14,
+    paddingRight: 16,
+  },
+  homeArenaCard: {
+    width: 250,
+    backgroundColor: "#131915",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#1E2A22",
+    overflow: "hidden",
+  },
+  homeArenaImageWrap: {
+    width: "100%",
+    height: 130,
+    position: "relative",
+  },
+  homeArenaImage: {
+    width: "100%",
+    height: "100%",
+  },
+  homeArenaBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(11, 15, 13, 0.85)",
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.3)",
+  },
+  homeArenaBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#22C55E",
+  },
+  homeArenaRating: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(11, 15, 13, 0.85)",
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+    borderRadius: 8,
+  },
+  homeArenaRatingText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  homeArenaBody: {
+    padding: 12,
+  },
+  homeArenaTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  homeArenaLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 8,
+  },
+  homeArenaLocationText: {
+    fontSize: 12,
+    color: "#8E9B94",
+  },
+  homeArenaSportsRow: {
+    flexDirection: "row",
+    gap: 5,
+    marginBottom: 10,
+  },
+  homeArenaSportPill: {
+    backgroundColor: "#1A241E",
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+  },
+  homeArenaSportText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#22C55E",
+  },
+  homeArenaFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#1B241E",
+  },
+  homeArenaHallsCount: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#8E9B94",
+  },
+  homeArenaPrice: {
+    fontSize: 13,
+    fontWeight: "800",
     color: "#22C55E",
   },
 
