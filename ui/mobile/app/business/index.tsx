@@ -161,35 +161,117 @@ export default function BusinessDashboardScreen() {
       >
         {/* KPI Cards Grid */}
         <View style={styles.kpiRow}>
-          <View style={styles.kpiCard}>
+          <Pressable
+            style={styles.kpiCard}
+            onPress={() => {
+              hapticSelection();
+              router.push("/business/income");
+            }}
+          >
             <View style={styles.kpiIconWrap}>
               <Ionicons name="cash-outline" size={20} color="#22C55E" />
             </View>
             <Text style={styles.kpiValue}>
               {todayRevenue > 0 ? todayRevenue.toLocaleString("ru-RU") : "36 000"} ₸
             </Text>
-            <Text style={styles.kpiTitle}>Выручка броней</Text>
-          </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+              <Text style={styles.kpiTitle}>Выручка</Text>
+              <Ionicons name="chevron-forward" size={10} color="#6B7C72" />
+            </View>
+          </Pressable>
 
-          <View style={styles.kpiCard}>
+          <Pressable
+            style={styles.kpiCard}
+            onPress={() => {
+              hapticSelection();
+              router.push("/business/bookings");
+            }}
+          >
             <View style={[styles.kpiIconWrap, { backgroundColor: "rgba(59, 130, 246, 0.15)" }]}>
               <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
             </View>
             <Text style={styles.kpiValue}>{bookings.length} брони</Text>
-            <Text style={styles.kpiTitle}>Заказов в системе</Text>
-          </View>
+            <Text style={styles.kpiTitle}>Заказов</Text>
+          </Pressable>
 
-          <View style={styles.kpiCard}>
-            <View style={[styles.kpiIconWrap, { backgroundColor: "rgba(234, 179, 8, 0.15)" }]}>
-              <Ionicons name="layers-outline" size={20} color="#EAB308" />
+          <Pressable
+            style={styles.kpiCard}
+            onPress={() => {
+              hapticSelection();
+              router.push("/business/clients");
+            }}
+          >
+            <View style={[styles.kpiIconWrap, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
+              <Ionicons name="people-outline" size={20} color="#F59E0B" />
             </View>
-            <Text style={styles.kpiValue}>{halls.length} зала</Text>
-            <Text style={styles.kpiTitle}>Активных площадок</Text>
-          </View>
+            <Text style={styles.kpiValue}>CRM</Text>
+            <Text style={styles.kpiTitle}>Клиенты</Text>
+          </Pressable>
+        </View>
+
+        {/* CRM & Financial Intelligence Section */}
+        <Text style={styles.sectionTitle}>Спортивная CRM и Аналитика</Text>
+        <View style={styles.actionsGrid}>
+          <Pressable
+            style={styles.actionCard}
+            onPress={() => {
+              hapticSelection();
+              router.push("/business/income");
+            }}
+          >
+            <View style={[styles.actionIconBox, { backgroundColor: "rgba(34, 197, 94, 0.15)" }]}>
+              <Ionicons name="cash" size={24} color="#22C55E" />
+            </View>
+            <View style={styles.actionInfo}>
+              <Text style={styles.actionTitle}>Финансы и выручка</Text>
+              <Text style={styles.actionSubtitle}>
+                Калькуляция доходов за день/неделю/месяц, средний чек и загрузка
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+          </Pressable>
+
+          <Pressable
+            style={styles.actionCard}
+            onPress={() => {
+              hapticSelection();
+              router.push("/business/clients");
+            }}
+          >
+            <View style={[styles.actionIconBox, { backgroundColor: "rgba(59, 130, 246, 0.15)" }]}>
+              <Ionicons name="people" size={24} color="#3B82F6" />
+            </View>
+            <View style={styles.actionInfo}>
+              <Text style={styles.actionTitle}>Клиентская база (CRM)</Text>
+              <Text style={styles.actionSubtitle}>
+                Капитаны команд, постоянные игроки, LTV, звонки и WhatsApp
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+          </Pressable>
+
+          <Pressable
+            style={styles.actionCard}
+            onPress={() => {
+              hapticSelection();
+              router.push("/business/staff");
+            }}
+          >
+            <View style={[styles.actionIconBox, { backgroundColor: "rgba(168, 85, 247, 0.15)" }]}>
+              <Ionicons name="id-card" size={24} color="#A855F7" />
+            </View>
+            <View style={styles.actionInfo}>
+              <Text style={styles.actionTitle}>Персонал и смены</Text>
+              <Text style={styles.actionSubtitle}>
+                Администраторы, смены, дежурные тренеры и доступ к кассе
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+          </Pressable>
         </View>
 
         {/* Quick Management Shortcuts */}
-        <Text style={styles.sectionTitle}>Быстрые действия</Text>
+        <Text style={styles.sectionTitle}>Управление комплексом</Text>
         <View style={styles.actionsGrid}>
           <Pressable
             style={styles.actionCard}

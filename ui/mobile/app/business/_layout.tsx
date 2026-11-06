@@ -88,6 +88,28 @@ export default function BusinessTabsLayout() {
           ),
         }}
       />
+      {/* Hidden CRM Screens */}
+      <Tabs.Screen
+        name="income"
+        options={{
+          href: null,
+          title: "Выручка",
+        }}
+      />
+      <Tabs.Screen
+        name="clients"
+        options={{
+          href: null,
+          title: "Клиенты",
+        }}
+      />
+      <Tabs.Screen
+        name="staff"
+        options={{
+          href: null,
+          title: "Персонал",
+        }}
+      />
     </Tabs>
   );
 }
