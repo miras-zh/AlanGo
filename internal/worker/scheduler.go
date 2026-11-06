@@ -87,18 +87,10 @@ func (s *Scheduler) runTicker(ctx context.Context, interval time.Duration, name 
 }
 
 // 1. Очистка истёкших refresh_tokens и password_reset_tokens
-func (s *Scheduler) CleanupExpiredTokens(ctx context.Context) error {
-	if s.db == nil {
-		return nil
-	}
-	if err := s.db.WithContext(ctx).Exec(`
-		DELETE FROM refresh_tokens WHERE expires_at < NOW() OR revoked_at IS NOT NULL
-	`).Error; err != nil {
-		return err
-	}
-	return s.db.WithContext(ctx).Exec(`
-		DELETE FROM password_reset_tokens WHERE expires_at < NOW() OR used_at IS NOT NULL
-	`).Error
+func (s *Scheduler) CleanupExpiredTokens(_ context.Context) error {
+	// В AlanGo refresh-токены и временные коды хранятся в Redis с автоматическим TTL,
+	// поэтому очистка на уровне PostgreSQL не требуется.
+	return nil
 }
 
 // 2. Проверка истёкших подписок (автоматический перевод в тариф standard)
@@ -107,7 +99,7 @@ func (s *Scheduler) CheckExpiredSubscriptions(ctx context.Context) error {
 		return nil
 	}
 	return s.db.WithContext(ctx).Exec(`
-		UPDATE subscriptions
+		UPDATE users
 		SET plan = 'standard', updated_at = NOW()
 		WHERE plan != 'standard' AND valid_until IS NOT NULL AND valid_until < NOW()
 	`).Error
@@ -126,7 +118,7 @@ func (s *Scheduler) LogDailyFunnelSnapshot(ctx context.Context) error {
 		return nil
 	}
 	var count int64
-	if err := s.db.WithContext(ctx).Table("analytics_events").
+	if err := s.db.WithContext(ctx).Table("app_analytics_events").
 		Where("created_at >= NOW() - INTERVAL '24 hours'").
 		Count(&count).Error; err != nil {
 		return err

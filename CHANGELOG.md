@@ -9,6 +9,17 @@
 
 ## [1.6.0] — 2026-11-06
 
+### 🛠️ Исправления по результатам технического аудита (P0, P1, P2, P3)
+- **Гарантированный бэкап базы данных (P0)**:
+  - В [`AGENTS.md`](file:///Users/miko/MyProduction/AlanGo/AGENTS.md) зафиксировано обязательное использование суперпользователя `postgres` (`docker exec -t alango-db pg_dump -U postgres alango`), исключающее создание пустых 134-байтовых архивов из-за отсутствия роли `alango`;
+- **Устранение ошибок cron-воркера (P1)**:
+  - В [`internal/worker/scheduler.go`](file:///Users/miko/MyProduction/AlanGo/internal/worker/scheduler.go) исправлены SQL-запросы: проверка истекших подписок переведена на таблицу `users` (`WHERE valid_until < NOW()`), очистка аналитики — на `app_analytics_events`;
+  - Устранены спам-ошибки `relation "subscriptions" does not exist` и `relation "refresh_tokens" does not exist` в логах контейнера `alango-api`;
+- **Ликвидация N+1 запросов в каталоге арен (P2)**:
+  - В [`internal/sport/service.go`](file:///Users/miko/MyProduction/AlanGo/internal/sport/service.go) переписан метод `ListArenas`: залы для всех выбранных комплексов теперь подгружаются пакетным запросом `WHERE arena_id IN (?)`, что сокращает число запросов к БД с N+1 до 2;
+- **Защита от состояния гонки (Race Condition / Double-booking) (P3)**:
+  - В [`internal/sport/service.go`](file:///Users/miko/MyProduction/AlanGo/internal/sport/service.go) метод `CreateBooking` обернут в атомарную транзакцию `s.db.Transaction()`, предотвращающую параллельное бронирование одного слота двумя пользователями одновременно.
+
 ### 👥 Авторизация и быстрое переключение под сотрудниками команды
 - **Быстрый вход под сотрудником в 1 клик ([`ui/mobile/app/business/staff.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/business/staff.tsx))**:
   - В карточке каждого сотрудника арены добавлена кнопка «Войти», позволяющая владельцу мгновенно переключиться на рабочую сессию сотрудника;

@@ -44,12 +44,28 @@ func (s *Service) ListArenas(ctx context.Context, q, city, district, sport strin
 		return nil, err
 	}
 
-	// Fetch halls for each arena
-	for i := range arenas {
-		var halls []Hall
-		_ = s.db.WithContext(ctx).Where("arena_id = ? AND status = 'active'", arenas[i].ID).Find(&halls).Error
-		arenas[i].Halls = halls
-		arenas[i].HallsCount = len(halls)
+	if len(arenas) == 0 {
+		return arenas, nil
+	}
+
+	// Optimized batch-fetch halls (resolves N+1 query problem)
+	arenaIDs := make([]uint, len(arenas))
+	arenaIndexMap := make(map[uint]int, len(arenas))
+	for i, a := range arenas {
+		arenaIDs[i] = a.ID
+		arenaIndexMap[a.ID] = i
+	}
+
+	var allHalls []Hall
+	if err := s.db.WithContext(ctx).Where("arena_id IN (?) AND status = 'active'", arenaIDs).Find(&allHalls).Error; err == nil {
+		for _, h := range allHalls {
+			if idx, ok := arenaIndexMap[h.ArenaID]; ok {
+				arenas[idx].Halls = append(arenas[idx].Halls, h)
+			}
+		}
+		for i := range arenas {
+			arenas[i].HallsCount = len(arenas[i].Halls)
+		}
 	}
 
 	return arenas, nil
@@ -179,50 +195,58 @@ func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, u
 		return nil, errors.New("booking_date and time_slot are required")
 	}
 
-	// Check collision: prevent double booking on the same hall, date and slot
-	var existing Booking
-	err := s.db.WithContext(ctx).
-		Where("hall_id = ? AND booking_date = ? AND time_slot = ? AND status <> 'cancelled'", req.HallID, req.BookingDate, req.TimeSlot).
-		First(&existing).Error
-	if err == nil {
-		return nil, errors.New("этот слот времени уже забронирован другим клиентом")
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
-	}
+	// Check collision & insert atomically within a transaction to avoid race conditions
+	var createdID uint
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var existing Booking
+		collisionErr := tx.
+			Where("hall_id = ? AND booking_date = ? AND time_slot = ? AND status <> 'cancelled'", req.HallID, req.BookingDate, req.TimeSlot).
+			First(&existing).Error
+		if collisionErr == nil {
+			return errors.New("этот слот времени уже забронирован другим клиентом")
+		} else if !errors.Is(collisionErr, gorm.ErrRecordNotFound) {
+			return collisionErr
+		}
 
-	code := fmt.Sprintf("SR-%03d", rand.Intn(900)+100)
-	booking := Booking{
-		BookingCode:     code,
-		HallID:          req.HallID,
-		ArenaID:         req.ArenaID,
-		UserID:          userID,
-		ClientName:      req.ClientName,
-		ClientPhone:     req.ClientPhone,
-		BookingDate:     req.BookingDate,
-		TimeSlot:        req.TimeSlot,
-		DurationMinutes: req.DurationMinutes,
-		TotalPrice:      req.TotalPrice,
-		Status:          "confirmed",
-		PaymentStatus:   "pending",
-		Notes:           req.Notes,
-	}
+		code := fmt.Sprintf("SR-%03d", rand.Intn(900)+100)
+		booking := Booking{
+			BookingCode:     code,
+			HallID:          req.HallID,
+			ArenaID:         req.ArenaID,
+			UserID:          userID,
+			ClientName:      req.ClientName,
+			ClientPhone:     req.ClientPhone,
+			BookingDate:     req.BookingDate,
+			TimeSlot:        req.TimeSlot,
+			DurationMinutes: req.DurationMinutes,
+			TotalPrice:      req.TotalPrice,
+			Status:          "confirmed",
+			PaymentStatus:   "pending",
+			Notes:           req.Notes,
+		}
 
-	if booking.DurationMinutes == 0 {
-		booking.DurationMinutes = 60
-	}
+		if booking.DurationMinutes == 0 {
+			booking.DurationMinutes = 60
+		}
 
-	parts := strings.Split(req.TimeSlot, "-")
-	if len(parts) == 2 {
-		booking.StartTime = strings.TrimSpace(parts[0])
-		booking.EndTime = strings.TrimSpace(parts[1])
-	}
+		parts := strings.Split(req.TimeSlot, "-")
+		if len(parts) == 2 {
+			booking.StartTime = strings.TrimSpace(parts[0])
+			booking.EndTime = strings.TrimSpace(parts[1])
+		}
 
-	if err := s.db.WithContext(ctx).Create(&booking).Error; err != nil {
+		if err := tx.Create(&booking).Error; err != nil {
+			return err
+		}
+		createdID = booking.ID
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
 
 	// Fetch full booking with joins
-	return s.GetBookingByID(ctx, booking.ID)
+	return s.GetBookingByID(ctx, createdID)
 }
 
 func (s *Service) GetBookingByID(ctx context.Context, id uint) (*Booking, error) {
