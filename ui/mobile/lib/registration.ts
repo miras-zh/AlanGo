@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
-import { saveSession, clearSession, switchTestAccount } from "@/lib/auth";
+import { saveSession, clearSession, switchTestAccount, loginAsStaff } from "@/lib/auth";
+import { getStoredStaff } from "@/lib/businessCrmData";
 
 export type StartRegistrationRequest = {
   full_name: string;
@@ -82,6 +83,31 @@ export async function loginWithEmail(
   ) {
     const user = await switchTestAccount("dev.client");
     return { token: "mock_jwt_token_dev.client", user };
+  }
+
+  // Check if login corresponds to an arena staff member (by phone or name)
+  try {
+    const cleanDigits = loginInput.replace(/[^\d]/g, "");
+    const [staff1, staff2] = await Promise.all([getStoredStaff(1), getStoredStaff(2)]);
+    const allStaff = [...staff1, ...staff2];
+
+    const matchedStaff = allStaff.find((s) => {
+      const sDigits = s.phone.replace(/[^\d]/g, "");
+      if (cleanDigits.length >= 7 && (sDigits.endsWith(cleanDigits) || cleanDigits.endsWith(sDigits))) {
+        return true;
+      }
+      if (s.name.trim().toLowerCase() === loginInput) {
+        return true;
+      }
+      return false;
+    });
+
+    if (matchedStaff) {
+      const staffUser = await loginAsStaff(matchedStaff);
+      return { token: `mock_jwt_token_staff_${matchedStaff.id}`, user: staffUser };
+    }
+  } catch {
+    // proceed to API login
   }
 
   try {

@@ -77,13 +77,21 @@ export default function BusinessDashboardScreen() {
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.badgeLabel}>БИЗНЕС-КАБИНЕТ</Text>
+          <Text style={styles.badgeLabel}>
+            {user?.staffRole ? `СОТРУДНИК СМЕНЫ 🔑` : "БИЗНЕС-КАБИНЕТ"}
+          </Text>
           <Text style={styles.arenaTitle} numberOfLines={1}>
             {arena?.title || "Мой спорткомплекс"}
           </Text>
           <View style={styles.cityRow}>
             <Ionicons name="location-sharp" size={13} color="#22C55E" />
             <Text style={styles.cityText}>{arena?.address || "г. Астана"}</Text>
+            {user?.staffMemberId && (
+              <View style={styles.staffActivePill}>
+                <Ionicons name="person-circle" size={13} color="#10B981" />
+                <Text style={styles.staffActivePillText}>{user.name}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -264,6 +272,25 @@ export default function BusinessDashboardScreen() {
               <Text style={styles.actionTitle}>Персонал и смены</Text>
               <Text style={styles.actionSubtitle}>
                 Администраторы, смены, дежурные тренеры и доступ к кассе
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+          </Pressable>
+
+          <Pressable
+            style={styles.actionCard}
+            onPress={() => {
+              hapticSelection();
+              router.push("/business/promotions");
+            }}
+          >
+            <View style={[styles.actionIconBox, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
+              <Ionicons name="pricetags" size={24} color="#F59E0B" />
+            </View>
+            <View style={styles.actionInfo}>
+              <Text style={styles.actionTitle}>Акции и маркетинг</Text>
+              <Text style={styles.actionSubtitle}>
+                Счастливые часы (-20%), горящие слоты, управление скидками
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
@@ -485,6 +512,23 @@ const styles = StyleSheet.create({
   cityText: {
     fontSize: 12,
     color: "#8E9B94",
+  },
+  staffActivePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 6,
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.4)",
+  },
+  staffActivePillText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#10B981",
   },
   previewBtn: {
     flexDirection: "row",

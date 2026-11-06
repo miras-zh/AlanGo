@@ -128,6 +128,18 @@ export default function ArenaDetailScreen() {
         </View>
 
         {/* Description */}
+        <View style={styles.promoCallout}>
+          <View style={styles.promoCalloutIcon}>
+            <Ionicons name="sunny" size={20} color="#10b981" />
+          </View>
+          <View style={styles.promoCalloutTextWrap}>
+            <Text style={styles.promoCalloutTitle}>Счастливые часы: -20%</Text>
+            <Text style={styles.promoCalloutSub}>
+              Дневной тариф с 10:00 до 16:00 в будни рассчитывается со скидкой
+            </Text>
+          </View>
+        </View>
+
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>О спорткомплексе</Text>
           <Text style={styles.descText}>{arena.description}</Text>
@@ -313,6 +325,40 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#8E9B94",
     marginTop: 2,
+  },
+  promoCallout: {
+    marginHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#13231a",
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#1e3d2a",
+    gap: 12,
+    marginBottom: 14,
+  },
+  promoCalloutIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#064e3b",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  promoCalloutTextWrap: {
+    flex: 1,
+  },
+  promoCalloutTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#f8fafc",
+  },
+  promoCalloutSub: {
+    fontSize: 11,
+    color: "#94a3b8",
+    marginTop: 2,
+    lineHeight: 15,
   },
   card: {
     marginHorizontal: 16,

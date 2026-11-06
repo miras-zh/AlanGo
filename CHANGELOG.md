@@ -7,6 +7,41 @@
 
 ---
 
+## [1.6.0] — 2026-11-06
+
+### 👥 Авторизация и быстрое переключение под сотрудниками команды
+- **Быстрый вход под сотрудником в 1 клик ([`ui/mobile/app/business/staff.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/business/staff.tsx))**:
+  - В карточке каждого сотрудника арены добавлена кнопка «Войти», позволяющая владельцу мгновенно переключиться на рабочую сессию сотрудника;
+  - При активной сессии отображается статус-бейдж «● Вы вошли»;
+- **Авторизация по номеру телефона сотрудника ([`ui/mobile/lib/registration.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/registration.ts), [`ui/mobile/lib/auth.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/auth.ts))**:
+  - Реализован метод `loginAsStaff`: создание сессии с правами сотрудника арены (`staffRole`, `arenaId`);
+  - Функция `loginWithEmail` теперь автоматически распознает телефон или имя любого добавленного сотрудника (например, `87001234567` или `Fer`) и авторизует его в бизнес-кабинете;
+- **Индикация дежурного в шапке Бизнес-кабинета ([`ui/mobile/app/business/index.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/business/index.tsx))**:
+  - В шапке отображается бейдж активного сотрудника смены («СОТРУДНИК СМЕНЫ 🔑» и имя).
+
+### 🏆 Фаза 5: Маркетинг, Абонементы, Telegram-бот администратора и iOS Dynamic Island / Live Activity
+- **Спортивные абонементы и пакеты тренировок (Subscriptions & Multi-pass)**:
+  - Создан модуль данных [`ui/mobile/lib/subscriptionsData.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/subscriptionsData.ts) (`SubscriptionPackage`, `UserSubscription`, расчет выгоды до 25%, персистентность в `AsyncStorage`);
+  - Разработан экран [`ui/mobile/app/subscriptions.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/subscriptions.tsx):
+    - Вкладка «Витрина пакетов» (хиты сезона: «Футбольный Марафон» 8 игр, «Баскетбольный Безлимит» 12 тренировок, «Падел & Теннис Клаб» 6 часов);
+    - Оформление через Kaspi QR и Банковские карты с мгновенной генерацией цифрового пропуска;
+    - Вкладка «Мои абонементы» с прогресс-баром остатка посещений и модальным окном электронного QR-пропуска для турникета арены;
+  - Добавлены карточки прямого перехода в абонементы на Главном экране (`index.tsx`) и в Профиле (`profile.tsx`).
+- **Маркетинг, Счастливые часы и динамическое ценообразование**:
+  - Создан модуль [`ui/mobile/lib/promotionsData.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/promotionsData.ts) (механики «Дневные Счастливые Часы» -20% с 10:00 до 16:00 в будни, «Горящие вечерние слоты» -30%, приветственный промокод «STARTALAN»);
+  - Разработан экран управления акциями в Бизнес-кабинете [`ui/mobile/app/business/promotions.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/business/promotions.tsx);
+  - В карточку спорткомплекса [`ui/mobile/app/arena/[id].tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/arena/[id].tsx) добавлен бейдж «Счастливые часы: -20%» для дневных слотов.
+- **Telegram-бот для администраторов спорткомплексов**:
+  - Создан бэкенд-сервис [`internal/telegram/bot.go`](file:///Users/miko/MyProduction/AlanGo/internal/telegram/bot.go) и HTTP-хэндлер [`internal/telegram/handler.go`](file:///Users/miko/MyProduction/AlanGo/internal/telegram/handler.go):
+    - Мгновенная отправка форматированных уведомлений в Telegram администратору арены при бронировании (комплекс, зал, дата, слот, клиент, телефон, сумма);
+    - Инлайн-кнопки действий в Telegram: `[✅ Подтвердить бронь]`, `[💬 Чат с клиентом]`, `[🟢 WhatsApp]`;
+    - Зарегистрированы эндпоинты `POST /api/business/telegram/notify` и `GET /api/business/telegram/status` в [`internal/router/router.go`](file:///Users/miko/MyProduction/AlanGo/internal/router/router.go).
+- **iOS Dynamic Island & Live Activity (Экран матча)**:
+  - Создан интерактивный компонент [`ui/mobile/components/LiveMatchIsland.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/LiveMatchIsland.tsx):
+    - Плавающая капсула Dynamic Island с пульсирующим зеленым индикатором «LIVE • До матча 42 мин»;
+    - Раскрытие по тапу с информацией о площадке, кнопкой быстрого маршрута в 2GIS / Карты и показом QR-пропуска;
+    - Интегрирован на Главном экране мобильного приложения.
+
 ## [1.5.1] — 2026-11-06
 
 ### 🎨 Редизайн Liquid Glass навигации (Floating Capsule Tab Bar в стиле Vison)

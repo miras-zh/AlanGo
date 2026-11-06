@@ -13,6 +13,8 @@ export interface SessionUser {
   city?: string;
   full_name?: string;
   plan?: string;
+  staffRole?: string;
+  staffMemberId?: string;
 }
 
 const TOKEN_KEY = "alango_token";
@@ -301,5 +303,40 @@ export async function switchTestAccount(
 
 export async function loginAsGuest(): Promise<SessionUser> {
   return switchTestAccount("guest");
+}
+
+export async function loginAsStaff(member: {
+  id: string;
+  name: string;
+  phone: string;
+  role: string;
+  arenaId: number;
+  avatarUrl?: string;
+}): Promise<SessionUser> {
+  const staffUser: SessionUser = {
+    id: `staff_${member.id}`,
+    email: `${member.id}@arena.alango.kz`,
+    name: member.name,
+    full_name: member.name,
+    role: "business",
+    arenaId: member.arenaId,
+    phone: member.phone,
+    city: "Астана",
+    avatar_url:
+      member.avatarUrl ||
+      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300",
+    bio: `Сотрудник спорткомплекса (${member.role}).`,
+    plan: "pro",
+    staffRole: member.role,
+    staffMemberId: member.id,
+  };
+
+  await saveSession({
+    token: `mock_jwt_token_staff_${member.id}`,
+    refreshToken: `mock_refresh_staff_${member.id}`,
+    user: staffUser,
+  });
+
+  return staffUser;
 }
 

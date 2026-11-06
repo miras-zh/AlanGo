@@ -110,6 +110,13 @@ export default function BusinessTabsLayout() {
           title: "Персонал",
         }}
       />
+      <Tabs.Screen
+        name="promotions"
+        options={{
+          href: null,
+          title: "Акции и скидки",
+        }}
+      />
     </Tabs>
   );
 }

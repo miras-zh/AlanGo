@@ -48,6 +48,7 @@ function RootNavigator() {
         <Stack.Screen name="forgot-password" options={{ presentation: "modal" }} />
         <Stack.Screen name="apple-name" options={{ presentation: "modal" }} />
         <Stack.Screen name="settings/index" />
+        <Stack.Screen name="subscriptions" />
       </Stack>
       <AppUpdatePrompt />
     </>

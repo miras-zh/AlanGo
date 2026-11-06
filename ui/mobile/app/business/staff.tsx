@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, loginAsStaff } from "@/lib/auth";
 import {
   StaffMember,
   getStoredStaff,
@@ -34,8 +34,8 @@ const ROLES: { key: StaffMember["role"]; label: string; color: string }[] = [
 
 export default function BusinessStaffScreen() {
   const router = useRouter();
-  const user = getSessionUser();
-  const arenaId = user?.arenaId || 1;
+  const [currentUser, setCurrentUser] = useState(getSessionUser());
+  const arenaId = currentUser?.arenaId || 1;
 
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +51,7 @@ export default function BusinessStaffScreen() {
   const loadData = useCallback(async () => {
     const list = await getStoredStaff(arenaId);
     setStaff(list);
+    setCurrentUser(getSessionUser());
     setLoading(false);
     setRefreshing(false);
   }, [arenaId]);
@@ -58,6 +59,22 @@ export default function BusinessStaffScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleSwitchToStaff = async (member: StaffMember) => {
+    hapticSuccess();
+    const updated = await loginAsStaff(member);
+    setCurrentUser(updated);
+    Alert.alert(
+      "Сессия переключена 👤",
+      `Вы успешно вошли под сотрудником:\n${member.name} (${
+        member.role === "admin_senior"
+          ? "Старший админ"
+          : member.role === "manager_shift"
+          ? "Менеджер смены"
+          : "Дежурный тренер"
+      }).\n\nТеперь действия и смены фиксируются от его имени.`
+    );
+  };
 
   const handleCall = (phone: string) => {
     hapticImpact();
@@ -173,6 +190,10 @@ export default function BusinessStaffScreen() {
           renderItem={({ item }) => {
             const roleMeta =
               ROLES.find((r) => r.key === item.role) || ROLES[1];
+            const isCurrent =
+              currentUser?.staffMemberId === item.id ||
+              currentUser?.name === item.name ||
+              (item.phone && currentUser?.phone === item.phone);
 
             return (
               <View style={styles.staffCard}>
@@ -208,6 +229,21 @@ export default function BusinessStaffScreen() {
 
                 {/* Actions */}
                 <View style={styles.actionsRow}>
+                  {isCurrent ? (
+                    <View style={styles.activeSessionBadge}>
+                      <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                      <Text style={styles.activeSessionText}>Вы вошли</Text>
+                    </View>
+                  ) : (
+                    <Pressable
+                      style={styles.switchBtn}
+                      onPress={() => handleSwitchToStaff(item)}
+                    >
+                      <Ionicons name="log-in-outline" size={14} color="#10B981" />
+                      <Text style={styles.switchBtnText}>Войти</Text>
+                    </Pressable>
+                  )}
+
                   <Pressable
                     style={styles.callBtn}
                     onPress={() => handleCall(item.phone)}
@@ -221,7 +257,7 @@ export default function BusinessStaffScreen() {
                     onPress={() => handleRemove(item.id, item.name)}
                   >
                     <Ionicons name="trash-outline" size={14} color="#EF4444" />
-                    <Text style={styles.removeBtnText}>Отозвать доступ</Text>
+                    <Text style={styles.removeBtnText}>Отозвать</Text>
                   </Pressable>
                 </View>
               </View>
@@ -416,6 +452,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     marginTop: 10,
+  },
+  switchBtn: {
+    flex: 1.1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.4)",
+  },
+  switchBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#10B981",
+  },
+  activeSessionBadge: {
+    flex: 1.1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    backgroundColor: "rgba(16, 185, 129, 0.25)",
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#10B981",
+  },
+  activeSessionText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#10B981",
   },
   callBtn: {
     flex: 1,

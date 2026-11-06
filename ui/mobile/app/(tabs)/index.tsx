@@ -21,6 +21,7 @@ import { ArenaWithHalls, getArenasWithHalls } from "@/lib/sportRentData";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getSelectedCity, subscribeCityChange } from "@/lib/cities";
 import { CityPickerModal } from "@/components/CityPickerModal";
+import { LiveMatchIsland } from "@/components/LiveMatchIsland";
 import {
   SportSearchFiltersModal,
   SportFilterState,
@@ -286,6 +287,9 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
+        {/* --- 1.5 LIVE ACTIVITY DYNAMIC ISLAND --- */}
+        <LiveMatchIsland />
+
         {/* --- 2. HERO BANNER --- */}
         <View style={styles.heroCard}>
           <View style={styles.heroLeft}>
@@ -307,6 +311,28 @@ export default function HomeScreen() {
               style={styles.heroBallImage}
             />
           </View>
+        </View>
+
+        {/* --- 2.5 SPECIAL DEALS: Subscriptions & Happy Hours --- */}
+        <View style={styles.promoActionsRow}>
+          <Pressable
+            style={styles.promoActionCard}
+            onPress={() => {
+              hapticSelection();
+              router.push("/subscriptions");
+            }}
+          >
+            <View style={styles.promoActionIconWrap}>
+              <Ionicons name="ticket" size={20} color="#10b981" />
+            </View>
+            <View style={styles.promoActionTextWrap}>
+              <Text style={styles.promoActionTitle}>Абонементы и Пакеты игр</Text>
+              <Text style={styles.promoActionSub}>Экономия до 25% на каждом посещении</Text>
+            </View>
+            <View style={styles.promoBadge}>
+              <Text style={styles.promoBadgeText}>-25%</Text>
+            </View>
+          </Pressable>
         </View>
 
         {/* --- 3. SEARCH BAR + FILTERS --- */}
@@ -1351,5 +1377,51 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#0B0F0D",
+  },
+  promoActionsRow: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+  },
+  promoActionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#13231a",
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#1e3d2a",
+    gap: 12,
+  },
+  promoActionIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "#064e3b",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  promoActionTextWrap: {
+    flex: 1,
+  },
+  promoActionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#f8fafc",
+  },
+  promoActionSub: {
+    fontSize: 11,
+    color: "#94a3b8",
+    marginTop: 1,
+  },
+  promoBadge: {
+    backgroundColor: "#10b981",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  promoBadgeText: {
+    color: "#052e16",
+    fontSize: 12,
+    fontWeight: "800",
   },
 });

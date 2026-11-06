@@ -15,6 +15,7 @@ import (
 	"alango/internal/realtime"
 	"alango/internal/sport"
 	"alango/internal/subscription"
+	"alango/internal/telegram"
 	"alango/internal/upload"
 	"alango/internal/user"
 
@@ -100,6 +101,9 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	sportService := sport.NewService(db)
 	sportHandler := sport.NewHandler(sportService)
 
+	telegramBot := telegram.NewBotService()
+	telegramHandler := telegram.NewHandler(telegramBot)
+
 	// --- Public API endpoints ---
 	r.Handle("/api/register", withPublicFormRateLimit("register", http.HandlerFunc(userHandler.Register), rdb)).Methods("POST")
 	r.HandleFunc("/api/register/verify", userHandler.VerifyRegister).Methods("POST")
@@ -133,6 +137,8 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	r.HandleFunc("/api/bookings", sportHandler.CreateBooking).Methods("POST")
 	r.HandleFunc("/api/bookings", sportHandler.ListBookings).Methods("GET")
 	r.HandleFunc("/api/business/dashboard", sportHandler.GetBusinessDashboard).Methods("GET")
+	r.HandleFunc("/api/business/telegram/notify", telegramHandler.NotifyBooking).Methods("POST")
+	r.HandleFunc("/api/business/telegram/status", telegramHandler.GetStatus).Methods("GET")
 
 	// --- Authenticated API endpoints ---
 	authRouter := r.PathPrefix("/api").Subrouter()

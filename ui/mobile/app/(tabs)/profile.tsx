@@ -170,6 +170,28 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Sports Subscriptions Card */}
+        <Pressable
+          style={[styles.card, { borderColor: "#059669", backgroundColor: "#111814" }]}
+          onPress={() => {
+            hapticSelection();
+            router.push("/subscriptions");
+          }}
+        >
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconWrap, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
+              <Ionicons name="ticket" size={20} color="#10b981" />
+            </View>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.cardTitle}>Спортивные абонементы</Text>
+              <Text style={styles.cardSubtitle}>
+                Пакеты игр (8-12 тренировок), экономия до 25% и QR-пропуск
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#10b981" />
+          </View>
+        </Pressable>
+
         {/* Business Arena Switcher Card */}
         <View style={[styles.card, { borderColor: "rgba(34, 197, 94, 0.3)", backgroundColor: "#111814" }]}>
           <View style={styles.cardHeader}>
