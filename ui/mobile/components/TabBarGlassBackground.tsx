@@ -10,8 +10,7 @@ export function TabBarGlassBackground() {
     <View style={StyleSheet.absoluteFill}>
       <BlurView
         tint="systemChromeMaterialDark"
-        intensity={Platform.OS === "android" ? 60 : 50}
-        experimentalBlurMethod="dimezisBlurView"
+        intensity={Platform.OS === "android" ? 60 : 70}
         style={StyleSheet.absoluteFill}
       />
       <View

@@ -26,6 +26,10 @@ import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { BookingsCalendar } from "@/components/BookingsCalendar";
 import { ManualBookingModal } from "@/components/ManualBookingModal";
 import { RejectBookingModal } from "@/components/RejectBookingModal";
+import {
+  notifyBookingConfirmed,
+  notifyBookingRejected,
+} from "@/lib/pushNotificationsService";
 
 const STATUS_FILTERS = ["Все", "Подтверждено", "В ожидании", "Отменено / Отклонено"];
 
@@ -83,6 +87,14 @@ export default function BusinessBookingsScreen() {
   ) => {
     hapticImpact();
     await updateBookingStatus(id, status);
+    const target = bookings.find((b) => b.id === id);
+    if (status === "confirmed" && target) {
+      notifyBookingConfirmed(
+        target.arenaTitle || arenaTitle,
+        target.date,
+        target.timeSlot
+      );
+    }
     await loadData();
     Alert.alert(
       status === "confirmed" ? "Бронь подтверждена 🎉" : "Бронь отменена",
@@ -107,6 +119,10 @@ export default function BusinessBookingsScreen() {
   const handleRejectConfirmed = async (reason: string) => {
     if (!rejectTarget) return;
     hapticImpact();
+    notifyBookingRejected(
+      rejectTarget.arenaTitle || arenaTitle,
+      reason
+    );
     await rejectBookingWithReason(rejectTarget.id, reason);
     setRejectTarget(null);
     await loadData();

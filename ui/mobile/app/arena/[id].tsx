@@ -96,6 +96,35 @@ export default function ArenaDetailScreen() {
             <Ionicons name="time-outline" size={15} color="#8E9B94" />
             <Text style={styles.hoursText}>{arena.workingHours}</Text>
           </View>
+
+          {/* Quick Chat with Arena / AI Bot */}
+          <Pressable
+            style={styles.chatActionBtn}
+            onPress={() => {
+              hapticSelection();
+              router.push({
+                pathname: "/chat/[id]",
+                params: {
+                  id: String(arena.id),
+                  name: arena.title,
+                  avatar: arena.imageUrl,
+                },
+              });
+            }}
+          >
+            <View style={styles.chatActionLeft}>
+              <View style={styles.chatActionIcon}>
+                <Ionicons name="chatbubbles" size={18} color="#22C55E" />
+              </View>
+              <View>
+                <Text style={styles.chatActionTitle}>Чат с ареной</Text>
+                <Text style={styles.chatActionSub}>
+                  AI-бот ответит на вопросы мгновенно 24/7
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#22C55E" />
+          </Pressable>
         </View>
 
         {/* Description */}
@@ -250,6 +279,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#22C55E",
     fontWeight: "500",
+  },
+  chatActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#131916",
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.3)",
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 14,
+  },
+  chatActionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  chatActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chatActionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  chatActionSub: {
+    fontSize: 11,
+    color: "#8E9B94",
+    marginTop: 2,
   },
   card: {
     marginHorizontal: 16,

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import {
   AppNotification,
   listNotifications,
@@ -17,48 +18,29 @@ import {
   markNotificationRead,
   MOCK_NOTIFICATIONS,
 } from "@/lib/notifications";
-import { hapticSelection } from "@/lib/haptics";
+import {
+  ChatDialog,
+  getStoredDialogs,
+  subscribeToChats,
+} from "@/lib/chatData";
+import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 type TabType = "chats" | "notifications";
 
-const MOCK_CHATS = [
-  {
-    id: "1",
-    name: "Футбольный зал Arena",
-    avatar: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=200",
-    lastMessage: "Здравствуйте! Раздевалка №3 подготовлена для вашей команды к 19:00.",
-    time: "15:42",
-    unread: 1,
-    online: true,
-  },
-  {
-    id: "2",
-    name: "Баскетбольный зал Pro",
-    avatar: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=200",
-    lastMessage: "Мячи Spalding уже у администратора на стойке.",
-    time: "Вчера",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: "3",
-    name: "Поддержка SportRent",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
-    lastMessage: "Ваш кешбэк 500 ₸ начислен на бонусный счет.",
-    time: "2 ноя",
-    unread: 0,
-    online: true,
-  },
-];
-
 export default function NotificationsScreen() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("chats");
+  const [dialogs, setDialogs] = useState<ChatDialog[]>([]);
   const [items, setItems] = useState<AppNotification[]>(MOCK_NOTIFICATIONS);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const res = await listNotifications(50, 0);
+      const [storedDialogs, res] = await Promise.all([
+        getStoredDialogs(),
+        listNotifications(50, 0).catch(() => ({ items: MOCK_NOTIFICATIONS })),
+      ]);
+      setDialogs(storedDialogs);
       setItems(res.items || MOCK_NOTIFICATIONS);
     } catch {
       setItems(MOCK_NOTIFICATIONS);
@@ -68,23 +50,52 @@ export default function NotificationsScreen() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadData();
+    const unsubscribe = subscribeToChats(() => {
+      loadData();
+    });
+    return () => unsubscribe();
+  }, [loadData]);
 
   const handleMarkAll = async () => {
+    hapticImpact();
     await markAllNotificationsRead();
     setItems((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
-  const handleTap = async (n: AppNotification) => {
+  const handleNotificationTap = async (n: AppNotification) => {
+    hapticSelection();
     if (!n.is_read) {
       await markNotificationRead(n.id);
-      setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
+      setItems((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x))
+      );
     }
   };
 
+  const handleOpenChat = (d: ChatDialog) => {
+    hapticSelection();
+    router.push({
+      pathname: "/chat/[id]",
+      params: {
+        id: d.id,
+        name: d.arenaTitle,
+        avatar: d.arenaAvatar,
+      },
+    });
+  };
+
+  const totalUnreadChats = dialogs.reduce(
+    (sum, d) => sum + (d.unreadCount || 0),
+    0
+  );
+  const totalUnreadNotifs = items.filter((i) => !i.is_read).length;
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: "#0B0F0D" }]} edges={["top"]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: "#0B0F0D" }]}
+      edges={["top"]}
+    >
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.tabsRow}>
@@ -95,26 +106,44 @@ export default function NotificationsScreen() {
               setActiveTab("chats");
             }}
           >
-            <Text style={[styles.tabBtnText, activeTab === "chats" && styles.tabBtnTextActive]}>
+            <Text
+              style={[
+                styles.tabBtnText,
+                activeTab === "chats" && styles.tabBtnTextActive,
+              ]}
+            >
               Сообщения
             </Text>
+            {totalUnreadChats > 0 && (
+              <View style={styles.tabBadgeCount}>
+                <Text style={styles.tabBadgeCountText}>{totalUnreadChats}</Text>
+              </View>
+            )}
           </Pressable>
 
           <Pressable
-            style={[styles.tabBtn, activeTab === "notifications" && styles.tabBtnActive]}
+            style={[
+              styles.tabBtn,
+              activeTab === "notifications" && styles.tabBtnActive,
+            ]}
             onPress={() => {
               hapticSelection();
               setActiveTab("notifications");
             }}
           >
-            <Text style={[styles.tabBtnText, activeTab === "notifications" && styles.tabBtnTextActive]}>
+            <Text
+              style={[
+                styles.tabBtnText,
+                activeTab === "notifications" && styles.tabBtnTextActive,
+              ]}
+            >
               Уведомления
             </Text>
-            {items.some((i) => !i.is_read) && <View style={styles.tabBadgeDot} />}
+            {totalUnreadNotifs > 0 && <View style={styles.tabBadgeDot} />}
           </Pressable>
         </View>
 
-        {activeTab === "notifications" && items.some((i) => !i.is_read) && (
+        {activeTab === "notifications" && totalUnreadNotifs > 0 && (
           <Pressable onPress={handleMarkAll} hitSlop={10}>
             <Text style={styles.readAllText}>Прочитано</Text>
           </Pressable>
@@ -124,28 +153,55 @@ export default function NotificationsScreen() {
       {/* CHATS LIST */}
       {activeTab === "chats" ? (
         <FlatList
-          data={MOCK_CHATS}
+          data={dialogs}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                loadData();
+              }}
+              tintColor="#22C55E"
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Ionicons name="chatbubbles-outline" size={48} color="#2A352E" />
+              <Text style={styles.emptyTitle}>Нет диалогов</Text>
+              <Text style={styles.emptySub}>
+                Напишите спортивному комплексу, чтобы уточнить детали игры.
+              </Text>
+            </View>
+          }
           renderItem={({ item }) => (
-            <Pressable style={styles.chatCard}>
+            <Pressable
+              style={styles.chatCard}
+              onPress={() => handleOpenChat(item)}
+            >
               <View style={styles.avatarWrap}>
-                <Image source={{ uri: item.avatar }} style={styles.avatar} />
+                <Image
+                  source={{ uri: item.arenaAvatar }}
+                  style={styles.avatar}
+                />
                 {item.online && <View style={styles.onlineDot} />}
               </View>
 
               <View style={styles.chatBody}>
                 <View style={styles.chatTitleRow}>
-                  <Text style={styles.chatName}>{item.name}</Text>
-                  <Text style={styles.chatTime}>{item.time}</Text>
+                  <Text style={styles.chatName} numberOfLines={1}>
+                    {item.arenaTitle}
+                  </Text>
+                  <Text style={styles.chatTime}>{item.lastMessageTime}</Text>
                 </View>
                 <View style={styles.chatMsgRow}>
                   <Text style={styles.chatMessage} numberOfLines={1}>
                     {item.lastMessage}
                   </Text>
-                  {item.unread > 0 && (
+                  {item.unreadCount > 0 && (
                     <View style={styles.unreadBadge}>
-                      <Text style={styles.unreadText}>{item.unread}</Text>
+                      <Text style={styles.unreadText}>{item.unreadCount}</Text>
                     </View>
                   )}
                 </View>
@@ -164,10 +220,23 @@ export default function NotificationsScreen() {
               refreshing={refreshing}
               onRefresh={() => {
                 setRefreshing(true);
-                load();
+                loadData();
               }}
               tintColor="#22C55E"
             />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Ionicons
+                name="notifications-outline"
+                size={48}
+                color="#2A352E"
+              />
+              <Text style={styles.emptyTitle}>Нет уведомлений</Text>
+              <Text style={styles.emptySub}>
+                Здесь будут статусы ваших броней и важные события.
+              </Text>
+            </View>
           }
           renderItem={({ item }) => (
             <Pressable
@@ -175,7 +244,7 @@ export default function NotificationsScreen() {
                 styles.notifCard,
                 !item.is_read && styles.notifCardUnread,
               ]}
-              onPress={() => handleTap(item)}
+              onPress={() => handleNotificationTap(item)}
             >
               <View style={styles.notifIconWrap}>
                 <Ionicons
@@ -186,17 +255,28 @@ export default function NotificationsScreen() {
                       ? "flash"
                       : "trophy"
                   }
-                  size={24}
-                  color={!item.is_read ? "#22C55E" : "#8E9B94"}
+                  size={20}
+                  color={
+                    item.type === "booking_confirmed"
+                      ? "#22C55E"
+                      : item.type === "promo"
+                      ? "#EAB308"
+                      : "#3B82F6"
+                  }
                 />
               </View>
 
               <View style={styles.notifBody}>
-                <View style={styles.notifHeaderRow}>
-                  <Text style={styles.notifTitle}>{item.title}</Text>
-                  {!item.is_read && <View style={styles.unreadGreenDot} />}
-                </View>
-                <Text style={styles.notifDesc}>{item.body}</Text>
+                <Text style={styles.notifTitle}>{item.title}</Text>
+                <Text style={styles.notifText}>{item.body}</Text>
+                <Text style={styles.notifDate}>
+                  {new Date(item.created_at).toLocaleDateString("ru-RU", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
               </View>
             </Pressable>
           )}
@@ -214,9 +294,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.06)",
   },
   tabsRow: {
     flexDirection: "row",
@@ -225,21 +306,21 @@ const styles = StyleSheet.create({
   tabBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 7,
     paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#161D19",
+    backgroundColor: "#131916",
     borderWidth: 1,
-    borderColor: "#232F28",
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
   tabBtnActive: {
-    backgroundColor: "#142A1D",
+    backgroundColor: "rgba(34, 197, 94, 0.2)",
     borderColor: "#22C55E",
   },
   tabBtnText: {
-    fontSize: 14,
-    color: "#8E9B94",
+    fontSize: 13,
     fontWeight: "600",
+    color: "#8E9B94",
   },
   tabBtnTextActive: {
     color: "#22C55E",
@@ -252,26 +333,35 @@ const styles = StyleSheet.create({
     backgroundColor: "#22C55E",
     marginLeft: 6,
   },
+  tabBadgeCount: {
+    backgroundColor: "#22C55E",
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 10,
+    marginLeft: 6,
+  },
+  tabBadgeCountText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#0B0F0D",
+  },
   readAllText: {
     fontSize: 12,
-    fontWeight: "600",
     color: "#22C55E",
+    fontWeight: "600",
   },
   list: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-    gap: 12,
+    padding: 16,
+    gap: 10,
   },
-
-  // Chats
   chatCard: {
-    backgroundColor: "#141A17",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#1F2823",
-    padding: 14,
     flexDirection: "row",
     alignItems: "center",
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: "#131916",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.06)",
     gap: 12,
   },
   avatarWrap: {
@@ -281,6 +371,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
+    backgroundColor: "#1F2923",
   },
   onlineDot: {
     position: "absolute",
@@ -291,7 +382,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: "#22C55E",
     borderWidth: 2,
-    borderColor: "#141A17",
+    borderColor: "#131916",
   },
   chatBody: {
     flex: 1,
@@ -306,6 +397,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: "#FFFFFF",
+    flex: 1,
+    marginRight: 8,
   },
   chatTime: {
     fontSize: 11,
@@ -324,68 +417,71 @@ const styles = StyleSheet.create({
   },
   unreadBadge: {
     backgroundColor: "#22C55E",
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
   },
   unreadText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "800",
     color: "#0B0F0D",
   },
-
-  // Notifications
   notifCard: {
-    backgroundColor: "#141A17",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#1F2823",
-    padding: 14,
     flexDirection: "row",
-    alignItems: "flex-start",
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#131916",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.06)",
     gap: 12,
   },
   notifCardUnread: {
-    backgroundColor: "#122018",
     borderColor: "rgba(34, 197, 94, 0.3)",
+    backgroundColor: "rgba(34, 197, 94, 0.05)",
   },
   notifIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#19241E",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#0B0F0D",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 2,
   },
   notifBody: {
     flex: 1,
   },
-  notifHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
   notifTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     color: "#FFFFFF",
-    flex: 1,
+    marginBottom: 4,
   },
-  unreadGreenDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#22C55E",
-    marginLeft: 6,
-  },
-  notifDesc: {
-    fontSize: 13,
+  notifText: {
+    fontSize: 12,
     color: "#8E9B94",
     lineHeight: 18,
+  },
+  notifDate: {
+    fontSize: 10,
+    color: "#6B7C72",
+    marginTop: 6,
+  },
+  emptyWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 80,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginTop: 12,
+  },
+  emptySub: {
+    fontSize: 12,
+    color: "#6B7C72",
+    marginTop: 4,
+    textAlign: "center",
+    maxWidth: 240,
   },
 });
