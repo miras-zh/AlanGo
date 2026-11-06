@@ -2,20 +2,29 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 import { useAppTheme } from "@/theme/ThemeProvider";
+import { TabBarGlassBackground } from "@/components/TabBarGlassBackground";
+import { hapticSelection } from "@/lib/haptics";
 
 export default function TabsLayout() {
   const { colors } = useAppTheme();
 
   return (
     <Tabs
+      screenListeners={{
+        tabPress: () => {
+          hapticSelection();
+        },
+      }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#22C55E",
         tabBarInactiveTintColor: "#6E7A73",
+        tabBarBackground: () => <TabBarGlassBackground />,
         tabBarStyle: {
-          backgroundColor: "#0B0F0D",
-          borderTopColor: "#171F1B",
-          borderTopWidth: 1,
+          position: "absolute",
+          backgroundColor: "transparent",
+          borderTopWidth: 0,
+          elevation: 0,
           height: Platform.OS === "ios" ? 84 : 64,
           paddingTop: 8,
           paddingBottom: Platform.OS === "ios" ? 28 : 8,

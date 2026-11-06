@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -19,6 +19,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { listPublicItems, ItemEntity } from "@/lib/items";
 import { ArenaWithHalls, getArenasWithHalls } from "@/lib/sportRentData";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
+import { getSelectedCity, subscribeCityChange } from "@/lib/cities";
+import { CityPickerModal } from "@/components/CityPickerModal";
+import {
+  SportSearchFiltersModal,
+  SportFilterState,
+  DEFAULT_FILTERS,
+} from "@/components/SportSearchFiltersModal";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 44) / 2;
@@ -93,10 +100,30 @@ export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [favorites, setFavorites] = useState<Record<number, boolean>>({});
 
+  // City & Sport Filters State
+  const [currentCity, setCurrentCity] = useState("Астана");
+  const [cityModalVisible, setCityModalVisible] = useState(false);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [sportFilters, setSportFilters] = useState<SportFilterState>(DEFAULT_FILTERS);
+
   // Booking Modal State
   const [selectedHall, setSelectedHall] = useState<ItemEntity | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string>("19:00 - 20:00");
   const [selectedDate, setSelectedDate] = useState<string>("Сегодня");
+
+  useEffect(() => {
+    getSelectedCity().then(setCurrentCity);
+    const unsubscribe = subscribeCityChange((city) => {
+      setCurrentCity(city);
+    });
+    return unsubscribe;
+  }, []);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = sportFilters.sports.length + sportFilters.surfaces.length + sportFilters.amenities.length;
+    if (sportFilters.priceRange !== "all") count += 1;
+    return count;
+  }, [sportFilters]);
 
   const loadHalls = useCallback(async () => {
     try {
@@ -121,6 +148,79 @@ export default function HomeScreen() {
   useEffect(() => {
     loadHalls();
   }, [loadHalls]);
+
+  // Filtered Arenas by City, Search, Category, and Sport Filters
+  const filteredArenas = useMemo(() => {
+    return arenas.filter((arena) => {
+      // 1. City filter
+      if (currentCity && arena.city && arena.city.toLowerCase() !== currentCity.toLowerCase()) {
+        return false;
+      }
+      // 2. Category match (from quick horizontal icons)
+      if (selectedCategory !== "all") {
+        const matchesCategory =
+          arena.availableSports?.some((s) => s.toLowerCase().includes(selectedCategory.toLowerCase())) ||
+          arena.category?.toLowerCase().includes(selectedCategory.toLowerCase());
+        if (!matchesCategory) return false;
+      }
+      // 3. Search query match
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesQuery =
+          arena.title.toLowerCase().includes(q) ||
+          arena.address.toLowerCase().includes(q) ||
+          (arena.district && arena.district.toLowerCase().includes(q));
+        if (!matchesQuery) return false;
+      }
+      // 4. SportFilterState: sports
+      if (sportFilters.sports.length > 0) {
+        const matchesSport = sportFilters.sports.some((sp) =>
+          arena.availableSports?.some((s) => s.toLowerCase().includes(sp.toLowerCase())),
+        );
+        if (!matchesSport) return false;
+      }
+      // 5. SportFilterState: priceRange
+      if (sportFilters.priceRange !== "all") {
+        if (sportFilters.priceRange === "under10" && arena.minPrice > 10000) return false;
+        if (sportFilters.priceRange === "10to20" && (arena.minPrice < 10000 || arena.minPrice > 20000)) return false;
+        if (sportFilters.priceRange === "above20" && arena.minPrice < 20000) return false;
+      }
+      // 6. SportFilterState: amenities
+      if (sportFilters.amenities.length > 0) {
+        const featuresText = (arena.features || []).join(" ").toLowerCase();
+        for (const am of sportFilters.amenities) {
+          if (am === "parking" && !featuresText.includes("парковк")) return false;
+          if (am === "shower" && !featuresText.includes("душ")) return false;
+          if (am === "sauna" && !featuresText.includes("саун")) return false;
+          if (am === "tribune" && !featuresText.includes("трибун")) return false;
+        }
+      }
+      return true;
+    });
+  }, [arenas, currentCity, selectedCategory, searchQuery, sportFilters]);
+
+  // Filtered Items (Individual halls)
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const itemCity = item.metadata?.city || (item.metadata?.location ? String(item.metadata.location) : "");
+      if (currentCity && itemCity && !itemCity.toLowerCase().includes(currentCity.toLowerCase())) {
+        return false;
+      }
+      if (sportFilters.sports.length > 0) {
+        const matchesSport = sportFilters.sports.some((sp) =>
+          item.category?.toLowerCase().includes(sp.toLowerCase()),
+        );
+        if (!matchesSport) return false;
+      }
+      if (sportFilters.priceRange !== "all") {
+        const p = item.price || 0;
+        if (sportFilters.priceRange === "under10" && p > 10000) return false;
+        if (sportFilters.priceRange === "10to20" && (p < 10000 || p > 20000)) return false;
+        if (sportFilters.priceRange === "above20" && p < 20000) return false;
+      }
+      return true;
+    });
+  }, [items, currentCity, sportFilters]);
 
   const toggleFavorite = (id: number) => {
     hapticSelection();
@@ -177,11 +277,11 @@ export default function HomeScreen() {
             style={styles.locationPill}
             onPress={() => {
               hapticSelection();
-              Alert.alert("Выбор города", "В настоящее время доступен город Астана");
+              setCityModalVisible(true);
             }}
           >
             <Ionicons name="location-sharp" size={15} color="#22C55E" />
-            <Text style={styles.locationText}>Астана</Text>
+            <Text style={styles.locationText}>{currentCity}</Text>
             <Ionicons name="chevron-down" size={13} color="#8E9B94" />
           </Pressable>
         </View>
@@ -209,22 +309,45 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* --- 3. SEARCH BAR --- */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={20} color="#6B7C72" style={styles.searchIcon} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Поиск залов..."
-            placeholderTextColor="#6B7C72"
-            style={styles.searchInput}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery("")} hitSlop={10}>
-              <Ionicons name="close-circle" size={18} color="#6B7C72" />
-            </Pressable>
-          )}
+        {/* --- 3. SEARCH BAR + FILTERS --- */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search-outline" size={20} color="#6B7C72" style={styles.searchIcon} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Поиск залов..."
+              placeholderTextColor="#6B7C72"
+              style={styles.searchInput}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery("")} hitSlop={10}>
+                <Ionicons name="close-circle" size={18} color="#6B7C72" />
+              </Pressable>
+            )}
+          </View>
+          <Pressable
+            style={[
+              styles.filterBtn,
+              activeFiltersCount > 0 && styles.filterBtnActive,
+            ]}
+            onPress={() => {
+              hapticSelection();
+              setFilterModalVisible(true);
+            }}
+          >
+            <Ionicons
+              name={activeFiltersCount > 0 ? "options" : "options-outline"}
+              size={20}
+              color={activeFiltersCount > 0 ? "#0B0F0D" : "#22C55E"}
+            />
+            {activeFiltersCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+              </View>
+            )}
+          </Pressable>
         </View>
 
         {/* --- 4. CATEGORIES ROW --- */}
@@ -267,13 +390,13 @@ export default function HomeScreen() {
         </View>
 
         {/* --- 4.5 SECTION: Спорткомплексы и Арены --- */}
-        {arenas.length > 0 && (
+        {filteredArenas.length > 0 ? (
           <View style={styles.arenasSection}>
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.sectionTitle}>Спорткомплексы и арены</Text>
                 <Text style={styles.sectionSubtitle}>
-                  Спортивные здания и центры с арендой залов
+                  {currentCity ? `Площадки в г. ${currentCity}` : "Спортивные центры с арендой залов"}
                 </Text>
               </View>
               <Pressable
@@ -284,7 +407,7 @@ export default function HomeScreen() {
                 hitSlop={10}
                 style={styles.seeAllBtn}
               >
-                <Text style={styles.seeAllText}>Все ({arenas.length})</Text>
+                <Text style={styles.seeAllText}>Все ({filteredArenas.length})</Text>
                 <Ionicons name="chevron-forward" size={14} color="#22C55E" />
               </Pressable>
             </View>
@@ -294,7 +417,7 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.arenasScroll}
             >
-              {arenas.map((arena) => (
+              {filteredArenas.map((arena) => (
                 <Pressable
                   key={arena.id}
                   style={styles.homeArenaCard}
@@ -349,6 +472,27 @@ export default function HomeScreen() {
               ))}
             </ScrollView>
           </View>
+        ) : (
+          <View style={styles.emptyFilteredBox}>
+            <Ionicons name="football-outline" size={32} color="#38433D" />
+            <Text style={styles.emptyFilteredTitle}>Площадки не найдены</Text>
+            <Text style={styles.emptyFilteredText}>
+              В г. {currentCity} нет доступных площадок с выбранными параметрами.
+            </Text>
+            {(activeFiltersCount > 0 || selectedCategory !== "all" || searchQuery.length > 0) && (
+              <Pressable
+                style={styles.resetFiltersBtn}
+                onPress={() => {
+                  hapticSelection();
+                  setSportFilters(DEFAULT_FILTERS);
+                  setSelectedCategory("all");
+                  setSearchQuery("");
+                }}
+              >
+                <Text style={styles.resetFiltersBtnText}>Сбросить фильтры</Text>
+              </Pressable>
+            )}
+          </View>
         )}
 
         {/* --- 5. SECTION: Популярные залы --- */}
@@ -369,7 +513,7 @@ export default function HomeScreen() {
 
         {/* Grid of Halls */}
         <View style={styles.hallsGrid}>
-          {items.map((hall) => {
+          {filteredItems.map((hall) => {
             const isFav = !!favorites[hall.id];
             const rating = hall.metadata?.rating || 4.8;
             const reviewsCount = hall.metadata?.reviewsCount || 120;
@@ -569,6 +713,23 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* City Picker Modal */}
+      <CityPickerModal
+        visible={cityModalVisible}
+        selectedCity={currentCity}
+        onClose={() => setCityModalVisible(false)}
+        onSelect={(city) => setCurrentCity(city)}
+      />
+
+      {/* Sport Search Filters Modal */}
+      <SportSearchFiltersModal
+        visible={filterModalVisible}
+        filters={sportFilters}
+        matchedCount={filteredArenas.length}
+        onClose={() => setFilterModalVisible(false)}
+        onApply={(newFilters) => setSportFilters(newFilters)}
+      />
     </SafeAreaView>
   );
 }
@@ -669,8 +830,15 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "15deg" }],
   },
 
-  // Search Bar
+  // Search Bar & Filter Row
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 20,
+  },
   searchBar: {
+    flex: 1,
     height: 50,
     backgroundColor: "#141A17",
     borderRadius: 16,
@@ -679,7 +847,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    marginBottom: 20,
   },
   searchIcon: {
     marginRight: 10,
@@ -688,6 +855,75 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: "#FFFFFF",
+  },
+  filterBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: "#141A17",
+    borderWidth: 1,
+    borderColor: "#1F2823",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  filterBtnActive: {
+    backgroundColor: "#22C55E",
+    borderColor: "#22C55E",
+  },
+  filterBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#EF4444",
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#0B0F0D",
+  },
+  filterBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  emptyFilteredBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#111714",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#1B241F",
+    marginVertical: 14,
+    gap: 8,
+  },
+  emptyFilteredTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  emptyFilteredText: {
+    color: "#8E9B94",
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  resetFiltersBtn: {
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    borderWidth: 1,
+    borderColor: "#22C55E",
+  },
+  resetFiltersBtnText: {
+    color: "#22C55E",
+    fontSize: 13,
+    fontWeight: "600",
   },
 
   // Categories

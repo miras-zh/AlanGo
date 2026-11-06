@@ -7,6 +7,29 @@
 
 ---
 
+## [1.2.0] — 2026-11-06
+
+### 🎨 Фаза 1: Премиальный UX (Liquid Glass), География Казахстана и Спортивные Фильтры
+- **Стеклянный навигационный бар (Liquid Glass & Blur)**:
+  - Установлен и настроен пакет `expo-blur`.
+  - Создан компонент [`ui/mobile/components/TabBarGlassBackground.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/TabBarGlassBackground.tsx) с нативным системным размытием `BlurView` (`systemChromeMaterialDark`), подложкой `rgba(11, 15, 13, 0.72)` и ультратонкой линией-разделителем `hairline`.
+  - В [`ui/mobile/app/(tabs)/_layout.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/_layout.tsx) таб-бар переведён в плавающий прозрачный режим (`position: absolute`) с тактильным откликом Haptics (`hapticSelection()`) при переключении любого таба.
+- **База городов Казахстана и Интерактивный Селектор**:
+  - Создан модуль [`ui/mobile/lib/cities.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/cities.ts) с базой из 45+ городов Казахстана (Астана, Алматы, Шымкент, 17 областных центров и районные города) с сохранением выбора в `AsyncStorage` и подпиской на изменения.
+  - Разработан компонент [`ui/mobile/components/CityPickerModal.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/CityPickerModal.tsx) с быстрыми чипами топ-городов, строкой мгновенного поиска и алфавитным списком городов с отметкой выбранного.
+  - Добавлены сидовые площадки и залы для Алматы (`Almaty Arena`, `Dostyk Padel & Tennis Club`) и Шымкента (`Shymkent Grand Arena`) в [`ui/mobile/lib/sportRentData.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/sportRentData.ts).
+- **Полноэкранный спортивный мульти-фильтр**:
+  - Создан компонент [`ui/mobile/components/SportSearchFiltersModal.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/SportSearchFiltersModal.tsx):
+    - Мультивыбор видов спорта (Футбол, Теннис, Баскетбол, Волейбол, Падел, Настольный теннис).
+    - Выбор типов покрытия (Искусственный/натуральный газон, паркет, терафлекс, хард, резина).
+    - Выбор ценового диапазона в час (До 10 000 ₸, 10 000 — 20 000 ₸, от 20 000 ₸).
+    - Чекбоксы удобств и инвентаря (Душевые, раздевалки, парковка, освещение, трибуны, сауна, аренда мячей/манишек).
+    - Динамический счетчик подходящих площадок на нижней кнопке применения («Показать X площадок →») и кнопка быстрого сброса.
+  - В шапку главной страницы рядом со строкой поиска добавлена кнопка фильтров с бейджем активных фильтров.
+  - Подключена фильтрация площадок и залов на лету с карточкой пустого состояния («Площадки не найдены») и кнопкой сброса при отсутствии результатов.
+
+---
+
 ## [1.1.0] — 2026-11-05
 
 ### 📚 Архитектурный аудит и Дорожная карта (Roadmap)
