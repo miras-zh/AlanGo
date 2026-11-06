@@ -27,7 +27,14 @@ export type ScheduleDay = {
   isClosed: boolean;
   startTime: string; // "08:00"
   endTime: string;   // "23:00"
-  slotDurations: number[]; // [60, 90] минут (как в Vison)
+  slotDurations: number[]; // [60, 90, 120] минут (как в Vison)
+  // Каскадный график (Vison Cascade Pattern)
+  cascadeEnabled?: boolean;
+  cascadeStepHours?: number; // 1..6
+  cascadeInitialEndTime?: string; // "14:00" (верхняя граница окна)
+  cascadeSecondBoundaryEnabled?: boolean;
+  cascadeSecondBoundaryTime?: string; // "18:00" (динамическая нижняя граница)
+  cascadeCutoffTime?: string; // "23:00" (жесткий потолок приёма заявок)
 };
 
 export type Arena = {
@@ -64,7 +71,11 @@ export type Booking = {
   timeSlot: string;   // "19:00 - 20:00"
   durationMinutes: number;
   totalPrice: number;
-  status: "confirmed" | "pending" | "cancelled";
+  status: "confirmed" | "pending" | "cancelled" | "rejected";
+  source?: "app" | "manual" | "phone" | "telegram";
+  gameOutcome?: "completed" | "no_show";
+  rejectionReason?: string;
+  notes?: string;
   createdAt: string;
 };
 
@@ -651,13 +662,104 @@ export const INITIAL_HALLS: Hall[] = [
 ];
 
 export const DEFAULT_WEEK_SCHEDULE: ScheduleDay[] = [
-  { dayOfWeek: 1, dayName: "Понедельник", isClosed: false, startTime: "08:00", endTime: "23:00", slotDurations: [60, 90] },
-  { dayOfWeek: 2, dayName: "Вторник",     isClosed: false, startTime: "08:00", endTime: "23:00", slotDurations: [60, 90] },
-  { dayOfWeek: 3, dayName: "Среда",       isClosed: false, startTime: "08:00", endTime: "23:00", slotDurations: [60, 90] },
-  { dayOfWeek: 4, dayName: "Четверг",     isClosed: false, startTime: "08:00", endTime: "23:00", slotDurations: [60, 90] },
-  { dayOfWeek: 5, dayName: "Пятница",     isClosed: false, startTime: "08:00", endTime: "24:00", slotDurations: [60, 90, 120] },
-  { dayOfWeek: 6, dayName: "Суббота",     isClosed: false, startTime: "09:00", endTime: "24:00", slotDurations: [60, 90, 120] },
-  { dayOfWeek: 0, dayName: "Воскресенье", isClosed: false, startTime: "09:00", endTime: "23:00", slotDurations: [60, 90] },
+  {
+    dayOfWeek: 1,
+    dayName: "Понедельник",
+    isClosed: false,
+    startTime: "08:00",
+    endTime: "23:00",
+    slotDurations: [60, 90],
+    cascadeEnabled: true,
+    cascadeStepHours: 2,
+    cascadeInitialEndTime: "14:00",
+    cascadeSecondBoundaryEnabled: true,
+    cascadeSecondBoundaryTime: "18:00",
+    cascadeCutoffTime: "22:00",
+  },
+  {
+    dayOfWeek: 2,
+    dayName: "Вторник",
+    isClosed: false,
+    startTime: "08:00",
+    endTime: "23:00",
+    slotDurations: [60, 90],
+    cascadeEnabled: true,
+    cascadeStepHours: 2,
+    cascadeInitialEndTime: "14:00",
+    cascadeSecondBoundaryEnabled: true,
+    cascadeSecondBoundaryTime: "18:00",
+    cascadeCutoffTime: "22:00",
+  },
+  {
+    dayOfWeek: 3,
+    dayName: "Среда",
+    isClosed: false,
+    startTime: "08:00",
+    endTime: "23:00",
+    slotDurations: [60, 90],
+    cascadeEnabled: true,
+    cascadeStepHours: 2,
+    cascadeInitialEndTime: "14:00",
+    cascadeSecondBoundaryEnabled: true,
+    cascadeSecondBoundaryTime: "18:00",
+    cascadeCutoffTime: "22:00",
+  },
+  {
+    dayOfWeek: 4,
+    dayName: "Четверг",
+    isClosed: false,
+    startTime: "08:00",
+    endTime: "23:00",
+    slotDurations: [60, 90],
+    cascadeEnabled: true,
+    cascadeStepHours: 2,
+    cascadeInitialEndTime: "14:00",
+    cascadeSecondBoundaryEnabled: true,
+    cascadeSecondBoundaryTime: "18:00",
+    cascadeCutoffTime: "22:00",
+  },
+  {
+    dayOfWeek: 5,
+    dayName: "Пятница",
+    isClosed: false,
+    startTime: "08:00",
+    endTime: "24:00",
+    slotDurations: [60, 90, 120],
+    cascadeEnabled: true,
+    cascadeStepHours: 2,
+    cascadeInitialEndTime: "15:00",
+    cascadeSecondBoundaryEnabled: true,
+    cascadeSecondBoundaryTime: "19:00",
+    cascadeCutoffTime: "23:00",
+  },
+  {
+    dayOfWeek: 6,
+    dayName: "Суббота",
+    isClosed: false,
+    startTime: "09:00",
+    endTime: "24:00",
+    slotDurations: [60, 90, 120],
+    cascadeEnabled: false,
+    cascadeStepHours: 2,
+    cascadeInitialEndTime: "16:00",
+    cascadeSecondBoundaryEnabled: false,
+    cascadeSecondBoundaryTime: "20:00",
+    cascadeCutoffTime: "23:00",
+  },
+  {
+    dayOfWeek: 0,
+    dayName: "Воскресенье",
+    isClosed: false,
+    startTime: "09:00",
+    endTime: "23:00",
+    slotDurations: [60, 90],
+    cascadeEnabled: false,
+    cascadeStepHours: 2,
+    cascadeInitialEndTime: "15:00",
+    cascadeSecondBoundaryEnabled: false,
+    cascadeSecondBoundaryTime: "19:00",
+    cascadeCutoffTime: "22:00",
+  },
 ];
 
 export const INITIAL_BOOKINGS: Booking[] = [
@@ -1022,7 +1124,7 @@ export async function saveUpdatedArena(arena: Arena): Promise<void> {
 
 export async function updateBookingStatus(
   id: string,
-  status: "confirmed" | "pending" | "cancelled"
+  status: "confirmed" | "pending" | "cancelled" | "rejected"
 ): Promise<void> {
   const bookings = await getStoredBookings();
   const idx = bookings.findIndex((b) => b.id === id);
@@ -1037,6 +1139,41 @@ export async function updateBookingStatus(
       body: JSON.stringify({ status }),
     });
   } catch {}
+}
+
+export async function rejectBookingWithReason(
+  id: string,
+  reason: string
+): Promise<void> {
+  const bookings = await getStoredBookings();
+  const idx = bookings.findIndex((b) => b.id === id);
+  if (idx >= 0) {
+    bookings[idx] = {
+      ...bookings[idx],
+      status: "rejected",
+      rejectionReason: reason,
+    };
+    await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
+  }
+
+  try {
+    await apiFetch(`/bookings/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "rejected", reason }),
+    });
+  } catch {}
+}
+
+export async function setBookingGameOutcome(
+  id: string,
+  gameOutcome: "completed" | "no_show"
+): Promise<void> {
+  const bookings = await getStoredBookings();
+  const idx = bookings.findIndex((b) => b.id === id);
+  if (idx >= 0) {
+    bookings[idx] = { ...bookings[idx], gameOutcome };
+    await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
+  }
 }
 
 export async function saveNewHall(arenaId: number, data: Partial<Hall>): Promise<Hall> {

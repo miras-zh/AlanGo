@@ -95,12 +95,38 @@ export default function BusinessScheduleScreen() {
     });
   };
 
+  const toggleCascade = (index: number) => {
+    hapticSelection();
+    setSchedule((prev) => {
+      const copy = [...prev];
+      copy[index] = {
+        ...copy[index],
+        cascadeEnabled: !copy[index].cascadeEnabled,
+        cascadeStepHours: copy[index].cascadeStepHours || 2,
+        cascadeInitialEndTime: copy[index].cascadeInitialEndTime || "14:00",
+        cascadeSecondBoundaryEnabled: true,
+        cascadeSecondBoundaryTime: copy[index].cascadeSecondBoundaryTime || "18:00",
+        cascadeCutoffTime: copy[index].cascadeCutoffTime || "22:00",
+      };
+      return copy;
+    });
+  };
+
+  const setCascadeStep = (index: number, step: number) => {
+    hapticSelection();
+    setSchedule((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], cascadeStepHours: step };
+      return copy;
+    });
+  };
+
   const applyMondayToAll = () => {
     hapticImpact();
     const monday = schedule[0];
     Alert.alert(
       "Синхронизация графика",
-      `Применить настройки понедельника (${monday.startTime} - ${monday.endTime}, слоты ${monday.slotDurations.join(", ")} мин) ко всем дням недели?`,
+      `Применить настройки понедельника (${monday.startTime} - ${monday.endTime}, слоты ${monday.slotDurations.join(", ")} мин, каскад: ${monday.cascadeEnabled ? "Вкл" : "Выкл"}) ко всем дням недели?`,
       [
         { text: "Отмена", style: "cancel" },
         {
@@ -113,6 +139,12 @@ export default function BusinessScheduleScreen() {
                 startTime: monday.startTime,
                 endTime: monday.endTime,
                 slotDurations: [...monday.slotDurations],
+                cascadeEnabled: monday.cascadeEnabled,
+                cascadeStepHours: monday.cascadeStepHours,
+                cascadeInitialEndTime: monday.cascadeInitialEndTime,
+                cascadeSecondBoundaryEnabled: monday.cascadeSecondBoundaryEnabled,
+                cascadeSecondBoundaryTime: monday.cascadeSecondBoundaryTime,
+                cascadeCutoffTime: monday.cascadeCutoffTime,
               }))
             );
             hapticSuccess();
@@ -309,6 +341,105 @@ export default function BusinessScheduleScreen() {
                       </Pressable>
                     );
                   })}
+                </View>
+
+                {/* Cascade Booking Settings (Vison Cascade Pattern) */}
+                <View style={styles.cascadeCard}>
+                  <View style={styles.cascadeHeader}>
+                    <View style={styles.cascadeHeaderLeft}>
+                      <Ionicons name="git-merge-outline" size={18} color="#22C55E" />
+                      <Text style={styles.cascadeTitle}>Каскадный график</Text>
+                    </View>
+                    <Switch
+                      value={!!day.cascadeEnabled}
+                      onValueChange={() => toggleCascade(idx)}
+                      trackColor={{ false: "#2A352E", true: "#22C55E" }}
+                      thumbColor="#FFFFFF"
+                    />
+                  </View>
+                  <Text style={styles.cascadeHelp}>
+                    Слоты открываются последовательно: новые часы становятся доступны только после заполнения предыдущих окон. Исключает простои и «дыры» в расписании.
+                  </Text>
+
+                  {day.cascadeEnabled && (
+                    <View style={styles.cascadeBody}>
+                      {/* Шаг каскада */}
+                      <Text style={styles.cascadeLabel}>Шаг раскрытия слотов:</Text>
+                      <View style={styles.cascadeStepsRow}>
+                        {[1, 2, 3, 4].map((step) => {
+                          const active = (day.cascadeStepHours || 2) === step;
+                          return (
+                            <Pressable
+                              key={step}
+                              style={[styles.stepChip, active && styles.stepChipActive]}
+                              onPress={() => setCascadeStep(idx, step)}
+                            >
+                              <Text style={[styles.stepChipText, active && styles.stepChipTextActive]}>
+                                +{step} {step === 1 ? "час" : step < 5 ? "часа" : "часов"}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+
+                      {/* Границы каскада */}
+                      <View style={styles.cascadeBoundariesRow}>
+                        <View style={{ flex: 1, marginRight: 5 }}>
+                          <Text style={styles.cascadeFieldLabel}>Верхняя граница</Text>
+                          <TextInput
+                            style={styles.cascadeInput}
+                            value={day.cascadeInitialEndTime || "14:00"}
+                            placeholder="14:00"
+                            placeholderTextColor="#6B7C72"
+                            keyboardType="numbers-and-punctuation"
+                            maxLength={5}
+                            returnKeyType="done"
+                            onChangeText={(val) => {
+                              const copy = [...schedule];
+                              copy[idx].cascadeInitialEndTime = formatTime(val);
+                              setSchedule(copy);
+                            }}
+                          />
+                        </View>
+
+                        <View style={{ flex: 1, marginHorizontal: 5 }}>
+                          <Text style={styles.cascadeFieldLabel}>Нижняя граница</Text>
+                          <TextInput
+                            style={styles.cascadeInput}
+                            value={day.cascadeSecondBoundaryTime || "18:00"}
+                            placeholder="18:00"
+                            placeholderTextColor="#6B7C72"
+                            keyboardType="numbers-and-punctuation"
+                            maxLength={5}
+                            returnKeyType="done"
+                            onChangeText={(val) => {
+                              const copy = [...schedule];
+                              copy[idx].cascadeSecondBoundaryTime = formatTime(val);
+                              setSchedule(copy);
+                            }}
+                          />
+                        </View>
+
+                        <View style={{ flex: 1, marginLeft: 5 }}>
+                          <Text style={styles.cascadeFieldLabel}>Потолок приёма</Text>
+                          <TextInput
+                            style={styles.cascadeInput}
+                            value={day.cascadeCutoffTime || "22:00"}
+                            placeholder="22:00"
+                            placeholderTextColor="#6B7C72"
+                            keyboardType="numbers-and-punctuation"
+                            maxLength={5}
+                            returnKeyType="done"
+                            onChangeText={(val) => {
+                              const copy = [...schedule];
+                              copy[idx].cascadeCutoffTime = formatTime(val);
+                              setSchedule(copy);
+                            }}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  )}
                 </View>
               </View>
             )}
@@ -547,6 +678,89 @@ const styles = StyleSheet.create({
   durationTextActive: {
     color: "#22C55E",
     fontWeight: "700",
+  },
+  // Cascade Card Styles
+  cascadeCard: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.08)",
+  },
+  cascadeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  cascadeHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  cascadeTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  cascadeHelp: {
+    fontSize: 11,
+    color: "#8E9B94",
+    lineHeight: 16,
+    marginTop: 4,
+  },
+  cascadeBody: {
+    marginTop: 10,
+    gap: 10,
+  },
+  cascadeLabel: {
+    fontSize: 12,
+    color: "#B2BFB8",
+    fontWeight: "600",
+  },
+  cascadeFieldLabel: {
+    fontSize: 11,
+    color: "#8E9B94",
+    marginBottom: 4,
+  },
+  cascadeStepsRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  stepChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#0B0F0D",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
+  },
+  stepChipActive: {
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    borderColor: "#22C55E",
+  },
+  stepChipText: {
+    fontSize: 12,
+    color: "#8E9B94",
+    fontWeight: "500",
+  },
+  stepChipTextActive: {
+    color: "#22C55E",
+    fontWeight: "700",
+  },
+  cascadeBoundariesRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  cascadeInput: {
+    backgroundColor: "#0B0F0D",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    textAlign: "center",
   },
   bigSaveBtn: {
     backgroundColor: "#22C55E",
