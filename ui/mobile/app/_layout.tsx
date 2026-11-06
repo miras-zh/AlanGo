@@ -1,5 +1,8 @@
 import { useEffect } from "react";
+import { LogBox } from "react-native";
 import { Stack } from "expo-router";
+
+LogBox.ignoreAllLogs();
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider, useAppTheme } from "@/theme/ThemeProvider";

@@ -7,6 +7,19 @@
 
 ---
 
+## [1.5.1] — 2026-11-06
+
+### 🎨 Редизайн Liquid Glass навигации (Floating Capsule Tab Bar в стиле Vison)
+- **Устранение ошибки `<ViewManagerAdapter_ExpoBlur_ExpoBlurView>`**:
+  - В [`ui/mobile/components/TabBarGlassBackground.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/TabBarGlassBackground.tsx) добавлена динамическая проверка доступности нативного модуля `UIManager.hasViewManagerConfig('ExpoBlurView')` с красивым полупрозрачным фолбэком для Expo Go.
+- **Новый плавающий компонент навигации**:
+  - Создан компонент [`ui/mobile/components/LiquidGlassTabBar.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/LiquidGlassTabBar.tsx) в стиле iOS Liquid Glass:
+    - Плавающая капсула (`tabBarPill`) с радиусом скругления `33px`, эффектом матового стекла и тонкой светящейся каймой;
+    - Активная вкладка подсвечивается овальной капсулой с изумрудным градиентным фоном и зеленым акцентным цветом иконки и подписи (полное совпадение с дизайном референса Vison);
+    - Отсутствие обрезки текста ("Главная", "Залы", "События", "Чат", "Профиль" отображаются полностью и аккуратно);
+  - Подключен в [`ui/mobile/app/(tabs)/_layout.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/_layout.tsx) через кастомный `tabBar` проп;
+  - Подавлены всплывающие отладочные предупреждения в dev-режиме [`ui/mobile/app/_layout.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/_layout.tsx).
+
 ## [1.5.0] — 2026-11-06
 
 ### 💼 Фаза 4: Кабинет Бизнеса, Выручка и Клиентская база (CRM)
