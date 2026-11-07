@@ -9,6 +9,26 @@
 
 ## [1.6.0] — 2026-11-06
 
+### 🏟️ Полный редизайн экранов «Залы» (Alan Go Halls & Details Screen)
+- **Компонент карточки зала [`ui/mobile/components/VenueCard.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/VenueCard.tsx)**:
+  - Точное соответствие Screen 1 и 3 референса: широкоформатная обложка 16:9, плавающая кнопка избранного ♡, плашка рейтинга `★ 4.8 (124)`, адрес и динамическое расстояние `2,4 км`, цена `от 15 000 ₸ / час` и акцентная круглая зеленая кнопка `➔` (`colors.primary`);
+- **Компонент модального окна фильтров [`ui/mobile/components/FilterModal.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/FilterModal.tsx)**:
+  - Точное соответствие Screen 2: сетка видов спорта (Футбол, Теннис, Баскетбол, Волейбол, Сквош, Падл) с индикаторами выбора и галочками ✓, переключатель «Спорткомплекс / Отдельный зал», выбор максимальной цены за час, сетка удобств (Парковка, Раздевалка, Душ, Wi-Fi), кнопки «Сбросить» и «Показать (X)» с динамическим расчетом;
+- **Обновление экрана каталога [`ui/mobile/app/(tabs)/items.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/items.tsx)**:
+  - Компактный заголовок «Залы», кнопки геолокации и фильтра справа в шапке, поисковая строка в стиле `colors.surface`, горизонтальные чипы видов спорта, строка сортировки и динамический чип «Фильтры • X» при наличии активных фильтров;
+- **Обновление экрана деталей зала [`ui/mobile/app/hall/[id].tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/hall/[id].tsx)**:
+  - Точное соответствие Screen 4: верхняя Hero-галерея со счетчиком фото `📷 1/12`, плавающими кнопками `←`, «Поделиться» и «Избранное», метаданные зала, бейджи характеристик (вид спорта, вместимость 5×5, крытый тип), сегментные табы `[ О зале ]`, `[ Расписание ]`, `[ Отзывы ]`, сетка плиток удобств, и фиксированный Sticky Footer с ценой и кнопкой «Забронировать»;
+- **Интеграция с дизайн-системой**:
+  - Все цвета, шрифты, радиусы и отступы переведены на семантические токены `colors`, `radii`, `spacing`, `typography` из [`DESIGN_SYSTEM.md`](file:///Users/miko/MyProduction/AlanGo/DESIGN_SYSTEM.md).
+
+### 💎 Мобильная Дизайн-Система (Alan Go Mobile Design System)
+- **Создан эталонный стандарт [`DESIGN_SYSTEM.md`](file:///Users/miko/MyProduction/AlanGo/DESIGN_SYSTEM.md)**:
+  - Закреплены 10 основополагающих разделов: принципы Dark Sports UI, семантические токены цветов (`#080D0B`, `#121A16`, `#1C2722`, `#00C968`, `#F04452`), типографика, 4px-шкала отступов, радиусы скругления элементов (12..28px), правила Liquid Glass, кнопки, карточки арен, таб-навигация и строгие правила для агентов разработки;
+- **Программные токены темы ([`ui/mobile/theme/designSystem.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/theme/designSystem.ts), [`ui/mobile/constants/theme.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/constants/theme.ts))**:
+  - Экспортированы типизированные константы `colors`, `typography`, `spacing`, `radii` для устранения хардкода цветов и отступов во всех компонентах;
+- **Правило №8 в инструкции агентов ([`AGENTS.md`](file:///Users/miko/MyProduction/AlanGo/AGENTS.md))**:
+  - Закреплено обязательное соблюдение дизайн-системы перед разработкой любого UI в проекте Alan Go.
+
 ### 🎨 Визуальный UI-аудит и устранение обрезки элементов (iOS & Android)
 - **Устранение перекрытия контента плавающим Liquid Glass Tab Bar**:
   - На всех ключевых экранах табов (`app/(tabs)/index.tsx`, `items.tsx`, `events.tsx`, `notifications.tsx`, `profile.tsx`) и в экранах бизнес-кабинета (`business/staff.tsx`, `business/schedule.tsx`) увеличен нижний отступ скролла (`paddingBottom: 110`), гарантирующий свободную видимость и кликабельность нижних карточек и кнопок над капсульным меню;
