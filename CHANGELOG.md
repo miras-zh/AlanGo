@@ -9,6 +9,14 @@
 
 ## [1.6.0] — 2026-11-06
 
+### 🎨 Визуальный UI-аудит и устранение обрезки элементов (iOS & Android)
+- **Устранение перекрытия контента плавающим Liquid Glass Tab Bar**:
+  - На всех ключевых экранах табов (`app/(tabs)/index.tsx`, `items.tsx`, `events.tsx`, `notifications.tsx`, `profile.tsx`) и в экранах бизнес-кабинета (`business/staff.tsx`, `business/schedule.tsx`) увеличен нижний отступ скролла (`paddingBottom: 110`), гарантирующий свободную видимость и кликабельность нижних карточек и кнопок над капсульным меню;
+- **Идеальное позиционирование кнопки «Сохранить» в Графике работы ([`ui/mobile/app/business/schedule.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/business/schedule.tsx))**:
+  - Заголовку и подзаголовку задан `flex: 1` с `flexShrink: 1` и `numberOfLines={1}`, а кнопке «Сохранить» — `flexShrink: 0` с гармоничным отступом `paddingHorizontal: 16`, предотвращающий выталкивание и обрезку текста кнопки за правый край экрана;
+- **Оптимизация кнопок действий в карточках персонала ([`ui/mobile/app/business/staff.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/business/staff.tsx))**:
+  - Добавлена кнопка «Войти» / «Вы вошли», оптимизированы размеры под трехкнопочный ряд (`Войти`, `Позвонить`, `Отозвать`), исключены горизонтальные переносы на экранах любой плотности.
+
 ### 🛠️ Исправления по результатам технического аудита (P0, P1, P2, P3)
 - **Гарантированный бэкап базы данных (P0)**:
   - В [`AGENTS.md`](file:///Users/miko/MyProduction/AlanGo/AGENTS.md) зафиксировано обязательное использование суперпользователя `postgres` (`docker exec -t alango-db pg_dump -U postgres alango`), исключающее создание пустых 134-байтовых архивов из-за отсутствия роли `alango`;

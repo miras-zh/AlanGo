@@ -171,9 +171,11 @@ export default function BusinessScheduleScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>График работы</Text>
-          <Text style={styles.headerSubtitle}>
+        <View style={{ flex: 1, flexShrink: 1, marginRight: 12 }}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            График работы
+          </Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>
             Настройка доступных слотов и рабочих часов арены
           </Text>
         </View>
@@ -182,7 +184,7 @@ export default function BusinessScheduleScreen() {
           onPress={handleSave}
           disabled={saving}
         >
-          <Ionicons name="checkmark-done" size={18} color="#0B0F0D" />
+          <Ionicons name="checkmark-done" size={16} color="#0B0F0D" />
           <Text style={styles.saveTopBtnText}>Сохранить</Text>
         </Pressable>
       </View>
@@ -486,7 +488,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#8E9B94",
     marginTop: 2,
-    maxWidth: "80%",
   },
   saveTopBtn: {
     flexDirection: "row",
@@ -496,6 +497,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
+    flexShrink: 0,
   },
   saveTopBtnText: {
     fontSize: 12,
@@ -504,6 +506,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: 16,
+    paddingBottom: 110,
   },
   banner: {
     flexDirection: "row",

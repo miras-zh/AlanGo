@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingBottom: 110,
     gap: 16,
   },
   card: {
