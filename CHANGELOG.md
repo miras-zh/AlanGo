@@ -9,6 +9,17 @@
 
 ## [1.6.0] — 2026-11-06
 
+### 🚀 Подготовка релиза для Apple TestFlight (v1.0.0, build 2)
+- **Конфигурация сборки ([`ui/mobile/app.json`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app.json), [`ui/mobile/ios/AlanGo/Info.plist`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/ios/AlanGo/Info.plist))**:
+  - Зафиксирована версия `1.0.0` и номер сборки `buildNumber: "2"` (`CFBundleVersion: 2`);
+  - Добавлены обязательные для ревью Apple описания разрешений `NSLocationWhenInUseUsageDescription` и `NSPhotoLibraryUsageDescription`;
+  - Настроен `ITSAppUsesNonExemptEncryption: false` для автоматического прохождения экспортного контроля Apple;
+- **Файл конфигурации EAS ([`ui/mobile/eas.json`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/eas.json))**:
+  - Добавлены профили `production`, `preview`, `development` для сборки в облаке EAS и прямой выгрузки в TestFlight;
+- **Валидация бандла и скрипт сборки ([`ui/mobile/scripts/build_testflight.sh`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/scripts/build_testflight.sh))**:
+  - Успешно протестирован экспорт производственного JS-бандла (`npx expo export --platform ios`);
+  - Создан единый bash-скрипт сборки с выбором облачного EAS Build или локального Xcode Archive.
+
 ### 🏟️ Полный редизайн экранов «Залы» (Alan Go Halls & Details Screen)
 - **Компонент карточки зала [`ui/mobile/components/VenueCard.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/VenueCard.tsx)**:
   - Точное соответствие Screen 1 и 3 референса: широкоформатная обложка 16:9, плавающая кнопка избранного ♡, плашка рейтинга `★ 4.8 (124)`, адрес и динамическое расстояние `2,4 км`, цена `от 15 000 ₸ / час` и акцентная круглая зеленая кнопка `➔` (`colors.primary`);
