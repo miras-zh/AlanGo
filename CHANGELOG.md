@@ -9,6 +9,15 @@
 
 ## [1.6.0] — 2026-11-06
 
+### 🛠️ Исправление ошибки валидации App Store (Invalid large app icon & build 3)
+- **Ликвидация альфа-канала из иконки приложения (P0)**:
+  - Иконки `ui/mobile/assets/icon.png` и `ui/mobile/ios/AlanGo/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png` переведены в 24-битный формат без альфа-канала (`hasAlpha: no`) с заливкой фирменного темного фона темы (`#080D0B`);
+  - Устранена ошибка валидации App Store: `The large app icon in the asset catalog in AlanGo.app can't be transparent or contain an alpha channel`;
+- **Инкремент номера сборки**:
+  - `buildNumber` повышен до `3` (`CFBundleVersion: 3`) для исключения ошибки дублирования предыдущей отклонённой сборки;
+- **Настройка генерации символов dSYM ([`ui/mobile/ios/Podfile`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/ios/Podfile))**:
+  - Добавлена настройка `DEBUG_INFORMATION_FORMAT = dwarf-with-dsym` для Release-конфигурации в хуке `post_install`.
+
 ### 🚀 Подготовка релиза для Apple TestFlight (v1.0.0, build 2)
 - **Конфигурация сборки ([`ui/mobile/app.json`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app.json), [`ui/mobile/ios/AlanGo/Info.plist`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/ios/AlanGo/Info.plist))**:
   - Зафиксирована версия `1.0.0` и номер сборки `buildNumber: "2"` (`CFBundleVersion: 2`);
