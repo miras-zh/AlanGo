@@ -114,7 +114,7 @@ export const TEST_ACCOUNTS: Record<string, TestAccount> = {
   "dev.client": {
     username: "dev.client",
     email: "client@sportrent.kz",
-    name: "Мико Аскаров",
+    name: "Мико Jo",
     role: "client",
     phone: "+7 (777) 123-45-67",
     city: "Астана",

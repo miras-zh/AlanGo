@@ -7,14 +7,48 @@
 
 ---
 
+## [Unreleased]
+
+### 🛠️ Исправление регистрации и авторизации через Apple ID в Expo Go и Dev-режиме
+- **Ликвидация блокирующего алерта при регистрации через Apple**:
+  - В [`ui/mobile/app/register.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/register.tsx) и [`ui/mobile/app/login.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/login.tsx) устранен блокирующий Alert (*«Вход через Apple работает в нативной сборке приложения...»*);
+  - Реализован умный бесшовный переход: в среде Expo Go / симуляторе регистрация и вход выполняются автоматически с созданием локальной сессии тестового Apple ID без прерывания пользовательского пути;
+  - В нативных релизных сборках (TestFlight / App Store) полностью сохранена официальная нативная биометрия и проверка через Apple API;
+- **Надежность регистрации по Email**:
+  - В [`ui/mobile/lib/registration.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/registration.ts) добавлен dev-фоллбэк для подтверждения кода (мастер-коды `1111` / `0000`), защищающий от сбоев доставки писем при тестировании.
+
+### 📝 Фиксация заметок, идей и нового функционала карты
+- **Создание проектного бэклога ([`docs/BACKLOG.md`](file:///Users/miko/MyProduction/AlanGo/docs/BACKLOG.md))**:
+  - Зафиксированы и категоризированы 8 продуктовых и технических пунктов (календарь «месяц–неделя», реорганизация баннера и галереи в карточке, детализация характеристик полей, матрица расписания по полям и слотам, аудит «Моих броней», восстановление выбора фото в бизнесе, реактивное обновление тарифа, устранение редиректов на главном экране бизнеса);
+  - **Новая задача P0**: Проектирование и интеграция экрана «Залы рядом» (интерактивная карта со спортивными комплексами, кластеризацией, ценовыми бейджами и геолокацией).
+
 ## [1.6.0] — 2026-11-06
+
+### 🎨 Восстановление оригинальной 3D-иконки приложения (Сборка 1) и инкремент до Build 4
+- **Возврат оригинальной иконки (Сборка 1)**:
+  - Восстановлена оригинальная 3D-иконка (объемная неоновая буква «A», газон стадиона, софиты и теннисный мяч);
+  - Прозрачный альфа-канал на углах устранен (`hasAlpha: no`) для строгого соответствия требованиям App Store;
+  - Обновлены все ассеты приложения: `ui/mobile/assets/icon.png`, `ui/mobile/assets/expo/icon.png`, `ui/mobile/assets/adaptive-icon.png`, `ui/mobile/assets/ios/AppIcon.appiconset/icon-1024.png` и `ui/mobile/ios/AlanGo/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png`;
+- **Инкремент номера сборки**:
+  - `buildNumber` повышен до `4` (`CFBundleVersion: 4`, `CURRENT_PROJECT_VERSION: 4`) для отправки обновленного билда в TestFlight.
+
+### 🍎 Авторизация через Apple ID и удаление аккаунта (Apple Guideline 5.1.1(v))
+- **Нативная авторизация через Apple ID (`expo-apple-authentication`)**:
+  - На экранах [`ui/mobile/app/login.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/login.tsx) и [`ui/mobile/app/register.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/register.tsx) добавлена нативная кнопка Apple Sign-In (`AppleAuthenticationButton`) в соответствии с Human Interface Guidelines Apple;
+  - В [`ui/mobile/lib/registration.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/registration.ts) реализована функция `loginWithApple()` с обращением к бэкенду `POST /api/auth/apple`, сохранением сессии и переходом на главный экран;
+  - Корректная обработка отмены запроса пользователем (`ERR_REQUEST_CANCELED`);
+- **Удаление аккаунта (Apple Review Guideline 5.1.1(v))**:
+  - В профиле [`ui/mobile/app/(tabs)/profile.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/profile.tsx) добавлена кнопка «Удалить аккаунт» с подтверждением через Alert с разрушающим действием (`destructive`);
+  - Функция `deleteAccountApi()` в `registration.ts` вызывает `DELETE /api/profile` (очистка БД, отзыв Apple-токенов через `RevokeAppleToken`, удаление медиа) и выполняет локальный сброс сессии;
+- **Выход из аккаунта**:
+  - Добавлена кнопка «Выйти из аккаунта» с очисткой токенов и перенаправлением на экран входа.
 
 ### 🛠️ Исправление ошибки валидации App Store (Invalid large app icon & build 3)
 - **Ликвидация альфа-канала из иконки приложения (P0)**:
-  - Иконки `ui/mobile/assets/icon.png` и `ui/mobile/ios/AlanGo/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png` переведены в 24-битный формат без альфа-канала (`hasAlpha: no`) с заливкой фирменного темного фона темы (`#080D0B`);
+  - Иконки `ui/mobile/assets/icon.png`, `ui/mobile/assets/expo/icon.png`, `ui/mobile/assets/ios/AppIcon.appiconset/icon-1024.png` и `ui/mobile/ios/AlanGo/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png` переведены в 24-битный формат без альфа-канала (`hasAlpha: no`) с заливкой фирменного темного фона темы (`#080D0B`);
   - Устранена ошибка валидации App Store: `The large app icon in the asset catalog in AlanGo.app can't be transparent or contain an alpha channel`;
 - **Инкремент номера сборки**:
-  - `buildNumber` повышен до `3` (`CFBundleVersion: 3`) для исключения ошибки дублирования предыдущей отклонённой сборки;
+  - `buildNumber` повышен до `3` (`CFBundleVersion: 3`, `CURRENT_PROJECT_VERSION: 3`) для исключения ошибки дублирования предыдущей отклонённой сборки;
 - **Настройка генерации символов dSYM ([`ui/mobile/ios/Podfile`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/ios/Podfile))**:
   - Добавлена настройка `DEBUG_INFORMATION_FORMAT = dwarf-with-dsym` для Release-конфигурации в хуке `post_install`.
 

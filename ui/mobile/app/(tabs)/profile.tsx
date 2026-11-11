@@ -13,13 +13,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { getSessionUser, MOCK_USER, subscribeAuth, switchTestAccount } from "@/lib/auth";
+import { deleteAccountApi, logoutCurrentSession } from "@/lib/registration";
 import {
   changeMySubscriptionPlan,
   fetchMySubscription,
   SubscriptionInfo,
   updateMyProfile,
 } from "@/lib/user";
-import { hapticSelection, hapticSuccess } from "@/lib/haptics";
+import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getErrorMessage } from "@/lib/errorMessage";
 
 export default function ProfileScreen() {
@@ -73,6 +74,53 @@ export default function ProfileScreen() {
     } catch (err) {
       Alert.alert("Ошибка", getErrorMessage(err));
     }
+  };
+
+  const handleLogout = () => {
+    hapticImpact();
+    Alert.alert(
+      "Выход из аккаунта",
+      "Вы действительно хотите выйти из своего аккаунта?",
+      [
+        { text: "Отмена", style: "cancel" },
+        {
+          text: "Выйти",
+          style: "destructive",
+          onPress: async () => {
+            await logoutCurrentSession();
+            router.replace("/login");
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    hapticImpact();
+    Alert.alert(
+      "Удаление аккаунта",
+      "Вы действительно хотите удалить свой аккаунт? Все ваши бронирования, история и персональные данные будут безвозвратно стёрты в соответствии с требованиями Apple.",
+      [
+        { text: "Отмена", style: "cancel" },
+        {
+          text: "Удалить навсегда",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAccountApi();
+              hapticSuccess();
+              Alert.alert(
+                "Аккаунт удален",
+                "Ваш аккаунт и данные были успешно удалены."
+              );
+              router.replace("/login");
+            } catch (e) {
+              Alert.alert("Ошибка", getErrorMessage(e));
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -361,6 +409,19 @@ export default function ProfileScreen() {
             <Text style={styles.saveBtnText}>{saving ? "Сохраняем..." : "Сохранить изменения"}</Text>
           </Pressable>
         </View>
+
+        {/* Account Safety Actions (Apple Guideline 5.1.1) */}
+        <View style={styles.accountActionsCard}>
+          <Pressable style={styles.logoutBtn} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.logoutBtnText}>Выйти из аккаунта</Text>
+          </Pressable>
+
+          <Pressable style={styles.deleteAccountBtn} onPress={handleDeleteAccount}>
+            <Ionicons name="trash-outline" size={17} color="#EF4444" />
+            <Text style={styles.deleteAccountBtnText}>Удалить аккаунт</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -584,5 +645,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#0B0F0D",
+  },
+  accountActionsCard: {
+    backgroundColor: "#141A17",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#1F2823",
+    padding: 16,
+    gap: 12,
+  },
+  logoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    paddingVertical: 13,
+    borderRadius: 14,
+  },
+  logoutBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  deleteAccountBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+    paddingVertical: 13,
+    borderRadius: 14,
+  },
+  deleteAccountBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#EF4444",
   },
 });
