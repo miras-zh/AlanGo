@@ -56,6 +56,8 @@ export type Arena = {
   hallsCount: number;
   minPricePerHour?: number;
   sports?: SportType[];
+  latitude?: number;
+  longitude?: number;
 };
 
 export type Booking = {
@@ -149,6 +151,8 @@ export const INITIAL_ARENAS: Arena[] = [
     hallsCount: 3,
     minPricePerHour: 14000,
     sports: ["Футбол", "Баскетбол", "Теннис"],
+    latitude: 51.1085,
+    longitude: 71.4025,
   },
   {
     id: 2,
@@ -176,6 +180,8 @@ export const INITIAL_ARENAS: Arena[] = [
     hallsCount: 3,
     minPricePerHour: 12000,
     sports: ["Футбол", "Баскетбол", "Сквош и падл"],
+    latitude: 51.1215,
+    longitude: 71.4110,
   },
   {
     id: 3,
@@ -202,6 +208,8 @@ export const INITIAL_ARENAS: Arena[] = [
     hallsCount: 2,
     minPricePerHour: 16000,
     sports: ["Теннис", "Сквош и падл"],
+    latitude: 51.1435,
+    longitude: 71.4285,
   },
   {
     id: 4,
@@ -228,6 +236,8 @@ export const INITIAL_ARENAS: Arena[] = [
     hallsCount: 3,
     minPricePerHour: 10000,
     sports: ["Футбол", "Баскетбол", "Волейбол"],
+    latitude: 51.1190,
+    longitude: 71.4080,
   },
   {
     id: 5,
@@ -254,6 +264,8 @@ export const INITIAL_ARENAS: Arena[] = [
     hallsCount: 2,
     minPricePerHour: 15000,
     sports: ["Футбол", "Баскетбол", "Волейбол"],
+    latitude: 43.2778,
+    longitude: 76.8180,
   },
   {
     id: 6,
@@ -280,6 +292,8 @@ export const INITIAL_ARENAS: Arena[] = [
     hallsCount: 2,
     minPricePerHour: 18000,
     sports: ["Теннис", "Сквош и падл"],
+    latitude: 43.2325,
+    longitude: 76.9575,
   },
   {
     id: 7,
@@ -305,6 +319,141 @@ export const INITIAL_ARENAS: Arena[] = [
     hallsCount: 2,
     minPricePerHour: 11000,
     sports: ["Футбол", "Баскетбол", "Теннис"],
+    latitude: 42.3685,
+    longitude: 69.6050,
+  },
+  // --- Дополнительные арены Алматы (Центр, Абая, Сатпаева, Толе би) ---
+  {
+    id: 8,
+    ownerId: 8,
+    ownerEmail: "central.stadium@sportrent.kz",
+    title: "Центральный Стадион (Спорткомплекс)",
+    category: "Многофункциональный комплекс",
+    district: "Алмалинский",
+    city: "Алматы",
+    address: "ул. Сатпаева 29/3",
+    phone: "+7 (727) 292-12-34",
+    rating: 4.9,
+    reviewsCount: 312,
+    imageUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800",
+    description: "Главная спортивная арена в центре Алматы: крытые футбольные манежи, легкоатлетические дорожки и раздевалки европейского стандарта.",
+    features: ["Крытый манеж", "Душ и раздевалки", "Мячи и манишки", "Освещение 1000 люкс", "Парковка"],
+    workingHours: "07:00 - 24:00",
+    hallsCount: 4,
+    minPricePerHour: 8000,
+    sports: ["Футбол", "Баскетбол"],
+    latitude: 43.2385,
+    longitude: 76.9242,
+  },
+  {
+    id: 9,
+    ownerId: 9,
+    ownerEmail: "abay.football@sportrent.kz",
+    title: "Football Park Abay",
+    category: "Футбольный манеж",
+    district: "Бостандыкский",
+    city: "Алматы",
+    address: "пр. Абая 52",
+    phone: "+7 (705) 555-44-33",
+    rating: 4.8,
+    reviewsCount: 145,
+    imageUrl: "https://images.unsplash.com/photo-1459865264687-595d652de67e?w=800",
+    description: "Современное поле с искусственным газоном последнего поколения, подогревом и качественным освещением.",
+    features: ["Искусственный газон 60мм", "Душевые кабины", "Аренда манишек", "Кулер с водой"],
+    workingHours: "08:00 - 01:00",
+    hallsCount: 2,
+    minPricePerHour: 9000,
+    sports: ["Футбол"],
+    latitude: 43.2401,
+    longitude: 76.9150,
+  },
+  {
+    id: 10,
+    ownerId: 10,
+    ownerEmail: "auezov.sports@sportrent.kz",
+    title: "Auezov Arena",
+    category: "Спортзал",
+    district: "Ауэзовский",
+    city: "Алматы",
+    address: "ул. Ауэзова 84",
+    phone: "+7 (707) 333-22-11",
+    rating: 4.75,
+    reviewsCount: 88,
+    imageUrl: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800",
+    description: "Универсальный зал с профессиональным паркетом для баскетбола, волейбола и мини-футбола.",
+    features: ["Паркетное покрытие", "Электронное табло", "Раздевалки", "Душ"],
+    workingHours: "08:00 - 23:00",
+    hallsCount: 2,
+    minPricePerHour: 10000,
+    sports: ["Баскетбол", "Волейбол", "Футбол"],
+    latitude: 43.2450,
+    longitude: 76.8920,
+  },
+  {
+    id: 11,
+    ownerId: 11,
+    ownerEmail: "tolebi.club@sportrent.kz",
+    title: "Tole Bi Padel & Tennis",
+    category: "Ракетный клуб",
+    district: "Алмалинский",
+    city: "Алматы",
+    address: "ул. Толе би 187",
+    phone: "+7 (777) 888-99-00",
+    rating: 4.88,
+    reviewsCount: 120,
+    imageUrl: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800",
+    description: "Крытые корты для падел-тенниса и большого тенниса в Алмалинском районе.",
+    features: ["Панорамные корты", "Аренда ракеток", "Профессиональные тренеры", "Сауна"],
+    workingHours: "07:00 - 23:00",
+    hallsCount: 3,
+    minPricePerHour: 14000,
+    sports: ["Теннис", "Сквош и падл"],
+    latitude: 43.2530,
+    longitude: 76.8860,
+  },
+  {
+    id: 12,
+    ownerId: 12,
+    ownerEmail: "gogol.arena@sportrent.kz",
+    title: "Gogol Sport Hub",
+    category: "Спортзал",
+    district: "Алмалинский",
+    city: "Алматы",
+    address: "ул. Гоголя 125",
+    phone: "+7 (701) 900-80-70",
+    rating: 4.82,
+    reviewsCount: 96,
+    imageUrl: "https://images.unsplash.com/photo-1518604666864-742395639b8d?w=800",
+    description: "Уютный комплекс с мини-футбольным полем и волейбольной площадкой в историческом центре Алматы.",
+    features: ["Терафлекс", "Душ", "Инвентарь", "Парковка"],
+    workingHours: "08:00 - 24:00",
+    hallsCount: 2,
+    minPricePerHour: 8500,
+    sports: ["Футбол", "Волейбол"],
+    latitude: 43.2570,
+    longitude: 76.9140,
+  },
+  {
+    id: 13,
+    ownerId: 13,
+    ownerEmail: "alfarabi.court@sportrent.kz",
+    title: "Al-Farabi Premium Tennis",
+    category: "Премиум теннис",
+    district: "Бостандыкский",
+    city: "Алматы",
+    address: "пр. Аль-Фараби 77",
+    phone: "+7 (727) 350-00-00",
+    rating: 4.96,
+    reviewsCount: 180,
+    imageUrl: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800",
+    description: "Элитный теннисный комплекс с хард-кортами и премиальным клубным сервисом.",
+    features: ["Покрытие Hard Cushion", "VIP-раздевалки", "Спа-зона", "Ресторан"],
+    workingHours: "06:30 - 23:30",
+    hallsCount: 4,
+    minPricePerHour: 22000,
+    sports: ["Теннис"],
+    latitude: 43.2180,
+    longitude: 76.9290,
   },
 ];
 
@@ -854,6 +1003,8 @@ export async function getStoredArenas(params?: {
         hallsCount: a.hallsCount ?? a.halls_count ?? (a.halls ? a.halls.length : 3),
         minPricePerHour: a.minPricePerHour ?? a.min_price_per_hour ?? 12000,
         sports: a.sports ?? ["Футбол", "Баскетбол", "Теннис"],
+        latitude: a.latitude ?? a.lat,
+        longitude: a.longitude ?? a.lng,
       }));
       await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(mapped));
       return mapped;
@@ -865,7 +1016,16 @@ export async function getStoredArenas(params?: {
   try {
     const raw = await AsyncStorage.getItem(ARENAS_KEY);
     if (raw) {
-      const parsed: Arena[] = JSON.parse(raw);
+      let parsed: Arena[] = JSON.parse(raw);
+      // Ensure coordinates from INITIAL_ARENAS are attached
+      parsed = parsed.map((item) => {
+        const init = INITIAL_ARENAS.find((ia) => ia.id === item.id);
+        return {
+          ...item,
+          latitude: item.latitude || init?.latitude,
+          longitude: item.longitude || init?.longitude,
+        };
+      });
       const existingIds = new Set(parsed.map((a) => a.id));
       const missing = INITIAL_ARENAS.filter((a) => !existingIds.has(a.id));
       if (missing.length > 0) {

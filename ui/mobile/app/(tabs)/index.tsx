@@ -335,7 +335,7 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* --- 3. SEARCH BAR + FILTERS --- */}
+        {/* --- 3. SEARCH BAR + FILTERS + MAP --- */}
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
             <Ionicons name="search-outline" size={20} color="#6B7C72" style={styles.searchIcon} />
@@ -353,6 +353,15 @@ export default function HomeScreen() {
               </Pressable>
             )}
           </View>
+          <Pressable
+            style={styles.mapBtn}
+            onPress={() => {
+              hapticSelection();
+              router.push("/map");
+            }}
+          >
+            <Ionicons name="map-outline" size={20} color="#22C55E" />
+          </Pressable>
           <Pressable
             style={[
               styles.filterBtn,
@@ -375,6 +384,33 @@ export default function HomeScreen() {
             )}
           </Pressable>
         </View>
+
+        {/* --- 3.5 NEARBY VENUES MAP BANNER --- */}
+        <Pressable
+          style={styles.mapBannerCard}
+          onPress={() => {
+            hapticSelection();
+            router.push("/map");
+          }}
+        >
+          <View style={styles.mapBannerLeft}>
+            <View style={styles.mapBannerIconWrap}>
+              <Ionicons name="location" size={22} color="#22C55E" />
+            </View>
+            <View style={styles.mapBannerTextWrap}>
+              <View style={styles.mapBannerTitleRow}>
+                <Text style={styles.mapBannerTitle}>Залы рядом на карте</Text>
+                <View style={styles.livePulseDot} />
+              </View>
+              <Text style={styles.mapBannerSub}>
+                Интерактивная карта площадок, кортов и цены в г. {currentCity}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.mapBannerArrowBtn}>
+            <Ionicons name="chevron-forward" size={18} color="#22C55E" />
+          </View>
+        </Pressable>
 
         {/* --- 4. CATEGORIES ROW --- */}
         <View style={styles.categoriesRow}>
@@ -914,6 +950,77 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "700",
+  },
+  mapBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: "#141A17",
+    borderWidth: 1,
+    borderColor: "#1F2823",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mapBannerCard: {
+    backgroundColor: "#141A17",
+    borderWidth: 1,
+    borderColor: "#202B24",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  mapBannerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+    paddingRight: 10,
+  },
+  mapBannerIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mapBannerTextWrap: {
+    flex: 1,
+  },
+  mapBannerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  mapBannerTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  livePulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#22C55E",
+  },
+  mapBannerSub: {
+    fontSize: 12,
+    color: "#8E9B94",
+    marginTop: 2,
+  },
+  mapBannerArrowBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "rgba(34, 197, 94, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyFilteredBox: {
     alignItems: "center",

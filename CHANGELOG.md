@@ -9,6 +9,20 @@
 
 ## [Unreleased]
 
+### 🗺️ Интерактивная карта «Залы рядом» для игроков
+- **Новый экран интерактивной карты ([`ui/mobile/app/map.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/map.tsx))**:
+  - Интеграция легковесной карты на базе Leaflet и CartoDB Voyager;
+  - Кластеризация меток: синие круглые бейджи со счетчиками объектов (`2`, `3`, `5`, `9`, `12`...);
+  - Ценовые бабблы спортивных площадок с ценой за час (например, `от 8 000 ₸`);
+  - Кнопки зума `+` / `-` слева сверху и кнопка определения геопозиции пользователя («Прицел») справа сверху;
+  - Мульти-фильтр по видам спорта в шапке карты (Футбол, Баскетбол, Теннис, Волейбол, Падел);
+  - Плавающая шторка площадки (Preview Card) при нажатии на метку с переходом к бронированию `arena/[id]`;
+- **Точки входа на главном экране ([`ui/mobile/app/(tabs)/index.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/index.tsx))**:
+  - Кнопка карты `map-outline` в строке поиска;
+  - Виджет-баннер «Залы рядом на карте» с пульсирующим индикатором в верхней секции;
+- **Координатная привязка объектов ([`ui/mobile/lib/sportRentData.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/sportRentData.ts))**:
+  - Добавлены точные географические координаты (`latitude`, `longitude`) для арен Алматы, Астаны и Шымкента.
+
 ### 🛠️ Исправление регистрации и авторизации через Apple ID в Expo Go и Dev-режиме
 - **Ликвидация блокирующего алерта при регистрации через Apple**:
   - В [`ui/mobile/app/register.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/register.tsx) и [`ui/mobile/app/login.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/login.tsx) устранен блокирующий Alert (*«Вход через Apple работает в нативной сборке приложения...»*);
