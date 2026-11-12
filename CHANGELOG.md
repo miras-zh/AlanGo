@@ -9,6 +9,13 @@
 
 ## [Unreleased]
 
+### 📦 Подготовка сборки 1.0.0 (6) для TestFlight
+- **Номер сборки 5 → 6** в `app.json` (`ios.buildNumber`), `ios/AlanGo/Info.plist` (`CFBundleVersion`) и `AlanGo.xcodeproj` (`CURRENT_PROJECT_VERSION`, Debug и Release). Версия остаётся `1.0.0`. Папка `ios/` в `.gitignore`, поэтому в коммит попадает только `app.json`.
+- **`scripts/build_testflight.sh`**: устаревшие «билд 2» и имя архива `AlanGo_v1.0.0_b2.xcarchive` исправлены на 6.
+- **Проверка релизного JS-бандла** (`expo export:embed --dev false`): собирается (1385 модулей, 2,9 МБ), содержит боевой API `alango.78.140.223.90.sslip.io` и Google Client ID. Нет `localhost:8092`, `switchTestAccount`, «Тестовый вход». `tsc` проходит, поды синхронизированы (`Podfile.lock` = `Manifest.lock`). `xcodebuild` не запускался, чтобы не мешать Archive в Xcode.
+- **Что нового относительно сборки (5)**: исправлена ошибка «Создать зал» (пустой кэш арен), новая форма зала с размерами, оснащением и фото, кнопка «Настроить график» на карточке зала, отдельный экран «Спорткомплексы» с крупными карточками, футбольный мяч на сплэше.
+- **Сборка в Xcode**: открыть `ui/mobile/ios/AlanGo.xcworkspace` → «Any iOS Device (arm64)» → Product → Archive → Distribute App → App Store Connect → Upload.
+
 ### 🚀 Деплой бэкенда (2026-11-12, 16:31 UTC, коммит `41ac867`)
 - **Что выкачено**: признак `schedule_configured` в `/api/halls` (коммит `236c3fd`) — единственное изменение бэкенда после прошлого деплоя (`81a288a`); миграций нет, схема остаётся 6.
 - **Бэкап**: `/root/backups/alango/alango_backup_20261112_163043.sql.gz` (14 таблиц, дамп полный).
