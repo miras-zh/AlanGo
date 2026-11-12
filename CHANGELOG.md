@@ -9,6 +9,12 @@
 
 ## [Unreleased]
 
+### 🚀 Деплой бэкенда (2026-11-12, 16:31 UTC, коммит `41ac867`)
+- **Что выкачено**: признак `schedule_configured` в `/api/halls` (коммит `236c3fd`) — единственное изменение бэкенда после прошлого деплоя (`81a288a`); миграций нет, схема остаётся 6.
+- **Бэкап**: `/root/backups/alango/alango_backup_20261112_163043.sql.gz` (14 таблиц, дамп полный).
+- **Выкатка**: бинарник md5 `95e270bb…` (прежний — `bin/server.prev`), `docker cp` + рестарт `alango-api`; образ: прежний сохранён как `alango-app:pre-20261112-schedflag`, текущий зафиксирован как `alango-app:latest`.
+- **Проверка**: `/api/arenas`, `/api/halls`, `availability` → 200; 13 залов отдают `schedule_configured` (сидовые — `true`, новые залы арены «Te» — `false`); ошибок в логах нет.
+
 ### ⚽ Сплэш: вместо теннисного мяча пролетает футбольный
 - **[`components/AnimatedSplashScreen.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/AnimatedSplashScreen.tsx)**: нарисованный стилями неоновый теннисный мяч (`#C6FF00`, пунктирный шов, блик) заменён на векторный футбольный — `MaterialCommunityIcons "soccer"` на белом круге. Цвета взяты из токенов (`colors.textPrimary`, `colors.background`, свечение `colors.primary`), хардкод HEX у мяча убран. Траектория, вращение, масштаб, шлейф, тайминги и вибрация не менялись. Теннисный мяч, нарисованный на самом логотипе (`assets/icon.png`), не трогали.
 - **Проверка**: `tsc` проходит; в симуляторе iPhone 17 Pro при запуске справа от логотипа пролетает белый футбольный мяч с зелёным шлейфом.
