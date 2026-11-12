@@ -9,6 +9,28 @@
 
 ## [Unreleased]
 
+### 🔑 Вход через Google: проект Firebase «AlanGo» и OAuth-клиенты
+- **Почему не было кнопки**: код входа (`lib/googleAuth.ts`) был готов, но скрывал кнопку без `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`. Клиенты Vison не подходят: iOS-клиент привязан к bundle `kz.vison.app`, а окно согласия показывало бы «Vison».
+- **Firebase / Google Cloud** (сделано в консоли):
+  - создан проект **AlanGo** (`alango-27ee7`, план Spark), без Gemini и Google Analytics;
+  - Authentication → провайдер **Google** включён, публичное имя «AlanGo», email поддержки — аккаунт владельца;
+  - зарегистрировано iOS-приложение `kz.alango.app` («AlanGo iOS»), автоматически созданы OAuth-клиенты:
+    - iOS: `944908121160-1bi2a5l9i76evjh6gl1m57clp62gvav8.apps.googleusercontent.com`;
+    - Web: `944908121160-00qslqrtpmb770bjd5ngsmiu2ps1k866.apps.googleusercontent.com`;
+  - экран согласия: **In production**, тип External — войти может любой пользователь Google.
+- **Мобильное приложение**:
+  - `ui/mobile/.env`: `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` и `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`;
+  - `app.json`: плагин `@react-native-google-signin/google-signin` с `iosUrlScheme`;
+  - `ios/AlanGo/Info.plist`: добавлена URL-схема `com.googleusercontent.apps.944908121160-1bi2…` (точечно, без `expo prebuild`, чтобы не перегенерировать нативный проект);
+  - сборка пересобрана и установлена в симулятор.
+- **Проверка в симуляторе**: на экране входа появилась «Войти через Google», по нажатию iOS показывает системный запрос «AlanGo хочет использовать accounts.google.com». Сам вход не пройден: нужен Google-аккаунт пользователя и настройка сервера.
+- **Бэкенд**: локальный `.env` — `GOOGLE_CLIENT_IDS=<web>,<ios>`. На сервере `/root/AlanGo/.env` значение пока пустое, поэтому `/api/auth/google` отвечает 503.
+  - **Деплой (2026-11-12, 14:47 UTC)**: бэкап `alango_backup_20261112_144727.sql.gz` (полный). Старый образ сохранён как `alango-app:pre-20261112`, текущий контейнер зафиксирован как `alango-app:latest` (`docker commit`: бинарник `64ba3cbf…` + миграции 1–4). `.env` скопирован в `.env.bak-20261112`, в `.env` прописан `GOOGLE_CLIENT_IDS=<web>,<ios>` (остальные строки не менялись). Затем `docker compose up -d --no-build --no-deps app`. Проверка: `/api/auth/google` с поддельным токеном → 401 «invalid google token» (было 503), `/api/arenas` и `/api/halls` → 200, `/api/business/me` без токена → 401, аватар из `/uploads` → 200, volume `uploads` на месте.
+  - Попытка входа пользователя в 14:47 UTC вернула «google sign-in is not available»: она пришлась на момент до пересоздания контейнера.
+  - ✅ **14:49 UTC — вход через Google работает**: окно Google «Повторный вход в приложение AlanGo» (название проекта отображается правильно), создан аккаунт `mikos.zh.dev@gmail.com` («Miko z») с фото из Google.
+  - Замечено в профиле (не исправлено): статистика «14 игр / 28 ч / 4.9» вписана в код, блок подписки называется по старому бренду «SportRent Club».
+  - ⚠️ Особенность деплоя (на будущее): `.env` подхватывается только при **пересоздании** контейнера. Образ `alango-app` собран 2026-11-05 и содержит старый бинарник, а свежие бинарники кладутся в контейнер через `docker cp`. Пересоздание из старого образа откатило бы бэкенд. План: `docker commit alango-api alango-app` → прописать `GOOGLE_CLIENT_IDS` → `docker compose up -d --no-build app`.
+
 ### 🚀 Деплой бэкенда на VPS (2026-11-12, вечер, коммит `7bf9eab`)
 - **Бэкап**: `/root/backups/alango/alango_backup_20261112_143053.sql.gz` (13 таблиц, маркер «dump complete» на месте).
 - **Сборка и выкатка**: бинарник собран локально (linux/amd64, md5 `64ba3cbf…`), прежний сохранён как `bin/server.prev`. `docker cp` в `alango-api`, рестарт, исходники синхронизированы в `/root/AlanGo`. Новых миграций нет (схема остаётся на версии 4).
