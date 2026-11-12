@@ -12,10 +12,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useMyArenaId } from "@/lib/business";
 import { getSessionUser } from "@/lib/auth";
 import {
   Booking,
-  getStoredBookings,
+  getOwnArenaBookings,
   getStoredHalls,
   Hall,
   updateBookingStatus,
@@ -58,22 +59,26 @@ export default function BusinessBookingsScreen() {
   const [paymentTarget, setPaymentTarget] = useState<Booking | null>(null);
 
   const user = getSessionUser();
-  const arenaId = user?.arenaId || 1;
+  const { arenaId, loading: arenaLoading } = useMyArenaId();
   const arenaTitle = user?.name || "Арена";
 
   const loadData = useCallback(async () => {
-    const [allBookings, allHalls] = await Promise.all([
-      getStoredBookings(),
+    if (arenaLoading) return;
+    if (!arenaId) {
+      setHalls([]);
+      setBookings([]);
+      setRefreshing(false);
+      return;
+    }
+    const [myBookings, allHalls] = await Promise.all([
+      getOwnArenaBookings().catch(() => [] as Booking[]),
       getStoredHalls(),
     ]);
 
-    const myHalls = allHalls.filter((h) => h.arenaId === arenaId);
-    const myBookings = allBookings.filter((b) => b.arenaId === arenaId);
-
-    setHalls(myHalls);
-    setBookings(myBookings);
+    setHalls(allHalls.filter((h) => h.arenaId === arenaId));
+    setBookings(myBookings.filter((b) => b.arenaId === arenaId));
     setRefreshing(false);
-  }, [arenaId]);
+  }, [arenaId, arenaLoading]);
 
   useEffect(() => {
     loadData();
@@ -298,9 +303,13 @@ export default function BusinessBookingsScreen() {
             ListEmptyComponent={
               <View style={styles.emptyWrap}>
                 <Ionicons name="calendar-outline" size={48} color="#2A352E" />
-                <Text style={styles.emptyTitle}>Нет броней</Text>
+                <Text style={styles.emptyTitle}>
+                  {bookings.length === 0 ? "Пока нет броней" : "Нет броней"}
+                </Text>
                 <Text style={styles.emptySub}>
-                  В этой категории пока нет бронирований.
+                  {bookings.length === 0
+                    ? "Брони клиентов появятся здесь. Добавьте залы и цены, чтобы вашу площадку могли забронировать."
+                    : "В этой категории пока нет бронирований."}
                 </Text>
               </View>
             }
@@ -509,7 +518,7 @@ export default function BusinessBookingsScreen() {
         visible={manualModalOpen}
         halls={halls}
         arenaTitle={arenaTitle}
-        arenaId={arenaId}
+        arenaId={arenaId ?? 0}
         onClose={() => setManualModalOpen(false)}
         onCreated={handleManualBookingCreated}
       />

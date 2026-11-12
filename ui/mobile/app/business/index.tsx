@@ -12,13 +12,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { getSessionUser, switchTestAccount } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
+import { plural } from "@/lib/plural";
 import { fetchMyBusiness, type BusinessArena } from "@/lib/business";
 import {
   Arena,
   Booking,
   getStoredArenas,
-  getStoredBookings,
+  getOwnArenaBookings,
   getStoredHalls,
   Hall,
   updateBookingStatus,
@@ -52,7 +53,7 @@ export default function BusinessDashboardScreen() {
     const [allArenas, allHalls, allBookings] = await Promise.all([
       getStoredArenas(),
       getStoredHalls(),
-      getStoredBookings(),
+      arenaId ? getOwnArenaBookings().catch(() => [] as Booking[]) : Promise.resolve([] as Booking[]),
     ]);
 
     const listed = arenaId ? allArenas.find((a) => a.id === arenaId) : undefined;
@@ -90,17 +91,6 @@ export default function BusinessDashboardScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  const handleAccountSwitch = async (account: "dev.arena1" | "dev.arena2" | "dev.client") => {
-    hapticImpact();
-    const updated = await switchTestAccount(account);
-    setUser(updated);
-    if (account === "dev.client") {
-      router.replace("/(tabs)");
-    } else {
-      loadData();
-    }
-  };
 
   const todayRevenue = bookings
     .filter((b) => b.status === "confirmed")
@@ -141,55 +131,6 @@ export default function BusinessDashboardScreen() {
         </Pressable>
       </View>
 
-      {/* Dev Switcher Bar — development builds only (mock accounts) */}
-      {__DEV__ && (
-      <View style={styles.devBar}>
-        <Text style={styles.devBarLabel}>Тестовый вход:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.devChips}>
-          <Pressable
-            style={[
-              styles.devChip,
-              user?.email?.includes("arena1") && styles.devChipActive,
-            ]}
-            onPress={() => handleAccountSwitch("dev.arena1")}
-          >
-            <Text
-              style={[
-                styles.devChipText,
-                user?.email?.includes("arena1") && styles.devChipTextActive,
-              ]}
-            >
-              🏢 dev.arena1 (Astana)
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={[
-              styles.devChip,
-              user?.email?.includes("arena2") && styles.devChipActive,
-            ]}
-            onPress={() => handleAccountSwitch("dev.arena2")}
-          >
-            <Text
-              style={[
-                styles.devChipText,
-                user?.email?.includes("arena2") && styles.devChipTextActive,
-              ]}
-            >
-              🏢 dev.arena2 (Nomad)
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.devChipClient}
-            onPress={() => handleAccountSwitch("dev.client")}
-          >
-            <Text style={styles.devChipClientText}>👤 Режим Клиента</Text>
-          </Pressable>
-        </ScrollView>
-      </View>
-      )}
-
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
@@ -216,7 +157,7 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="cash-outline" size={20} color="#22C55E" />
             </View>
             <Text style={styles.kpiValue}>
-              {todayRevenue > 0 ? todayRevenue.toLocaleString("ru-RU") : "36 000"} ₸
+              {todayRevenue.toLocaleString("ru-RU")} ₸
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
               <Text style={styles.kpiTitle}>Выручка</Text>
@@ -349,7 +290,9 @@ export default function BusinessDashboardScreen() {
             <View style={styles.actionInfo}>
               <Text style={styles.actionTitle}>Управление залами</Text>
               <Text style={styles.actionSubtitle}>
-                3 зала: Футбол, Баскетбол, Теннис. Цены и инвентарь.
+                {halls.length > 0
+                  ? `${halls.length} ${plural(halls.length, ["зал", "зала", "залов"])}: ${[...new Set(halls.map((h) => h.sportType))].join(", ")}. Цены и инвентарь.`
+                  : "Залов пока нет — добавьте первый зал, вид спорта и цену."}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
@@ -581,57 +524,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#22C55E",
-  },
-  devBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
-  },
-  devBarLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#6B7C72",
-    marginBottom: 6,
-  },
-  devChips: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  devChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-  },
-  devChipActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.2)",
-    borderColor: "#22C55E",
-  },
-  devChipText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#8E9B94",
-  },
-  devChipTextActive: {
-    color: "#22C55E",
-    fontWeight: "700",
-  },
-  devChipClient: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: "rgba(59, 130, 246, 0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(59, 130, 246, 0.4)",
-  },
-  devChipClientText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#60A5FA",
   },
   scroll: {
     padding: 16,

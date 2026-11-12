@@ -14,6 +14,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { colors, radii, spacing, typography } from "@/constants/theme";
+import { resolveMyArenaId } from "@/lib/business";
 import { getSessionUser } from "@/lib/auth";
 import {
   getStoredHalls,
@@ -47,6 +49,8 @@ const PRESET_EQUIPMENT = [
 ];
 
 export default function BusinessHallsScreen() {
+  const [arenaId, setArenaId] = useState<number | null>(null);
+  const [hallsLoaded, setHallsLoaded] = useState(false);
   const [halls, setHalls] = useState<Hall[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [currentUser, setCurrentUser] = useState(getSessionUser());
@@ -69,10 +73,11 @@ export default function BusinessHallsScreen() {
   const loadHalls = useCallback(async () => {
     const user = getSessionUser();
     setCurrentUser(user);
-    const arenaId = user?.arenaId || 1;
-    const all = await getStoredHalls();
-    const myHalls = all.filter((h) => h.arenaId === arenaId);
-    setHalls(myHalls);
+    const id = await resolveMyArenaId();
+    setArenaId(id);
+    const all = id ? await getStoredHalls() : [];
+    setHalls(id ? all.filter((h) => h.arenaId === id) : []);
+    setHallsLoaded(true);
     setRefreshing(false);
   }, []);
 
@@ -135,7 +140,10 @@ export default function BusinessHallsScreen() {
       return;
     }
     const numPrice = parseInt(pricePerHour) || 12000;
-    const arenaId = currentUser?.arenaId || 1;
+    if (!arenaId) {
+      Alert.alert("Ошибка", "Не удалось определить вашу площадку. Обновите экран.");
+      return;
+    }
 
     try {
       if (isEditing && editingId) {
@@ -192,10 +200,12 @@ export default function BusinessHallsScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Top Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Залы комплекса</Text>
-          <Text style={styles.headerSubtitle}>
-            Управление площадками, типами покрытий и оснащением ({halls.length})
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            Залы комплекса
+          </Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>
+            {halls.length > 0 ? `Площадок: ${halls.length} · покрытие, оснащение, цены` : "Площадки, покрытие, оснащение, цены"}
           </Text>
         </View>
         <Pressable style={styles.addBtn} onPress={openCreateModal}>
@@ -217,6 +227,21 @@ export default function BusinessHallsScreen() {
             }}
             tintColor="#22C55E"
           />
+        }
+        ListEmptyComponent={
+          hallsLoaded ? (
+            <View style={styles.emptyWrap}>
+              <Ionicons name="layers-outline" size={48} color={colors.border} />
+              <Text style={styles.emptyTitle}>У вас пока нет залов</Text>
+              <Text style={styles.emptySub}>
+                Добавьте первый зал или площадку: вид спорта, покрытие и цену за час.
+              </Text>
+              <Pressable style={styles.emptyBtn} onPress={openCreateModal}>
+                <Ionicons name="add" size={18} color={colors.background} />
+                <Text style={styles.emptyBtnText}>Добавить зал</Text>
+              </Pressable>
+            </View>
+          ) : null
         }
         renderItem={({ item }) => (
           <View style={styles.card}>
@@ -491,6 +516,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255, 255, 255, 0.06)",
   },
+  headerText: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 12,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: "800",
@@ -502,6 +532,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   addBtn: {
+    flexShrink: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
@@ -518,6 +549,40 @@ const styles = StyleSheet.create({
   list: {
     padding: 16,
     gap: 16,
+    flexGrow: 1,
+  },
+  emptyWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.xxl * 2,
+    gap: spacing.sm,
+  },
+  emptyTitle: {
+    ...typography.cardTitle,
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
+  },
+  emptySub: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  emptyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    height: 46,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radii.button,
+    backgroundColor: colors.primary,
+  },
+  emptyBtnText: {
+    ...typography.button,
+    color: colors.background,
   },
   card: {
     backgroundColor: "#131916",

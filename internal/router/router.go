@@ -136,7 +136,6 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	r.HandleFunc("/api/halls/{id:[0-9]+}", sportHandler.GetHall).Methods("GET")
 	r.HandleFunc("/api/bookings", sportHandler.CreateBooking).Methods("POST")
 	r.HandleFunc("/api/bookings", sportHandler.ListBookings).Methods("GET")
-	r.HandleFunc("/api/business/dashboard", sportHandler.GetBusinessDashboard).Methods("GET")
 	r.HandleFunc("/api/business/telegram/notify", telegramHandler.NotifyBooking).Methods("POST")
 	r.HandleFunc("/api/business/telegram/status", telegramHandler.GetStatus).Methods("GET")
 
@@ -154,6 +153,8 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/profile/business/enable", userHandler.EnableBusiness).Methods("POST")
 	authRouter.HandleFunc("/business/onboard", userHandler.OnboardBusiness).Methods("POST")
 	authRouter.HandleFunc("/business/me", userHandler.GetBusiness).Methods("GET")
+	authRouter.HandleFunc("/business/dashboard", sportHandler.GetBusinessDashboard).Methods("GET")
+	authRouter.HandleFunc("/business/bookings", sportHandler.ListOwnBookings).Methods("GET")
 
 	authRouter.HandleFunc("/realtime/ticket", realtimeHandler.MintTicket).Methods("POST")
 	authRouter.HandleFunc("/notifications", notificationHandler.List).Methods("GET")

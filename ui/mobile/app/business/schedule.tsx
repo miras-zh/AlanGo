@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { getSessionUser } from "@/lib/auth";
+import { resolveMyArenaId } from "@/lib/business";
 import {
   DEFAULT_WEEK_SCHEDULE,
   getStoredSchedule,
@@ -41,14 +41,14 @@ function formatTime(val: string): string {
 
 export default function BusinessScheduleScreen() {
   const [schedule, setSchedule] = useState<ScheduleDay[]>(DEFAULT_WEEK_SCHEDULE);
-  const [arenaId, setArenaId] = useState(1);
+  const [arenaId, setArenaId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeDayIdx, setActiveDayIdx] = useState<number | null>(null);
 
   const loadSchedule = useCallback(async () => {
-    const user = getSessionUser();
-    const id = user?.arenaId || 1;
+    const id = await resolveMyArenaId();
     setArenaId(id);
+    if (!id) return;
     const data = await getStoredSchedule(id);
     setSchedule(data);
   }, []);
@@ -157,6 +157,7 @@ export default function BusinessScheduleScreen() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      if (!arenaId) throw new Error("Не удалось определить вашу площадку");
       await saveStoredSchedule(arenaId, schedule);
       hapticSuccess();
       Alert.alert("Сохранено", "График работы спорткомплекса успешно обновлен!");

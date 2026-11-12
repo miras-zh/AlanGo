@@ -14,7 +14,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { getSessionUser } from "@/lib/auth";
+import { useMyArenaId } from "@/lib/business";
+import { plural } from "@/lib/plural";
 import { ClientProfile, getClientProfiles } from "@/lib/businessCrmData";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
@@ -27,8 +28,7 @@ const STATUS_FILTERS = [
 
 export default function BusinessClientsScreen() {
   const router = useRouter();
-  const user = getSessionUser();
-  const arenaId = user?.arenaId || 1;
+  const { arenaId, loading: arenaLoading } = useMyArenaId();
 
   const [clients, setClients] = useState<ClientProfile[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,11 +37,12 @@ export default function BusinessClientsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
-    const list = await getClientProfiles(arenaId);
+    if (arenaLoading) return;
+    const list = arenaId ? await getClientProfiles(arenaId) : [];
     setClients(list);
     setLoading(false);
     setRefreshing(false);
-  }, [arenaId]);
+  }, [arenaId, arenaLoading]);
 
   useEffect(() => {
     loadData();
@@ -114,7 +115,7 @@ export default function BusinessClientsScreen() {
         <View style={{ flex: 1, marginHorizontal: 8 }}>
           <Text style={styles.headerTitle}>Клиентская база (CRM)</Text>
           <Text style={styles.headerSub}>
-            {totalClientsCount} игроков • LTV {totalLtv.toLocaleString("ru-RU")} ₸
+            {totalClientsCount} {plural(totalClientsCount, ["клиент", "клиента", "клиентов"])} • LTV {totalLtv.toLocaleString("ru-RU")} ₸
           </Text>
         </View>
       </View>
@@ -181,9 +182,13 @@ export default function BusinessClientsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons name="people-outline" size={48} color="#2A352E" />
-              <Text style={styles.emptyTitle}>Клиенты не найдены</Text>
+              <Text style={styles.emptyTitle}>
+                {clients.length === 0 ? "Пока нет клиентов" : "Клиенты не найдены"}
+              </Text>
               <Text style={styles.emptySub}>
-                Попробуйте изменить поисковый запрос или фильтр.
+                {clients.length === 0
+                  ? "Клиенты появятся здесь автоматически после первых бронирований вашей площадки."
+                  : "Попробуйте изменить поисковый запрос или фильтр."}
               </Text>
             </View>
           }

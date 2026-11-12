@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { getSessionUser } from "@/lib/auth";
+import { useMyArenaId } from "@/lib/business";
 import {
   IncomeBreakdown,
   calculateIncomeStats,
@@ -28,8 +28,7 @@ const PERIODS: { key: "today" | "week" | "month" | "all"; label: string }[] = [
 
 export default function BusinessIncomeScreen() {
   const router = useRouter();
-  const user = getSessionUser();
-  const arenaId = user?.arenaId || 1;
+  const { arenaId, loading: arenaLoading } = useMyArenaId();
 
   const [selectedPeriod, setSelectedPeriod] = useState<"today" | "week" | "month" | "all">("month");
   const [stats, setStats] = useState<IncomeBreakdown | null>(null);
@@ -37,11 +36,17 @@ export default function BusinessIncomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
+    if (arenaLoading) return;
+    if (!arenaId) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     const data = await calculateIncomeStats(arenaId, selectedPeriod);
     setStats(data);
     setLoading(false);
     setRefreshing(false);
-  }, [arenaId, selectedPeriod]);
+  }, [arenaId, arenaLoading, selectedPeriod]);
 
   useEffect(() => {
     loadData();

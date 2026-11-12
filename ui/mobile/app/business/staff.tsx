@@ -16,6 +16,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useMyArenaId } from "@/lib/business";
+import { plural } from "@/lib/plural";
 import { getSessionUser, loginAsStaff } from "@/lib/auth";
 import {
   StaffMember,
@@ -35,7 +37,7 @@ const ROLES: { key: StaffMember["role"]; label: string; color: string }[] = [
 export default function BusinessStaffScreen() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState(getSessionUser());
-  const arenaId = currentUser?.arenaId || 1;
+  const { arenaId, loading: arenaLoading } = useMyArenaId();
 
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,12 +51,13 @@ export default function BusinessStaffScreen() {
   const [newShifts, setNewShifts] = useState("Пн - Пт (09:00 - 18:00)");
 
   const loadData = useCallback(async () => {
-    const list = await getStoredStaff(arenaId);
+    if (arenaLoading) return;
+    const list = arenaId ? await getStoredStaff(arenaId) : [];
     setStaff(list);
     setCurrentUser(getSessionUser());
     setLoading(false);
     setRefreshing(false);
-  }, [arenaId]);
+  }, [arenaId, arenaLoading]);
 
   useEffect(() => {
     loadData();
@@ -108,6 +111,7 @@ export default function BusinessStaffScreen() {
       return;
     }
 
+    if (!arenaId) return;
     hapticSuccess();
     await addStaffMember(arenaId, {
       arenaId,
@@ -143,7 +147,7 @@ export default function BusinessStaffScreen() {
         <View style={{ flex: 1, marginHorizontal: 8 }}>
           <Text style={styles.headerTitle}>Персонал и смены</Text>
           <Text style={styles.headerSub}>
-            {staff.length} сотрудников спорткомплекса
+            {staff.length} {plural(staff.length, ["сотрудник", "сотрудника", "сотрудников"])}
           </Text>
         </View>
 

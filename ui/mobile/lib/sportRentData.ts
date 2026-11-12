@@ -1172,28 +1172,40 @@ export async function saveStoredSchedule(arenaId: number, schedule: ScheduleDay[
   }
 }
 
+function mapApiBooking(b: any): Booking {
+  return {
+    id: b.booking_code || String(b.id),
+    hallId: b.hall_id,
+    hallTitle: b.hall_title || "Зал",
+    sportType: b.sport_type || "Футбол",
+    arenaId: b.arena_id,
+    arenaTitle: b.arena_title || "Спорткомплекс",
+    clientName: b.client_name,
+    clientPhone: b.client_phone,
+    date: b.booking_date,
+    timeSlot: b.time_slot,
+    durationMinutes: b.duration_minutes || 60,
+    totalPrice: b.total_price,
+    status: b.status,
+    createdAt: b.created_at || new Date().toISOString(),
+  };
+}
+
+// Business cabinet: the owner's arena bookings *with* client contacts
+// (GET /api/business/bookings). No cache and no demo fallback — a new
+// business simply has no bookings yet.
+export async function getOwnArenaBookings(): Promise<Booking[]> {
+  const res = await apiFetch<{ bookings: any[] }>("/business/bookings");
+  return Array.isArray(res?.bookings) ? res.bookings.map(mapApiBooking) : [];
+}
+
 export async function getStoredBookings(arenaId?: number): Promise<Booking[]> {
   try {
     const res = await apiFetch<{ bookings: any[] }>(
       `/bookings${arenaId ? `?arena_id=${arenaId}` : ""}`
     );
     if (res?.bookings && Array.isArray(res.bookings) && res.bookings.length > 0) {
-      const mapped: Booking[] = res.bookings.map((b) => ({
-        id: b.booking_code || String(b.id),
-        hallId: b.hall_id,
-        hallTitle: b.hall_title || "Зал",
-        sportType: b.sport_type || "Футбол",
-        arenaId: b.arena_id,
-        arenaTitle: b.arena_title || "Спорткомплекс",
-        clientName: b.client_name,
-        clientPhone: b.client_phone,
-        date: b.booking_date,
-        timeSlot: b.time_slot,
-        durationMinutes: b.duration_minutes || 60,
-        totalPrice: b.total_price,
-        status: b.status,
-        createdAt: b.created_at || new Date().toISOString(),
-      }));
+      const mapped: Booking[] = res.bookings.map(mapApiBooking);
       await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(mapped));
       return mapped;
     }

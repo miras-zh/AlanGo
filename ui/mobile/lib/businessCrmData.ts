@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Booking, Hall, getStoredBookings, getStoredHalls } from "@/lib/sportRentData";
+import { Booking, Hall, getOwnArenaBookings, getStoredHalls } from "@/lib/sportRentData";
 
 export interface ClientProfile {
   id: string;
@@ -51,59 +51,28 @@ export interface IncomeBreakdown {
 
 const STAFF_KEY = "alango_business_staff_v1";
 
-const INITIAL_STAFF: StaffMember[] = [
-  {
-    id: "staff-1",
-    arenaId: 1,
-    name: "Азамат Бекетов",
-    phone: "+7 (701) 555-12-34",
-    role: "admin_senior",
-    shiftDays: "Пн, Ср, Пт (08:00 - 16:00)",
-    isActive: true,
-    avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
-  },
-  {
-    id: "staff-2",
-    arenaId: 1,
-    name: "Дамир Сериков",
-    phone: "+7 (775) 444-99-11",
-    role: "manager_shift",
-    shiftDays: "Вт, Чт, Сб (16:00 - 24:00)",
-    isActive: true,
-    avatarUrl: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=200",
-  },
-  {
-    id: "staff-3",
-    arenaId: 1,
-    name: "Ербол Куанышев",
-    phone: "+7 (778) 333-22-00",
-    role: "duty_coach",
-    shiftDays: "Суббота, Воскресенье",
-    isActive: true,
-    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200",
-  },
-];
-
-export async function getStoredStaff(arenaId: number = 1): Promise<StaffMember[]> {
+// Staff is stored on the device per arena (no backend yet). There is no
+// demo seed: a new business starts with an empty team.
+export async function getStoredStaff(arenaId: number): Promise<StaffMember[]> {
   try {
     const raw = await AsyncStorage.getItem(STAFF_KEY);
-    if (!raw) {
-      await AsyncStorage.setItem(STAFF_KEY, JSON.stringify(INITIAL_STAFF));
-      return INITIAL_STAFF.filter((s) => s.arenaId === arenaId);
-    }
+    if (!raw) return [];
     const all: StaffMember[] = JSON.parse(raw);
-    return all.filter((s) => s.arenaId === arenaId);
+    return all.filter((s) => s.arenaId === arenaId && !DEMO_STAFF_IDS.has(s.id));
   } catch {
-    return INITIAL_STAFF.filter((s) => s.arenaId === arenaId);
+    return [];
   }
 }
+
+// Ids of the demo team that older builds seeded into storage.
+const DEMO_STAFF_IDS = new Set(["staff-1", "staff-2", "staff-3"]);
 
 export async function addStaffMember(
   arenaId: number,
   member: Omit<StaffMember, "id">
 ): Promise<StaffMember> {
   const allRaw = await AsyncStorage.getItem(STAFF_KEY);
-  const all: StaffMember[] = allRaw ? JSON.parse(allRaw) : INITIAL_STAFF;
+  const all: StaffMember[] = allRaw ? JSON.parse(allRaw) : [];
   const newMember: StaffMember = {
     ...member,
     id: `staff-${Date.now()}`,
@@ -127,7 +96,7 @@ export async function calculateIncomeStats(
   period: "today" | "week" | "month" | "all" = "month"
 ): Promise<IncomeBreakdown> {
   const [allBookings, allHalls] = await Promise.all([
-    getStoredBookings(),
+    getOwnArenaBookings().catch(() => [] as Booking[]),
     getStoredHalls(),
   ]);
 
@@ -185,8 +154,9 @@ export async function calculateIncomeStats(
   };
 }
 
-export async function getClientProfiles(arenaId: number = 1): Promise<ClientProfile[]> {
-  const bookings = await getStoredBookings();
+// Clients are derived only from the arena's real bookings.
+export async function getClientProfiles(arenaId: number): Promise<ClientProfile[]> {
+  const bookings = await getOwnArenaBookings().catch(() => [] as Booking[]);
   const arenaBookings = bookings.filter((b) => b.arenaId === arenaId);
 
   // Group by client phone
@@ -216,72 +186,7 @@ export async function getClientProfiles(arenaId: number = 1): Promise<ClientProf
     }
   }
 
-  // Pre-seed known captains if empty
-  const SEED_CLIENTS: ClientProfile[] = [
-    {
-      id: "c-1",
-      name: "Капитан Асылжан (ФК Nomad)",
-      phone: "+7 (777) 123-45-67",
-      totalBookings: 12,
-      totalSpent: 180000,
-      lastBookingDate: "Сегодня",
-      sportPreferred: "football",
-      status: "vip",
-      notes: "Постоянная бронь по пятницам в 19:00. Нужны манишки.",
-    },
-    {
-      id: "c-2",
-      name: "Ерлан Сарсенов",
-      phone: "+7 (705) 555-12-34",
-      totalBookings: 6,
-      totalSpent: 90000,
-      lastBookingDate: "Сегодня",
-      sportPreferred: "football",
-      status: "regular",
-      notes: "Всегда оплачивает через Kaspi QR.",
-    },
-    {
-      id: "c-3",
-      name: "Алихан Бахыт (БК Steppe)",
-      phone: "+7 (778) 999-88-77",
-      totalBookings: 8,
-      totalSpent: 168000,
-      lastBookingDate: "Сегодня",
-      sportPreferred: "basketball",
-      status: "vip",
-      notes: "Арендует баскетбольный зал на 1.5 часа.",
-    },
-    {
-      id: "c-4",
-      name: "Данияр Мусин",
-      phone: "+7 (701) 321-77-88",
-      totalBookings: 2,
-      totalSpent: 28000,
-      lastBookingDate: "3 дня назад",
-      sportPreferred: "tennis",
-      status: "new",
-      notes: "Новый клиент по рекомендации.",
-    },
-    {
-      id: "c-5",
-      name: "Нурлан Омаров",
-      phone: "+7 (702) 888-00-11",
-      totalBookings: 1,
-      totalSpent: 15000,
-      lastBookingDate: "5 дней назад",
-      sportPreferred: "football",
-      status: "unreliable",
-      notes: "Была отмена день в день.",
-    },
-  ];
-
   const result = Array.from(clientMap.values());
-  for (const seed of SEED_CLIENTS) {
-    if (!result.some((r) => r.phone === seed.phone)) {
-      result.push(seed);
-    }
-  }
-
   return result.sort((a, b) => b.totalSpent - a.totalSpent);
 }
 

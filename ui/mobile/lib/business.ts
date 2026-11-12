@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { getSessionUser, updateSessionUser } from "@/lib/auth";
 import { persistAuthResponse } from "@/lib/registration";
@@ -119,4 +120,35 @@ export async function disableBusiness(): Promise<void> {
 export async function enableBusiness(): Promise<void> {
   const res = await api.post<any>("/api/profile/business/enable");
   await persistBusinessResponse(res.data);
+}
+
+// The arena the business cabinet works with. Staff sessions carry their
+// arenaId; owners resolve theirs on the server (session value is only an
+// offline fallback). Never falls back to someone else's arena.
+export async function resolveMyArenaId(): Promise<number | null> {
+  const user = getSessionUser();
+  if (!user) return null;
+  if (String(user.id).startsWith("staff_")) return user.arenaId ?? null;
+  try {
+    const state = await fetchMyBusiness();
+    return state.arena?.id ?? null;
+  } catch {
+    return user.arenaId ?? null;
+  }
+}
+
+export function useMyArenaId(): { arenaId: number | null; loading: boolean; reload: () => Promise<void> } {
+  const [arenaId, setArenaId] = useState<number | null>(getSessionUser()?.arenaId ?? null);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    setArenaId(await resolveMyArenaId());
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  return { arenaId, loading, reload };
 }

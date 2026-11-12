@@ -12,9 +12,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { resolveMyArenaId } from "@/lib/business";
 import { Ionicons } from "@expo/vector-icons";
 import { BusinessAccountCard } from "@/components/BusinessAccountCard";
-import { clearSession, getSessionUser, switchTestAccount } from "@/lib/auth";
+import { clearSession, getSessionUser } from "@/lib/auth";
 import {
   Arena,
   getStoredArenas,
@@ -39,11 +40,13 @@ export default function BusinessProfileScreen() {
   const loadData = useCallback(async () => {
     const currentUser = getSessionUser();
     setUser(currentUser);
-    const arenaId = currentUser?.arenaId || 1;
-
+    const arenaId = await resolveMyArenaId();
+    if (!arenaId) {
+      setArena(null);
+      return;
+    }
     const all = await getStoredArenas();
-    const myArena = all.find((a) => a.id === arenaId) || all[0];
-    setArena(myArena);
+    setArena(all.find((a) => a.id === arenaId) ?? null);
   }, []);
 
   useEffect(() => {
@@ -86,17 +89,6 @@ export default function BusinessProfileScreen() {
       Alert.alert("Ошибка", "Не удалось сохранить");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleSwitch = async (account: "dev.arena1" | "dev.arena2" | "dev.client" | "guest") => {
-    hapticImpact();
-    const updated = await switchTestAccount(account);
-    setUser(updated);
-    if (account === "dev.client" || account === "guest") {
-      router.replace("/(tabs)");
-    } else {
-      loadData();
     }
   };
 
@@ -205,86 +197,6 @@ export default function BusinessProfileScreen() {
           </View>
           <Ionicons name="arrow-forward" size={18} color="#22C55E" />
         </Pressable>
-
-        {/* Dev Account Switcher Section — development builds only (mock accounts) */}
-        {__DEV__ && (
-          <>
-        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
-          Тестовое переключение ролей
-        </Text>
-        <View style={styles.switchBox}>
-          <Text style={styles.switchBoxDesc}>
-            Переключайтесь между тестовыми бизнес-аккаунтами или перейдите в
-            интерфейс обычного клиента:
-          </Text>
-
-          <Pressable
-            style={[
-              styles.switchBtn,
-              user?.email?.includes("arena1") && styles.switchBtnActive,
-            ]}
-            onPress={() => handleSwitch("dev.arena1")}
-          >
-            <Ionicons name="business" size={18} color="#22C55E" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.switchBtnTitle}>dev.arena1 (Astana Arena)</Text>
-              <Text style={styles.switchBtnSub}>3 зала: Футбол, Баскетбол, Теннис</Text>
-            </View>
-            {user?.email?.includes("arena1") && (
-              <Ionicons name="checkmark" size={18} color="#22C55E" />
-            )}
-          </Pressable>
-
-          <Pressable
-            style={[
-              styles.switchBtn,
-              user?.email?.includes("arena2") && styles.switchBtnActive,
-            ]}
-            onPress={() => handleSwitch("dev.arena2")}
-          >
-            <Ionicons name="business" size={18} color="#60A5FA" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.switchBtnTitle}>dev.arena2 (Nomad Pro)</Text>
-              <Text style={styles.switchBtnSub}>3 зала: Манеж, Паркет, Падл</Text>
-            </View>
-            {user?.email?.includes("arena2") && (
-              <Ionicons name="checkmark" size={18} color="#60A5FA" />
-            )}
-          </Pressable>
-
-          <Pressable
-            style={[styles.switchBtn, styles.switchBtnClient]}
-            onPress={() => handleSwitch("dev.client")}
-          >
-            <Ionicons name="person-outline" size={18} color="#22C55E" />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.switchBtnTitle, { color: "#22C55E" }]}>
-                Режим Клиента (dev.client)
-              </Text>
-              <Text style={styles.switchBtnSub}>
-                5 клиентских экранов: Главная, Залы, События, Чат, Профиль
-              </Text>
-            </View>
-            <Ionicons name="arrow-forward" size={18} color="#22C55E" />
-          </Pressable>
-
-          <Pressable
-            style={[styles.switchBtn, { borderColor: "rgba(156, 163, 175, 0.3)" }]}
-            onPress={() => handleSwitch("guest")}
-          >
-            <Ionicons name="sparkles" size={18} color="#9CA3AF" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.switchBtnTitle}>Войти как гость</Text>
-              <Text style={styles.switchBtnSub}>
-                Просмотр 5 экранов приложения без авторизации
-              </Text>
-            </View>
-            <Ionicons name="arrow-forward" size={18} color="#9CA3AF" />
-          </Pressable>
-        </View>
-
-          </>
-        )}
 
         {/* Logout */}
         <Pressable style={styles.logoutBtn} onPress={handleLogout}>
@@ -518,21 +430,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#8E9B94",
   },
-  switchBox: {
-    backgroundColor: "#131916",
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
-    gap: 10,
-    marginBottom: 20,
-  },
-  switchBoxDesc: {
-    fontSize: 12,
-    color: "#8E9B94",
-    lineHeight: 16,
-    marginBottom: 4,
-  },
   switchBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -542,10 +439,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.08)",
-  },
-  switchBtnActive: {
-    borderColor: "#22C55E",
-    backgroundColor: "rgba(34, 197, 94, 0.1)",
   },
   switchBtnClient: {
     borderColor: "rgba(34, 197, 94, 0.4)",
