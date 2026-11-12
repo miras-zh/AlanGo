@@ -89,7 +89,12 @@ export default function ArenaDetailScreen() {
 
         {/* Title and Address */}
         <View style={styles.infoSection}>
-          <Text style={styles.arenaTitle}>{arena.title}</Text>
+          <View style={styles.titleRow}>
+            {arena.logoUrl ? (
+              <Image source={{ uri: arena.logoUrl }} style={styles.arenaLogo} />
+            ) : null}
+            <Text style={[styles.arenaTitle, { flex: 1 }]}>{arena.title}</Text>
+          </View>
           <View style={styles.row}>
             <Ionicons name="location-sharp" size={15} color="#22C55E" />
             <Text style={styles.addressText}>{arena.city}, {arena.address}</Text>
@@ -109,7 +114,7 @@ export default function ArenaDetailScreen() {
                 params: {
                   id: String(arena.id),
                   name: arena.title,
-                  avatar: arena.imageUrl,
+                  avatar: arena.logoUrl || arena.imageUrl,
                 },
               });
             }}
@@ -275,11 +280,24 @@ const styles = StyleSheet.create({
   infoSection: {
     padding: 16,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  arenaLogo: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.surfaceElevated,
+  },
   arenaTitle: {
     fontSize: 24,
     fontWeight: "900",
     color: "#FFFFFF",
-    marginBottom: 6,
   },
   row: {
     flexDirection: "row",

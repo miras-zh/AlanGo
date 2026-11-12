@@ -63,9 +63,14 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
           ) : null}
         </View>
         <View style={styles.coverBottom}>
-          <Text style={styles.title} numberOfLines={2}>
-            {arena.title}
-          </Text>
+          <View style={styles.titleRow}>
+            {arena.logoUrl ? (
+              <Image source={{ uri: arena.logoUrl }} style={styles.logo} />
+            ) : null}
+            <Text style={[styles.title, { flex: 1 }]} numberOfLines={2}>
+              {arena.title}
+            </Text>
+          </View>
           {arena.address || arena.city ? (
             <View style={styles.metaRow}>
               <Ionicons name="location" size={13} color={colors.primary} />
@@ -220,6 +225,19 @@ const styles = StyleSheet.create({
   coverBottom: {
     padding: spacing.lg,
     gap: spacing.xs,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  logo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.surfaceElevated,
   },
   title: {
     fontSize: 22,

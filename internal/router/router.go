@@ -183,6 +183,8 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 
 	// Authenticated Sport Domain CRUD
 	authRouter.HandleFunc("/arenas/{id:[0-9]+}", sportHandler.UpdateArena).Methods("PATCH")
+	authRouter.HandleFunc("/arenas/{id:[0-9]+}/logo", sportHandler.UploadArenaLogo).Methods("POST")
+	authRouter.HandleFunc("/arenas/{id:[0-9]+}/logo", sportHandler.DeleteArenaLogo).Methods("DELETE")
 	authRouter.HandleFunc("/arenas/{id:[0-9]+}/schedule", sportHandler.SaveSchedule).Methods("PUT")
 	authRouter.HandleFunc("/halls", sportHandler.CreateHall).Methods("POST")
 	authRouter.HandleFunc("/halls/{id:[0-9]+}/photos", sportHandler.UploadHallPhoto).Methods("POST")

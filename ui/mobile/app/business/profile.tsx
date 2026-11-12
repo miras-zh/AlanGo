@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  ActionSheetIOS,
   Alert,
   Image,
   Modal,
@@ -9,17 +11,25 @@ import {
   Text,
   TextInput,
   View,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { resolveMyArenaId } from "@/lib/business";
 import { Ionicons } from "@expo/vector-icons";
 import { BusinessAccountCard } from "@/components/BusinessAccountCard";
+import { AvatarCropModal } from "@/components/AvatarCropModal";
+import { colors, radii, spacing } from "@/constants/theme";
+import { getErrorMessage } from "@/lib/errorMessage";
+import { pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
 import { clearSession, getSessionUser } from "@/lib/auth";
 import {
   Arena,
+  cacheArenaLogo,
+  deleteArenaLogo,
   getStoredArenas,
   saveUpdatedArena,
+  uploadArenaLogo,
 } from "@/lib/sportRentData";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
@@ -37,6 +47,10 @@ export default function BusinessProfileScreen() {
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Business avatar (arena logo)
+  const [cropSource, setCropSource] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
   const loadData = useCallback(async () => {
     const currentUser = getSessionUser();
     setUser(currentUser);
@@ -52,6 +66,81 @@ export default function BusinessProfileScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const logoUrl = arena?.logoUrl || "";
+  const logoLetter = (arena?.title || "?").trim().charAt(0).toUpperCase() || "?";
+
+  const applyLogo = async (url: string) => {
+    if (!arena) return;
+    setArena({ ...arena, logoUrl: url });
+    await cacheArenaLogo(arena.id, url);
+  };
+
+  const pickLogo = async () => {
+    try {
+      const picked = await pickImageAsJpeg("arena-logo");
+      if (picked) setCropSource(picked.uri);
+    } catch (err) {
+      Alert.alert("Ошибка", getErrorMessage(err, "Не удалось открыть галерею"));
+    }
+  };
+
+  const removeLogo = async () => {
+    if (!arena) return;
+    setUploadingLogo(true);
+    try {
+      await deleteArenaLogo(arena.id);
+      await applyLogo("");
+      hapticSuccess();
+    } catch (err) {
+      Alert.alert("Не удалось удалить логотип", getErrorMessage(err));
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleLogoPress = () => {
+    if (!arena || uploadingLogo) return;
+    hapticSelection();
+    if (!logoUrl) {
+      pickLogo();
+      return;
+    }
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Выбрать новое фото", "Удалить логотип", "Отмена"],
+          destructiveButtonIndex: 1,
+          cancelButtonIndex: 2,
+        },
+        (i) => {
+          if (i === 0) pickLogo();
+          if (i === 1) removeLogo();
+        },
+      );
+    } else {
+      Alert.alert("Логотип арены", undefined, [
+        { text: "Выбрать новое фото", onPress: pickLogo },
+        { text: "Удалить логотип", style: "destructive", onPress: removeLogo },
+        { text: "Отмена", style: "cancel" },
+      ]);
+    }
+  };
+
+  const handleCroppedLogo = async (file: PickedPhoto) => {
+    setCropSource(null);
+    if (!arena) return;
+    setUploadingLogo(true);
+    try {
+      const url = await uploadArenaLogo(arena.id, file);
+      await applyLogo(url);
+      hapticSuccess();
+    } catch (err) {
+      Alert.alert("Не удалось загрузить логотип", getErrorMessage(err));
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const openEditModal = () => {
     hapticSelection();
@@ -124,19 +213,46 @@ export default function BusinessProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Arena Big Card */}
         <View style={styles.arenaCard}>
-          <Image
-            source={{ uri: arena?.imageUrl }}
-            style={styles.arenaCover}
-          />
-          <View style={styles.arenaOverlay}>
+          {arena?.imageUrl ? (
+            <Image source={{ uri: arena.imageUrl }} style={styles.arenaCover} />
+          ) : null}
+          <View style={[styles.arenaOverlay, !arena?.imageUrl && styles.arenaOverlayPlain]}>
             <View style={styles.statusBadge}>
               <View style={styles.statusDot} />
               <Text style={styles.statusText}>Арена верифицирована</Text>
             </View>
-            <Text style={styles.arenaName}>{arena?.title}</Text>
-            <Text style={styles.arenaAddress}>
-              {arena?.city}, {arena?.address}
-            </Text>
+            <View style={styles.arenaIdentity}>
+              <Pressable
+                onPress={handleLogoPress}
+                disabled={!arena || uploadingLogo}
+                accessibilityRole="button"
+                accessibilityLabel="Изменить логотип арены"
+              >
+                {logoUrl ? (
+                  <Image source={{ uri: logoUrl }} style={styles.logo} />
+                ) : (
+                  <View style={[styles.logo, styles.logoFallback]}>
+                    <Text style={styles.logoLetter}>{logoLetter}</Text>
+                  </View>
+                )}
+                {uploadingLogo ? (
+                  <View style={[styles.logo, styles.logoOverlay]}>
+                    <ActivityIndicator color={colors.textPrimary} />
+                  </View>
+                ) : null}
+                <View style={styles.logoEditBadge}>
+                  <Ionicons name="camera" size={12} color={colors.background} />
+                </View>
+              </Pressable>
+              <View style={styles.arenaIdentityText}>
+                <Text style={styles.arenaName} numberOfLines={1}>
+                  {arena?.title}
+                </Text>
+                <Text style={styles.arenaAddress} numberOfLines={1}>
+                  {[arena?.city, arena?.address].filter(Boolean).join(", ")}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -288,6 +404,14 @@ export default function BusinessProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {cropSource ? (
+        <AvatarCropModal
+          source={cropSource}
+          onCancel={() => setCropSource(null)}
+          onSave={handleCroppedLogo}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -348,6 +472,55 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(11, 15, 13, 0.65)",
     padding: 16,
     justifyContent: "flex-end",
+  },
+  arenaOverlayPlain: {
+    backgroundColor: colors.surface,
+  },
+  arenaIdentity: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  arenaIdentityText: {
+    flex: 1,
+  },
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 2,
+    borderColor: colors.glassBorder,
+  },
+  logoFallback: {
+    backgroundColor: colors.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoLetter: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: colors.primary,
+  },
+  logoOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoEditBadge: {
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    width: 24,
+    height: 24,
+    borderRadius: radii.smallChip,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statusBadge: {
     flexDirection: "row",

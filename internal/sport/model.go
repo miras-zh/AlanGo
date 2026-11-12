@@ -19,6 +19,7 @@ type Arena struct {
 	Rating          float64        `gorm:"column:rating;type:numeric(3,2);not null;default:4.8" json:"rating"`
 	ReviewsCount    int            `gorm:"column:reviews_count;not null;default:0" json:"reviews_count"`
 	ImageURL        string         `gorm:"column:image_url;type:text;not null;default:''" json:"image_url"`
+	LogoURL         string         `gorm:"column:logo_url;type:text;not null;default:''" json:"logo_url"`
 	Description     string         `gorm:"column:description;type:text;not null;default:''" json:"description"`
 	Features        pq.StringArray `gorm:"column:features;type:text[];not null;default:'{}'" json:"features"`
 	WorkingHours    string         `gorm:"column:working_hours;type:varchar(100);not null;default:'08:00 - 23:00 (ежедневно)'" json:"working_hours"`

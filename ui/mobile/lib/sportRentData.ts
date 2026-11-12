@@ -55,6 +55,7 @@ export type Arena = {
   rating: number;
   reviewsCount: number;
   imageUrl: string;
+  logoUrl?: string; // business avatar (square logo), separate from the cover
   description: string;
   features: string[];
   workingHours: string;
@@ -1011,6 +1012,7 @@ export async function getStoredArenas(params?: {
         rating: a.rating ?? 4.8,
         reviewsCount: a.reviewsCount ?? a.reviews_count ?? 50,
         imageUrl: a.imageUrl ?? a.image_url ?? "",
+        logoUrl: a.logoUrl ?? a.logo_url ?? "",
         description: a.description ?? "",
         features: a.features ?? [],
         workingHours: a.workingHours ?? a.working_hours ?? "08:00 - 23:00",
@@ -1472,6 +1474,35 @@ export async function saveNewHall(arenaId: number, data: Partial<Hall>): Promise
     rating: 0,
     reviewsCount: 0,
   };
+}
+
+// Arena logo (business avatar): POST/DELETE /api/arenas/{id}/logo, owner only.
+export async function uploadArenaLogo(
+  arenaId: number,
+  photo: { uri: string; name: string; type: string },
+): Promise<string> {
+  const fd = new FormData();
+  fd.append("photo", { uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob);
+  const res = await api.post<{ logo_url: string }>(`/api/arenas/${arenaId}/logo`, fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: UPLOAD_TIMEOUT_MS,
+  });
+  return res.data?.logo_url ?? "";
+}
+
+export async function deleteArenaLogo(arenaId: number): Promise<void> {
+  await api.delete(`/api/arenas/${arenaId}/logo`);
+}
+
+// Keeps the cached arena list in sync after a logo change.
+export async function cacheArenaLogo(arenaId: number, logoUrl: string): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(ARENAS_KEY);
+    if (!raw) return;
+    const arenas: Arena[] = JSON.parse(raw);
+    const next = arenas.map((a) => (a.id === arenaId ? { ...a, logoUrl } : a));
+    await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(next));
+  } catch {}
 }
 
 // Gallery: POST/DELETE /api/halls/{id}/photos (owner only, max 5).

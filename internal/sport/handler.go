@@ -115,6 +115,7 @@ func (h *Handler) UpdateArena(w http.ResponseWriter, r *http.Request) {
 	req.Rating = protected.Rating
 	req.ReviewsCount = protected.ReviewsCount
 	req.CreatedAt = protected.CreatedAt
+	req.LogoURL = protected.LogoURL // changed only via /arenas/{id}/logo
 	req.Halls = nil
 	if err := h.service.SaveArena(r.Context(), &req); err != nil {
 		http.Error(w, `{"error":"failed to update arena"}`, http.StatusInternalServerError)
