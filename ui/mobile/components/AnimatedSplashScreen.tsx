@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact } from "@/lib/haptics";
 
@@ -271,12 +272,13 @@ export function AnimatedSplashScreen({
             {/* Ball Motion Trail */}
             <View style={styles.ballTrail} />
 
-            {/* 3D Glowing Neon Ball */}
+            {/* Glowing Football (soccer) Ball */}
             <View style={styles.ballBody}>
-              {/* Ball Seam / Curve */}
-              <View style={styles.ballSeam} />
-              {/* Light Reflection Specular */}
-              <View style={styles.ballHighlight} />
+              <MaterialCommunityIcons
+                name="soccer"
+                size={36}
+                color={colors.background}
+              />
             </View>
           </Animated.View>
         </Animated.View>
@@ -391,10 +393,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#C6FF00", // Vibrant Neon Tennis/Sport Ball
-    borderWidth: 1.5,
-    borderColor: "#E5FF70",
-    shadowColor: "#00C968",
+    backgroundColor: colors.textPrimary, // White football ball body
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.95,
     shadowRadius: 16,
@@ -402,23 +402,5 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
-  },
-  ballSeam: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 1.8,
-    borderColor: "rgba(255, 255, 255, 0.7)",
-    borderStyle: "dashed",
-    transform: [{ rotate: "35deg" }],
-  },
-  ballHighlight: {
-    position: "absolute",
-    top: 5,
-    left: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.85)",
   },
 });
