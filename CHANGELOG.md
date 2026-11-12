@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### 🚀 Деплой бэкенда на VPS (2026-11-12, коммит `cf4b1e2`)
+- **Бэкап перед деплоем**: `/root/backups/alango/alango_backup_20261112_134516.sql.gz` (`pg_dump -U postgres`, 12 таблиц, дамп полный).
+- **Сборка**: бинарник собран локально (`CGO_ENABLED=0 GOOS=linux GOARCH=amd64`, md5 `dded749c…`), загружен в `/root/AlanGo/bin/server`. Предыдущая версия сохранена как `bin/server.prev` для отката.
+- **Выкатка**: `docker cp` бинарника и папки `migrations` в контейнер `alango-api`, затем `docker restart`. Исходники бэкенда (`internal`, `cmd`, `config`, `migrations`, `go.mod/sum`) синхронизированы в `/root/AlanGo`, чтобы `docker compose up --build` на сервере собирал тот же код.
+- **🐛 Найдено и исправлено: на проде не была применена миграция `000003_subscription_requests`.** В контейнере лежали только файлы 000001–000002, поэтому схема стояла на версии 2, таблицы `subscription_requests` не было, и заявки на смену тарифа на проде не работали. Теперь применены 000003 и 000004, `schema_migrations` = 4, `dirty = false`.
+- **Проверка после деплоя**: `/api/arenas` и `/api/halls` → 200 (4 арены, все `hidden = false`). `/api/business/me` и `/api/business/onboard` без токена → 401 (маршруты подключены). В логах «Database migrations applied successfully».
+- **Откат при необходимости**: `docker cp /root/AlanGo/bin/server.prev alango-api:/app/server && docker restart alango-api`. Миграции 000003/000004 только добавляют таблицу и колонки, старый бинарник с ними совместим.
+
 ### 💼 Бизнес-аккаунт: самостоятельное открытие, отключение и включение (по образцу Vison)
 - **Задача**: клиент сам открывает бизнес-аккаунт через мастер (тип объекта → название → виды спорта → город → подтверждение), попадает в бизнес-кабинет, может отключить бизнес и включить его обратно без потери данных.
 - **Миграция `000004_business_onboarding`**: в `arenas` добавлены `venue_type` (`complex` | `single` | `outdoor`) и `hidden` (арена скрыта из каталога), индекс `idx_arenas_hidden`.
