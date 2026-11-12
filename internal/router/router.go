@@ -156,7 +156,14 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/notifications/read", notificationHandler.MarkRead).Methods("POST")
 
 	authRouter.HandleFunc("/subscription", subscriptionHandler.Get).Methods("GET")
+	authRouter.HandleFunc("/subscription/request", subscriptionHandler.RequestChange).Methods("POST")
 	authRouter.HandleFunc("/subscription/change", subscriptionHandler.Change).Methods("POST")
+
+	// Admin API for future Admin Panel
+	adminRouter := authRouter.PathPrefix("/admin").Subrouter()
+	adminRouter.HandleFunc("/subscription-requests", subscriptionHandler.AdminListRequests).Methods("GET")
+	adminRouter.HandleFunc("/subscription-requests/{id:[0-9]+}/approve", subscriptionHandler.AdminApproveRequest).Methods("POST")
+	adminRouter.HandleFunc("/subscription-requests/{id:[0-9]+}/reject", subscriptionHandler.AdminRejectRequest).Methods("POST")
 
 	// Authenticated items CRUD
 	authRouter.HandleFunc("/items/me", itemHandler.ListMine).Methods("GET")

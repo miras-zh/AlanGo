@@ -53,6 +53,7 @@ export function ManualBookingModal({
   const [selectedDate, setSelectedDate] = useState("Сегодня");
   const [timeSlot, setTimeSlot] = useState("19:00 - 20:00");
   const [priceInput, setPriceInput] = useState("");
+  const [paidInput, setPaidInput] = useState("0");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
@@ -82,6 +83,13 @@ export function ManualBookingModal({
 
     hapticSuccess();
     const finalPrice = parseInt(priceInput, 10) || selectedHall?.pricePerHour || 15000;
+    const finalPaid = Math.max(0, parseInt(paidInput || "0", 10) || 0);
+    let paymentStatus: "not_paid" | "partial" | "paid" = "not_paid";
+    if (finalPaid >= finalPrice && finalPrice > 0) {
+      paymentStatus = "paid";
+    } else if (finalPaid > 0) {
+      paymentStatus = "partial";
+    }
 
     const newBooking: Booking = {
       id: `SR-${Date.now().toString().slice(-4)}`,
@@ -96,6 +104,8 @@ export function ManualBookingModal({
       timeSlot,
       durationMinutes: 60,
       totalPrice: finalPrice,
+      paidAmount: finalPaid,
+      paymentStatus,
       status: "confirmed",
       source: "manual",
       notes: notes.trim() || undefined,
@@ -108,6 +118,7 @@ export function ManualBookingModal({
     // Reset fields
     setClientName("");
     setClientPhone("+7 (7");
+    setPaidInput("0");
     setNotes("");
   };
 
@@ -260,6 +271,50 @@ export function ManualBookingModal({
                   placeholder="Нужен комплект манишек"
                   placeholderTextColor="#6B7C72"
                 />
+              </View>
+            </View>
+
+            {/* 6. Оплата при записи (Предоплата / 100%) */}
+            <View style={{ marginTop: 14 }}>
+              <Text style={styles.sectionLabel}>Оплата при бронировании (₸)</Text>
+              <View style={styles.priceRow}>
+                <TextInput
+                  style={[styles.priceInput, { color: "#22C55E", flex: 1 }]}
+                  value={paidInput}
+                  onChangeText={(txt) => setPaidInput(txt.replace(/[^\d]/g, ""))}
+                  placeholder="0"
+                  placeholderTextColor="#6B7C72"
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.quickPaymentRow}>
+                <Pressable
+                  style={styles.quickFillBtn}
+                  onPress={() => {
+                    hapticSelection();
+                    setPaidInput(priceInput || "15000");
+                  }}
+                >
+                  <Text style={styles.quickFillText}>Оплачено 100%</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.quickFillBtn}
+                  onPress={() => {
+                    hapticSelection();
+                    setPaidInput("2000");
+                  }}
+                >
+                  <Text style={styles.quickFillText}>Предоплата 2 000 ₸</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.quickFillBtn}
+                  onPress={() => {
+                    hapticSelection();
+                    setPaidInput("0");
+                  }}
+                >
+                  <Text style={styles.quickFillText}>Не оплачено (0 ₸)</Text>
+                </Pressable>
               </View>
             </View>
           </ScrollView>
@@ -469,6 +524,24 @@ const styles = StyleSheet.create({
     height: 48,
     color: "#FFFFFF",
     fontSize: 13,
+  },
+  quickPaymentRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 8,
+  },
+  quickFillBtn: {
+    backgroundColor: "#1A241F",
+    borderWidth: 1,
+    borderColor: "#28382F",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  quickFillText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#22C55E",
   },
   bottomBar: {
     paddingHorizontal: 20,

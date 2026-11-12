@@ -21,11 +21,15 @@ import {
   updateBookingStatus,
   rejectBookingWithReason,
   setBookingGameOutcome,
+  updateBookingPayment,
+  updateBookingDetails,
 } from "@/lib/sportRentData";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { BookingsCalendar } from "@/components/BookingsCalendar";
 import { ManualBookingModal } from "@/components/ManualBookingModal";
 import { RejectBookingModal } from "@/components/RejectBookingModal";
+import { PaymentModal } from "@/components/PaymentModal";
+import { EditBookingModal } from "@/components/EditBookingModal";
 import {
   notifyBookingConfirmed,
   notifyBookingRejected,
@@ -49,6 +53,10 @@ export default function BusinessBookingsScreen() {
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<Booking | null>(null);
 
+  // Edit & Payment Modals
+  const [editTarget, setEditTarget] = useState<Booking | null>(null);
+  const [paymentTarget, setPaymentTarget] = useState<Booking | null>(null);
+
   const user = getSessionUser();
   const arenaId = user?.arenaId || 1;
   const arenaTitle = user?.name || "Арена";
@@ -70,6 +78,21 @@ export default function BusinessBookingsScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleSavePayment = async (bookingId: string, paidAmount: number) => {
+    await updateBookingPayment(bookingId, paidAmount);
+    await loadData();
+    Alert.alert("Оплата обновлена", `Внесено: ${paidAmount.toLocaleString("ru-RU")} ₸`);
+  };
+
+  const handleSaveBookingEdit = async (
+    bookingId: string,
+    updates: Partial<Booking>
+  ) => {
+    await updateBookingDetails(bookingId, updates);
+    await loadData();
+    Alert.alert("Сохранено", "Данные бронирования успешно обновлены.");
+  };
 
   const filteredBookings = bookings.filter((b) => {
     if (selectedFilter === "Все") return true;
@@ -213,7 +236,10 @@ export default function BusinessBookingsScreen() {
         <BookingsCalendar
           bookings={bookings}
           halls={halls}
-          onSelectBooking={(b: Booking) => {}}
+          onSelectBooking={(b: Booking) => {
+            hapticSelection();
+            setEditTarget(b);
+          }}
           onAddManualBooking={() => setManualModalOpen(true)}
           onStatusChange={(id: string, status: "confirmed" | "cancelled") =>
             handleStatusChange(id, status)
@@ -284,6 +310,13 @@ export default function BusinessBookingsScreen() {
               const isPending = item.status === "pending";
               const isCancelled = item.status === "cancelled";
 
+              const total = item.totalPrice || 0;
+              const paid = item.paidAmount ?? 0;
+              const remaining = Math.max(0, total - paid);
+              const isPaid100 = paid >= total && total > 0;
+              const isPartial = paid > 0 && !isPaid100;
+              const isNotPaid = paid === 0;
+
               return (
                 <View style={styles.bookingCard}>
                   <View style={styles.cardHeader}>
@@ -338,6 +371,59 @@ export default function BusinessBookingsScreen() {
                       </Text>
                     </View>
 
+                    {item.notes ? (
+                      <View style={styles.notesRow}>
+                        <Ionicons name="document-text-outline" size={13} color="#9EABA3" />
+                        <Text style={styles.notesRowText}>{item.notes}</Text>
+                      </View>
+                    ) : null}
+
+                    {/* Payment Status Bar (Interactive) */}
+                    <Pressable
+                      style={[
+                        styles.paymentBadgeBar,
+                        isPaid100 && styles.paymentBarPaid,
+                        isPartial && styles.paymentBarPartial,
+                        isNotPaid && styles.paymentBarNotPaid,
+                      ]}
+                      onPress={() => {
+                        hapticSelection();
+                        setPaymentTarget(item);
+                      }}
+                    >
+                      <Ionicons
+                        name={
+                          isPaid100
+                            ? "checkmark-circle"
+                            : isPartial
+                            ? "pie-chart"
+                            : "wallet-outline"
+                        }
+                        size={15}
+                        color={isPaid100 ? "#22C55E" : isPartial ? "#F59E0B" : "#8E9B94"}
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.paymentBarTitle,
+                            isPaid100 && styles.textPaid,
+                            isPartial && styles.textPartial,
+                            isNotPaid && styles.textNotPaid,
+                          ]}
+                        >
+                          {isPaid100
+                            ? `Оплачено 100% (${total.toLocaleString("ru-RU")} ₸)`
+                            : isPartial
+                            ? `Предоплата: ${paid.toLocaleString("ru-RU")} ₸ (остаток ${remaining.toLocaleString("ru-RU")} ₸)`
+                            : `Не оплачено (${total.toLocaleString("ru-RU")} ₸)`}
+                        </Text>
+                      </View>
+                      <View style={styles.paymentEditTag}>
+                        <Ionicons name="card" size={12} color="#8E9B94" />
+                        <Text style={styles.paymentEditText}>Оплата</Text>
+                      </View>
+                    </Pressable>
+
                     {item.rejectionReason && (
                       <View style={styles.reasonBox}>
                         <Ionicons name="alert-circle" size={14} color="#EF4444" />
@@ -371,10 +457,21 @@ export default function BusinessBookingsScreen() {
 
                     <View style={styles.actionsRow}>
                       <Pressable
+                        style={styles.editBtn}
+                        onPress={() => {
+                          hapticSelection();
+                          setEditTarget(item);
+                        }}
+                      >
+                        <Ionicons name="create-outline" size={15} color="#22C55E" />
+                        <Text style={styles.editBtnText}>Изменить</Text>
+                      </Pressable>
+
+                      <Pressable
                         style={styles.callIconBtn}
                         onPress={() => handleCall(item.clientPhone)}
                       >
-                        <Ionicons name="call" size={16} color="#FFFFFF" />
+                        <Ionicons name="call" size={15} color="#FFFFFF" />
                       </Pressable>
 
                       {isPending && (
@@ -422,6 +519,21 @@ export default function BusinessBookingsScreen() {
         booking={rejectTarget}
         onClose={() => setRejectTarget(null)}
         onConfirm={handleRejectConfirmed}
+      />
+
+      <PaymentModal
+        visible={!!paymentTarget}
+        booking={paymentTarget}
+        onClose={() => setPaymentTarget(null)}
+        onSavePayment={handleSavePayment}
+      />
+
+      <EditBookingModal
+        visible={!!editTarget}
+        booking={editTarget}
+        halls={halls}
+        onClose={() => setEditTarget(null)}
+        onSave={handleSaveBookingEdit}
       />
     </SafeAreaView>
   );
@@ -705,5 +817,85 @@ const styles = StyleSheet.create({
     color: "#6B7C72",
     marginTop: 4,
     textAlign: "center",
+  },
+  notesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  notesRowText: {
+    fontSize: 12,
+    color: "#9EABA3",
+    flex: 1,
+  },
+  paymentBadgeBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    marginTop: 6,
+    borderWidth: 1,
+  },
+  paymentBarPaid: {
+    backgroundColor: "rgba(34, 197, 94, 0.1)",
+    borderColor: "rgba(34, 197, 94, 0.25)",
+  },
+  paymentBarPartial: {
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    borderColor: "rgba(245, 158, 11, 0.25)",
+  },
+  paymentBarNotPaid: {
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    borderColor: "rgba(255, 255, 255, 0.08)",
+  },
+  paymentBarTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  paymentEditTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  paymentEditText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#8E9B94",
+  },
+  textPaid: {
+    color: "#22C55E",
+  },
+  textPartial: {
+    color: "#F59E0B",
+  },
+  textNotPaid: {
+    color: "#8E9B94",
+  },
+  editBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.3)",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  editBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#22C55E",
   },
 });

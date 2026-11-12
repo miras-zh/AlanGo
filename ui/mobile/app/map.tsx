@@ -242,10 +242,7 @@ export default function MapScreen() {
       border-bottom: none;
     }
     .leaflet-control-attribution {
-      font-size: 10px;
-      background: rgba(255,255,255,0.7) !important;
-      padding: 2px 6px;
-      border-top-left-radius: 6px;
+      display: none !important;
     }
   </style>
 </head>
@@ -263,15 +260,14 @@ export default function MapScreen() {
     var zoomLevel = ${cityCoords.zoom};
     var venues = ${venuesJson};
 
-    // Initialize Map with OpenStreetMap Carto tiles
+    // Initialize Map with free OpenStreetMap tiles (no API key required)
     var map = L.map('map', {
       zoomControl: true,
-      attributionControl: true
+      attributionControl: false
     }).setView([centerLat, centerLng], zoomLevel);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      subdomains: 'abcd',
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 19
     }).addTo(map);
 

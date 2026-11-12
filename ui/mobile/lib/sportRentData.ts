@@ -73,6 +73,8 @@ export type Booking = {
   timeSlot: string;   // "19:00 - 20:00"
   durationMinutes: number;
   totalPrice: number;
+  paidAmount?: number; // Сколько фактически оплачено (например 0, 2000, 10000, 20000)
+  paymentStatus?: "not_paid" | "partial" | "paid"; // Не оплачено / Предоплата (частично) / Оплачено 100%
   status: "confirmed" | "pending" | "cancelled" | "rejected";
   source?: "app" | "manual" | "phone" | "telegram";
   gameOutcome?: "completed" | "no_show";
@@ -925,6 +927,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
     timeSlot: "19:00 - 20:00",
     durationMinutes: 60,
     totalPrice: 15000,
+    paidAmount: 15000,
+    paymentStatus: "paid",
     status: "confirmed",
     createdAt: new Date().toISOString(),
   },
@@ -940,7 +944,9 @@ export const INITIAL_BOOKINGS: Booking[] = [
     date: "Сегодня",
     timeSlot: "20:00 - 21:30",
     durationMinutes: 90,
-    totalPrice: 21000,
+    totalPrice: 20000,
+    paidAmount: 10000,
+    paymentStatus: "partial",
     status: "confirmed",
     createdAt: new Date().toISOString(),
   },
@@ -956,7 +962,9 @@ export const INITIAL_BOOKINGS: Booking[] = [
     date: "Завтра",
     timeSlot: "18:00 - 19:30",
     durationMinutes: 90,
-    totalPrice: 21000,
+    totalPrice: 20000,
+    paidAmount: 2000,
+    paymentStatus: "partial",
     status: "confirmed",
     createdAt: new Date().toISOString(),
   },
@@ -1334,6 +1342,84 @@ export async function setBookingGameOutcome(
     bookings[idx] = { ...bookings[idx], gameOutcome };
     await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
   }
+}
+
+export async function updateBookingPayment(
+  id: string,
+  paidAmount: number
+): Promise<Booking | null> {
+  const bookings = await getStoredBookings();
+  const idx = bookings.findIndex((b) => b.id === id);
+  if (idx < 0) return null;
+
+  const current = bookings[idx];
+  const total = current.totalPrice || 0;
+  let paymentStatus: "not_paid" | "partial" | "paid" = "not_paid";
+  if (paidAmount >= total && total > 0) {
+    paymentStatus = "paid";
+  } else if (paidAmount > 0) {
+    paymentStatus = "partial";
+  }
+
+  const updated: Booking = {
+    ...current,
+    paidAmount,
+    paymentStatus,
+  };
+
+  bookings[idx] = updated;
+  await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
+
+  try {
+    await apiFetch(`/bookings/${id}/payment`, {
+      method: "PATCH",
+      body: JSON.stringify({ paidAmount, paymentStatus }),
+    });
+  } catch {}
+
+  return updated;
+}
+
+export async function updateBookingDetails(
+  id: string,
+  updates: Partial<Booking>
+): Promise<Booking | null> {
+  const bookings = await getStoredBookings();
+  const idx = bookings.findIndex((b) => b.id === id);
+  if (idx < 0) return null;
+
+  const current = bookings[idx];
+  const totalPrice = updates.totalPrice ?? current.totalPrice;
+  const paidAmount = updates.paidAmount ?? current.paidAmount ?? 0;
+
+  let paymentStatus = updates.paymentStatus ?? current.paymentStatus ?? "not_paid";
+  if (paidAmount >= totalPrice && totalPrice > 0) {
+    paymentStatus = "paid";
+  } else if (paidAmount > 0) {
+    paymentStatus = "partial";
+  } else {
+    paymentStatus = "not_paid";
+  }
+
+  const updated: Booking = {
+    ...current,
+    ...updates,
+    totalPrice,
+    paidAmount,
+    paymentStatus,
+  };
+
+  bookings[idx] = updated;
+  await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
+
+  try {
+    await apiFetch(`/bookings/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(updated),
+    });
+  } catch {}
+
+  return updated;
 }
 
 export async function saveNewHall(arenaId: number, data: Partial<Hall>): Promise<Hall> {

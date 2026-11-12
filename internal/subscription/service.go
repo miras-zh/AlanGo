@@ -54,7 +54,123 @@ type Service struct {
 }
 
 func NewService(db *gorm.DB) *Service {
+	if db != nil {
+		_ = db.AutoMigrate(&SubscriptionRequest{})
+	}
 	return &Service{DB: db}
+}
+
+func (s *Service) CreateRequest(userID uint, plan string) (*SubscriptionRequest, error) {
+	catalog := s.ListCatalog()
+	var matched bool
+	for _, p := range catalog {
+		if p.ID == plan {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		return nil, ErrInvalidPlan
+	}
+
+	var user struct {
+		Email string
+		Name  string
+		Plan  string
+	}
+	if err := s.DB.Table("users").Select("email, name, plan").Where("id = ?", userID).Take(&user).Error; err != nil {
+		return nil, ErrUserNotFound
+	}
+
+	// If user already has a pending request, update it
+	var existing SubscriptionRequest
+	if err := s.DB.Where("user_id = ? AND status = 'pending'", userID).Take(&existing).Error; err == nil {
+		existing.RequestedPlan = plan
+		existing.CurrentPlan = user.Plan
+		existing.UpdatedAt = time.Now()
+		if err := s.DB.Save(&existing).Error; err != nil {
+			return nil, err
+		}
+		return &existing, nil
+	}
+
+	req := SubscriptionRequest{
+		UserID:        userID,
+		UserEmail:     user.Email,
+		UserName:      user.Name,
+		CurrentPlan:   user.Plan,
+		RequestedPlan: plan,
+		Status:        "pending",
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+	if err := s.DB.Create(&req).Error; err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
+func (s *Service) GetPendingRequest(userID uint) (*SubscriptionRequest, error) {
+	var req SubscriptionRequest
+	if err := s.DB.Where("user_id = ? AND status = 'pending'", userID).Order("id DESC").Take(&req).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &req, nil
+}
+
+func (s *Service) ListRequests(status string) ([]SubscriptionRequest, error) {
+	var list []SubscriptionRequest
+	query := s.DB.Model(&SubscriptionRequest{}).Order("id DESC")
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if err := query.Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (s *Service) ApproveRequest(requestID uint, adminNotes string) (*SubscriptionRequest, error) {
+	var req SubscriptionRequest
+	if err := s.DB.Where("id = ?", requestID).Take(&req).Error; err != nil {
+		return nil, err
+	}
+	if req.Status != "pending" {
+		return nil, errors.New("request is not pending")
+	}
+
+	if _, err := s.Set(req.UserID, req.RequestedPlan); err != nil {
+		return nil, err
+	}
+
+	req.Status = "approved"
+	req.AdminNotes = adminNotes
+	req.UpdatedAt = time.Now()
+	if err := s.DB.Save(&req).Error; err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
+func (s *Service) RejectRequest(requestID uint, adminNotes string) (*SubscriptionRequest, error) {
+	var req SubscriptionRequest
+	if err := s.DB.Where("id = ?", requestID).Take(&req).Error; err != nil {
+		return nil, err
+	}
+	if req.Status != "pending" {
+		return nil, errors.New("request is not pending")
+	}
+
+	req.Status = "rejected"
+	req.AdminNotes = adminNotes
+	req.UpdatedAt = time.Now()
+	if err := s.DB.Save(&req).Error; err != nil {
+		return nil, err
+	}
+	return &req, nil
 }
 
 func (s *Service) ListCatalog() []PlanInfo {

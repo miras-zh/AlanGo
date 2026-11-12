@@ -97,10 +97,20 @@ export async function updateMyProfile(data: ProfileUpdate): Promise<Me> {
   return updated;
 }
 
+export type PendingSubscriptionRequest = {
+  id: number;
+  requested_plan: string;
+  status: "pending" | "approved" | "rejected";
+  created_at?: string;
+  admin_notes?: string;
+};
+
 export type SubscriptionInfo = {
   plan: string;
+  current?: string;
   expires_at?: string;
   status?: string;
+  pending_request?: PendingSubscriptionRequest | null;
   [key: string]: any;
 };
 
@@ -108,16 +118,52 @@ export const MOCK_SUBSCRIPTION: SubscriptionInfo = {
   plan: "pro",
   status: "active",
   expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 25).toISOString(),
+  pending_request: null,
 };
 
 export async function fetchMySubscription(): Promise<SubscriptionInfo> {
   try {
     const res = await api.get<SubscriptionInfo>("/api/subscription");
-    if (res.data) return res.data;
+    if (res.data) {
+      if (res.data.current) {
+        res.data.plan = res.data.current;
+      }
+      return res.data;
+    }
   } catch {
     // fallback
   }
   return MOCK_SUBSCRIPTION;
+}
+
+export async function requestSubscriptionPlan(plan: string): Promise<{
+  message: string;
+  request?: PendingSubscriptionRequest;
+}> {
+  try {
+    const res = await api.post<any>("/api/subscription/request", { plan });
+    if (res.data) {
+      MOCK_SUBSCRIPTION.pending_request = {
+        id: res.data.request?.id || Date.now(),
+        requested_plan: plan,
+        status: "pending",
+      };
+      return res.data;
+    }
+  } catch {
+    // fallback
+  }
+  const mockPending: PendingSubscriptionRequest = {
+    id: Date.now(),
+    requested_plan: plan,
+    status: "pending",
+    created_at: new Date().toISOString(),
+  };
+  MOCK_SUBSCRIPTION.pending_request = mockPending;
+  return {
+    message: "Заявка отправлена. Ожидайте подтверждения от администратора",
+    request: mockPending,
+  };
 }
 
 export async function changeMySubscriptionPlan(plan: string): Promise<SubscriptionInfo> {

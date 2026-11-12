@@ -16,6 +16,7 @@ import { getSessionUser, MOCK_USER, subscribeAuth, switchTestAccount } from "@/l
 import { deleteAccountApi, logoutCurrentSession } from "@/lib/registration";
 import {
   changeMySubscriptionPlan,
+  requestSubscriptionPlan,
   fetchMySubscription,
   SubscriptionInfo,
   updateMyProfile,
@@ -66,11 +67,19 @@ export default function ProfileScreen() {
   };
 
   const handlePlanChange = async (newPlan: string) => {
+    if (newPlan === (sub?.plan || "pro")) {
+      return;
+    }
     hapticSelection();
     try {
-      const updated = await changeMySubscriptionPlan(newPlan);
-      setSub(updated);
-      Alert.alert("Тариф обновлен", `Вы перешли на тариф ${newPlan.toUpperCase()}`);
+      await requestSubscriptionPlan(newPlan);
+      const fresh = await fetchMySubscription();
+      setSub(fresh);
+      hapticSuccess();
+      Alert.alert(
+        "Заявка отправлена 🎉",
+        `Ваша заявка на тариф ${newPlan.toUpperCase()} успешно отправлена. Ожидайте подтверждения от администратора.`
+      );
     } catch (err) {
       Alert.alert("Ошибка", getErrorMessage(err));
     }
@@ -192,6 +201,22 @@ export default function ProfileScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Pending Tariff Application Banner */}
+          {sub?.pending_request && sub.pending_request.status === "pending" && (
+            <View style={styles.pendingRequestBanner}>
+              <View style={styles.pendingDot} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.pendingRequestTitle}>
+                  Заявка на тариф {sub.pending_request.requested_plan.toUpperCase()}
+                </Text>
+                <Text style={styles.pendingRequestSub}>
+                  Ожидает подтверждения от администратора
+                </Text>
+              </View>
+              <Ionicons name="time-outline" size={18} color="#F59E0B" />
+            </View>
+          )}
 
           <View style={styles.planSelector}>
             {[
@@ -573,6 +598,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#8E9B94",
     marginTop: 2,
+  },
+  pendingRequestBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "rgba(245, 158, 11, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  pendingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#F59E0B",
+  },
+  pendingRequestTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#F59E0B",
+  },
+  pendingRequestSub: {
+    fontSize: 11,
+    color: "#D1D5DB",
+    marginTop: 1,
   },
   planSelector: {
     gap: 8,

@@ -9,6 +9,44 @@
 
 ## [Unreleased]
 
+### 🛡️ Заявочная система обновления тарифов подписки (Admin Approval API)
+- **Бэкенд Go API ([`internal/subscription/`](file:///Users/miko/MyProduction/AlanGo/internal/subscription/))**:
+  - Создана модель `SubscriptionRequest` и миграции (`000003_subscription_requests.up.sql`);
+  - Реализован клиентский эндпоинт `POST /api/subscription/request` для отправки заявки на смену тарифа со статусом `pending`;
+  - Расширен `GET /api/subscription` для возврата актуальной заявки на рассмотрении (`pending_request`);
+  - Реализованы административные API-эндпоинты для будущей веб-панели управления:
+    - `GET /api/admin/subscription-requests` (список заявок с фильтром по статусу);
+    - `POST /api/admin/subscription-requests/{id}/approve` (одобрение заявки и авто-активация тарифа);
+    - `POST /api/admin/subscription-requests/{id}/reject` (отклонение заявки с комментарием);
+- **Клиентский UX в мобильном приложении ([`ui/mobile/app/(tabs)/profile.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/profile.tsx))**:
+  - Устранена мгновенная смена тарифа; теперь при выборе нового плана отправляется заявка администратору с диалогом: *«Заявка отправлена 🎉. Ожидайте подтверждения от администратора»*;
+  - В профиле отображается статус-баннер: *«Заявка на тариф {ТАРИФ}: Ожидает подтверждения от администратора»*;
+- **Локальная сборка бинарника**:
+  - Скомпилирован бинарник для серверов Linux amd64 (`bin/server`).
+
+### 💳 Управление бронями: Редактирование записей и учет частичной/полной оплаты
+- **Система учета оплаты и предоплаты ([`ui/mobile/lib/sportRentData.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/sportRentData.ts))**:
+  - В модель `Booking` добавлены поля `paidAmount` (внесенная сумма) и `paymentStatus` (`paid` / `partial` / `not_paid`);
+  - Реализованы сервисные функции `updateBookingPayment` (обновление оплаты с автоматическим расчетом статуса) и `updateBookingDetails` (полное сохранение измененных параметров брони);
+- **Интерактивные бейджи оплаты на карточках броней ([`ui/mobile/app/business/bookings.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/business/bookings.tsx))**:
+  - Цветовая индикация: 🟢 «Оплачено 100%», 🟠 «Предоплата: X ₸ (Остаток: Y ₸)», ⚪️ «Не оплачено»;
+  - Клик по бейджу открывает быстрое управление оплатой;
+- **Модальное окно быстрого изменения оплаты ([`ui/mobile/components/PaymentModal.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/PaymentModal.tsx))**:
+  - Сводка (Общая сумма, Внесено, Остаток к доплате);
+  - Быстрые пресеты: «100% (Вся сумма)», «50%», «Предоплата 2 000 ₸», «Сброс (0 ₸)» и поле произвольной суммы;
+- **Модальное окно полного редактирования брони ([`ui/mobile/components/EditBookingModal.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/EditBookingModal.tsx))**:
+  - Редактирование клиента (имя, телефон), зала, даты, временного слота, цены, оплаты, заметок и статуса;
+  - Открытие по кнопке «Изменить» на карточке и по клику на слот в `BookingsCalendar`;
+- **Фиксация оплаты при ручной записи ([`ui/mobile/components/ManualBookingModal.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/ManualBookingModal.tsx))**:
+  - Добавлен блок фиксации внесенной суммы (предоплата / 100% оплата) сразу при бронировании администратором.
+
+### 🗺️ Исправление тайлов карты «Залы рядом» (Устранение водяного знака CARTO)
+- **Замена провайдера картографических тайлов и скрытие атрибуции ([`ui/mobile/app/map.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/map.tsx))**:
+  - Устаревший платный слой CARTO Voyager заменен на официальный бесплатный слой **OpenStreetMap** (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`);
+  - Полностью ликвидирован водяной знак *«API KEY REQUIRED carto.com/basemaps/apikey»*;
+  - Тайлы загружаются без API-ключей с полной детализацией городов Казахстана на русском и казахском языках;
+  - Скрыта системная плашка Leaflet и атрибуции (`attributionControl: false` и `.leaflet-control-attribution { display: none !important; }`) в правом нижнем углу экрана.
+
 ### 🗺️ Интерактивная карта «Залы рядом» для игроков
 - **Новый экран интерактивной карты ([`ui/mobile/app/map.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/map.tsx))**:
   - Интеграция легковесной карты на базе Leaflet и CartoDB Voyager;
