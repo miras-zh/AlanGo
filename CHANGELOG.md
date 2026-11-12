@@ -9,6 +9,13 @@
 
 ## [Unreleased]
 
+### 🚀 Деплой бэкенда (2026-11-12, 16:49 UTC, коммит `5c26256`)
+- **Что выкачено**: логотип арены (аватарка бизнеса) — поле `logo_url`, `POST`/`DELETE /api/arenas/{id}/logo`, миграция **000007_arena_logo**.
+- **Бэкап**: `/root/backups/alango/alango_backup_20261112_164851.sql.gz` (14 таблиц, дамп полный). До деплоя схема 6.
+- **Выкатка**: бинарник собран локально (linux/amd64, md5 `5499f17e…`), прежний (`95e270bb…`) — `bin/server.prev`. Исходники и `migrations` синхронизированы в `/root/AlanGo`, `docker cp` бинарника и миграций в `alango-api`, рестарт. Миграция 000007 применилась при старте, схема 7 (`dirty = false`). Образ: прежний сохранён как `alango-app:pre-20261112-logo`, текущий контейнер зафиксирован как `alango-app:latest`.
+- **Проверка на проде**: `/api/arenas`, `/api/halls`, `availability` → 200; все 5 арен отдают `logo_url`; `POST` и `DELETE /api/arenas/1/logo` без токена → 401; ошибок в логах нет.
+- **Откат**: `docker cp /root/AlanGo/bin/server.prev alango-api:/app/server && docker restart alango-api`. Миграция 000007 только добавляет колонку с дефолтом, старый бинарник с ней совместим.
+
 ### 🧭 Нижняя капсула навигации на экранах «Спорткомплексы» и «Комплекс»
 - **Проблема**: `app/arenas.tsx` и `app/arena/[id].tsx` лежат в корневом `Stack` поверх `(tabs)`, поэтому при открытии спорткомплекса нижняя капсула пропадала.
 - **[`components/LiquidGlassTabBar.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/LiquidGlassTabBar.tsx)**: внешний вид капсулы вынесен в `TabBarCapsule` (`tabs`, `activeTab`, `onTabPress`). `LiquidGlassTabBar` (таб-бар навигатора) рендерит его с прежней логикой `tabPress`, внешне без изменений. Новый `StandaloneTabBar` — капсула для экранов поверх табов: подсвечена «Главная», нажатие на вкладку — `router.dismissTo("/(tabs)/<вкладка>")` (закрывает экраны до табов и открывает выбранную).
