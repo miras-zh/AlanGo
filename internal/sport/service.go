@@ -3,10 +3,9 @@ package sport
 import (
 	"context"
 	"errors"
-	"fmt"
-	"math/rand"
 	"strings"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -132,7 +131,20 @@ func (s *Service) GetHallByID(ctx context.Context, id uint) (*Hall, error) {
 
 func (s *Service) SaveHall(ctx context.Context, hall *Hall) error {
 	if hall.ID == 0 {
-		return s.db.WithContext(ctx).Create(hall).Error
+		// GORM skips zero values that have a column default (rating 4.8) and
+		// then reads the default back via RETURNING, so remember the intent
+		// first: a new hall starts unrated.
+		unrated := hall.Rating == 0
+		if err := s.db.WithContext(ctx).Create(hall).Error; err != nil {
+			return err
+		}
+		if unrated {
+			hall.Rating = 0
+			hall.ReviewsCount = 0
+			return s.db.WithContext(ctx).Model(&Hall{}).Where("id = ?", hall.ID).
+				Updates(map[string]interface{}{"rating": 0, "reviews_count": 0}).Error
+		}
+		return nil
 	}
 	return s.db.WithContext(ctx).Save(hall).Error
 }
@@ -185,71 +197,6 @@ func (s *Service) SaveArenaSchedule(ctx context.Context, arenaID uint, days []Sc
 // ============================================================================
 // BOOKINGS
 // ============================================================================
-
-func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, userID *uint) (*Booking, error) {
-	if req.HallID == 0 || req.ArenaID == 0 {
-		return nil, errors.New("hall_id and arena_id are required")
-	}
-	if req.ClientName == "" || req.ClientPhone == "" {
-		return nil, errors.New("client_name and client_phone are required")
-	}
-	if req.BookingDate == "" || req.TimeSlot == "" {
-		return nil, errors.New("booking_date and time_slot are required")
-	}
-
-	// Check collision & insert atomically within a transaction to avoid race conditions
-	var createdID uint
-	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var existing Booking
-		collisionErr := tx.
-			Where("hall_id = ? AND booking_date = ? AND time_slot = ? AND status <> 'cancelled'", req.HallID, req.BookingDate, req.TimeSlot).
-			First(&existing).Error
-		if collisionErr == nil {
-			return errors.New("этот слот времени уже забронирован другим клиентом")
-		} else if !errors.Is(collisionErr, gorm.ErrRecordNotFound) {
-			return collisionErr
-		}
-
-		code := fmt.Sprintf("SR-%03d", rand.Intn(900)+100)
-		booking := Booking{
-			BookingCode:     code,
-			HallID:          req.HallID,
-			ArenaID:         req.ArenaID,
-			UserID:          userID,
-			ClientName:      req.ClientName,
-			ClientPhone:     req.ClientPhone,
-			BookingDate:     req.BookingDate,
-			TimeSlot:        req.TimeSlot,
-			DurationMinutes: req.DurationMinutes,
-			TotalPrice:      req.TotalPrice,
-			Status:          "confirmed",
-			PaymentStatus:   "pending",
-			Notes:           req.Notes,
-		}
-
-		if booking.DurationMinutes == 0 {
-			booking.DurationMinutes = 60
-		}
-
-		parts := strings.Split(req.TimeSlot, "-")
-		if len(parts) == 2 {
-			booking.StartTime = strings.TrimSpace(parts[0])
-			booking.EndTime = strings.TrimSpace(parts[1])
-		}
-
-		if err := tx.Create(&booking).Error; err != nil {
-			return err
-		}
-		createdID = booking.ID
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Fetch full booking with joins
-	return s.GetBookingByID(ctx, createdID)
-}
 
 func (s *Service) GetBookingByID(ctx context.Context, id uint) (*Booking, error) {
 	var booking Booking
@@ -357,4 +304,25 @@ func (s *Service) GetBusinessDashboard(ctx context.Context, arenaID uint) (*Busi
 		HallsCount:     arena.HallsCount,
 		RecentBookings: bookings,
 	}, nil
+}
+
+var ErrTooManyPhotos = errors.New("a hall can have at most 5 photos")
+
+// SetHallPhotos replaces the gallery and keeps the cover (image_url) in sync
+// with the first photo. The length check guards concurrent uploads.
+func (s *Service) SetHallPhotos(ctx context.Context, hallID uint, photos pq.StringArray) (*Hall, error) {
+	if len(photos) > 5 {
+		return nil, ErrTooManyPhotos
+	}
+	cover := ""
+	if len(photos) > 0 {
+		cover = photos[0]
+	}
+	res := s.db.WithContext(ctx).Model(&Hall{}).
+		Where("id = ? AND cardinality(photos) <= ?", hallID, 5).
+		Updates(map[string]interface{}{"photos": photos, "image_url": cover})
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return s.GetHallByID(ctx, hallID)
 }

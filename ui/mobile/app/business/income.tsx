@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useMyArenaId } from "@/lib/business";
+import { plural } from "@/lib/plural";
 import {
   IncomeBreakdown,
   calculateIncomeStats,
@@ -67,7 +68,7 @@ export default function BusinessIncomeScreen() {
           "ru-RU"
         )} ₸\nПодтвержденных броней: ${
           stats.confirmedBookingsCount
-        }\nСредний чек/час: ${stats.averageCheckPerHour.toLocaleString(
+        }\nСредний чек/час: ${(stats.averageCheckPerHour ?? 0).toLocaleString(
           "ru-RU"
         )} ₸\nЗагрузка кортов: ${stats.utilizationRate}%\nСформировано в AlanGo.`,
       });
@@ -142,10 +143,19 @@ export default function BusinessIncomeScreen() {
           <View style={styles.heroCard}>
             <View style={styles.heroTop}>
               <Text style={styles.heroLabel}>Фактическая выручка</Text>
-              <View style={styles.growthBadge}>
-                <Ionicons name="trending-up" size={13} color="#22C55E" />
-                <Text style={styles.growthText}>+18.4%</Text>
-              </View>
+              {stats?.growthPercent != null ? (
+                <View style={styles.growthBadge}>
+                  <Ionicons
+                    name={stats.growthPercent >= 0 ? "trending-up" : "trending-down"}
+                    size={13}
+                    color={stats.growthPercent >= 0 ? "#22C55E" : "#EF4444"}
+                  />
+                  <Text style={[styles.growthText, stats.growthPercent < 0 && { color: "#EF4444" }]}>
+                    {stats.growthPercent >= 0 ? "+" : ""}
+                    {stats.growthPercent}%
+                  </Text>
+                </View>
+              ) : null}
             </View>
 
             <Text style={styles.heroAmount}>
@@ -153,7 +163,9 @@ export default function BusinessIncomeScreen() {
             </Text>
 
             <Text style={styles.heroSub}>
-              По {stats?.confirmedBookingsCount || 0} подтвержденным броням
+              {stats?.confirmedBookingsCount
+                ? `По ${stats.confirmedBookingsCount} ${plural(stats.confirmedBookingsCount, ["подтверждённой брони", "подтверждённым броням", "подтверждённым броням"])}`
+                : "Подтверждённых броней за период пока нет"}
             </Text>
           </View>
 
@@ -164,7 +176,7 @@ export default function BusinessIncomeScreen() {
                 <Ionicons name="time" size={16} color="#22C55E" />
               </View>
               <Text style={styles.kpiValue}>
-                {stats?.confirmedBookingsCount ? stats.confirmedBookingsCount * 2 : 12} ч
+                {(stats?.hoursPlayed ?? 0).toLocaleString("ru-RU")} ч
               </Text>
               <Text style={styles.kpiTitle}>Сыграно часов</Text>
             </View>
@@ -174,7 +186,9 @@ export default function BusinessIncomeScreen() {
                 <Ionicons name="cash" size={16} color="#3B82F6" />
               </View>
               <Text style={styles.kpiValue}>
-                {(stats?.averageCheckPerHour || 15000).toLocaleString("ru-RU")} ₸
+                {stats?.averageCheckPerHour != null
+                  ? `${stats.averageCheckPerHour.toLocaleString("ru-RU")} ₸`
+                  : "—"}
               </Text>
               <Text style={styles.kpiTitle}>Ср. чек / час</Text>
             </View>
@@ -183,7 +197,7 @@ export default function BusinessIncomeScreen() {
               <View style={[styles.kpiIcon, { backgroundColor: "rgba(234, 179, 8, 0.15)" }]}>
                 <Ionicons name="pie-chart" size={16} color="#EAB308" />
               </View>
-              <Text style={styles.kpiValue}>{stats?.utilizationRate || 74}%</Text>
+              <Text style={styles.kpiValue}>{stats?.period === "all" ? "—" : `${stats?.utilizationRate ?? 0}%`}</Text>
               <Text style={styles.kpiTitle}>Загрузка кортов</Text>
             </View>
           </View>
@@ -192,9 +206,12 @@ export default function BusinessIncomeScreen() {
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Выручка по площадкам</Text>
             <View style={styles.hallsList}>
+              {!stats?.hallRevenues.length ? (
+                <Text style={styles.emptyNote}>Добавьте залы — здесь появится выручка по каждой площадке.</Text>
+              ) : null}
               {stats?.hallRevenues.map((h) => {
-                const total = stats.totalRevenue || 1;
-                const percent = Math.min(100, Math.round((h.revenue / total) * 100));
+                const total = stats.totalRevenue;
+                const percent = total > 0 ? Math.min(100, Math.round((h.revenue / total) * 100)) : 0;
 
                 return (
                   <View key={h.hallId} style={styles.hallRevenueItem}>
@@ -209,14 +226,14 @@ export default function BusinessIncomeScreen() {
                       <View
                         style={[
                           styles.progressBar,
-                          { width: `${Math.max(8, percent)}%` },
+                          { width: `${h.revenue > 0 ? Math.max(4, percent) : 0}%` },
                         ]}
                       />
                     </View>
 
                     <View style={styles.hallSubRow}>
                       <Text style={styles.hallSubText}>
-                        {h.hoursCount} часов аренды
+                        {h.hoursCount.toLocaleString("ru-RU")} ч аренды
                       </Text>
                       <Text style={styles.hallPercent}>{percent}% от выручки</Text>
                     </View>
@@ -230,6 +247,9 @@ export default function BusinessIncomeScreen() {
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Недавние поступления</Text>
             <View style={styles.txList}>
+              {!stats?.recentTransactions.length ? (
+                <Text style={styles.emptyNote}>Пока нет поступлений за выбранный период.</Text>
+              ) : null}
               {stats?.recentTransactions.map((tx) => (
                 <View key={tx.id} style={styles.txItem}>
                   <View style={styles.txIconBox}>
@@ -247,9 +267,7 @@ export default function BusinessIncomeScreen() {
                     <Text style={styles.txAmount}>
                       +{tx.amount.toLocaleString("ru-RU")} ₸
                     </Text>
-                    <View style={styles.txMethodBadge}>
-                      <Text style={styles.txMethodText}>{tx.paymentMethod}</Text>
-                    </View>
+                    <Text style={styles.txDate}>{tx.date}</Text>
                   </View>
                 </View>
               ))}
@@ -354,6 +372,16 @@ const styles = StyleSheet.create({
     color: "#8E9B94",
     fontWeight: "600",
     textTransform: "uppercase",
+  },
+  emptyNote: {
+    fontSize: 13,
+    color: "#8E9B94",
+    lineHeight: 19,
+  },
+  txDate: {
+    fontSize: 11,
+    color: "#8E9B94",
+    marginTop: 2,
   },
   growthBadge: {
     flexDirection: "row",

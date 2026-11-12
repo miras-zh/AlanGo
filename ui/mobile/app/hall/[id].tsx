@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  TextInput,
   ActivityIndicator,
   Alert,
   Dimensions,
@@ -18,25 +19,42 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors, radii, spacing, typography } from "@/constants/theme";
 import {
+  createHallBooking,
+  getHallAvailability,
   getStoredHalls,
-  getStoredSchedule,
   Hall,
+  HallAvailability,
+  HallSlot,
   INITIAL_HALLS,
-  saveNewBooking,
-  ScheduleDay,
+  isoDate,
 } from "@/lib/sportRentData";
+import { getErrorMessage } from "@/lib/errorMessage";
+import { PhotoGallery } from "@/components/PhotoGallery";
+import { capacityLabel, sizeLabel } from "@/lib/hallOptions";
 import { getSessionUser } from "@/lib/auth";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 const { width } = Dimensions.get("window");
 
-const DAYS = [
-  { id: "Сегодня", label: "Сегодня", dayOfWeek: new Date().getDay() },
-  { id: "Завтра", label: "Завтра", dayOfWeek: (new Date().getDay() + 1) % 7 },
-  { id: "Пт, 7 ноя", label: "Пт, 7 ноя", dayOfWeek: 5 },
-  { id: "Сб, 8 ноя", label: "Сб, 8 ноя", dayOfWeek: 6 },
-  { id: "Вс, 9 ноя", label: "Вс, 9 ноя", dayOfWeek: 0 },
-];
+const WEEKDAYS_SHORT = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+const MONTHS_SHORT = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+
+// Next 7 calendar days with real ISO dates (the API needs YYYY-MM-DD).
+function buildDays() {
+  const today = new Date();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+    const label =
+      i === 0 ? "Сегодня" : i === 1 ? "Завтра" : `${WEEKDAYS_SHORT[d.getDay()]}, ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+    return { id: isoDate(d), label };
+  });
+}
+
+const SLOT_STATUS_LABEL: Record<string, string> = {
+  booked: "Занято",
+  closed: "Не по графику",
+  past: "Прошло",
+};
 
 const AMENITIES_LIST = [
   { key: "parking", label: "Парковка", icon: "car-outline" },
@@ -71,20 +89,29 @@ const REVIEWS_MOCK = [
 
 const FAVORITES_STORAGE_KEY = "alango_favorite_halls";
 
+const HERO_HEIGHT = 270;
+
 export default function HallDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
   const [hall, setHall] = useState<Hall | null>(null);
-  const [schedule, setSchedule] = useState<ScheduleDay[]>([]);
   const [activeTab, setActiveTab] = useState<"about" | "schedule" | "reviews">("about");
   const [isFav, setIsFav] = useState(false);
 
   // Booking State
-  const [selectedDate, setSelectedDate] = useState("Сегодня");
-  const [selectedSlot, setSelectedSlot] = useState("19:00 - 20:00");
+  const [days] = useState(buildDays);
+  const [selectedDate, setSelectedDate] = useState(() => isoDate(new Date()));
+  const [duration, setDuration] = useState<number | null>(null);
+  const [availability, setAvailability] = useState<HallAvailability | null>(null);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<HallSlot | null>(null);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const sessionUser = getSessionUser();
+  const [clientName, setClientName] = useState(sessionUser?.name || "");
+  const [clientPhone, setClientPhone] = useState(sessionUser?.phone || "");
 
   useEffect(() => {
     (async () => {
@@ -93,9 +120,6 @@ export default function HallDetailScreen() {
       setHall(match);
 
       if (match) {
-        const sched = await getStoredSchedule(match.arenaId);
-        setSchedule(sched);
-
         // Check favorite status
         const favStr = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
         if (favStr) {
@@ -107,6 +131,35 @@ export default function HallDetailScreen() {
       }
     })();
   }, [id]);
+
+  const dayLabel = days.find((d) => d.id === selectedDate)?.label ?? selectedDate;
+
+  // Real per-hall availability from the server: free / booked / closed / past.
+  const loadSlots = async () => {
+    if (!hall) return;
+    setSlotsLoading(true);
+    setSlotsError(null);
+    try {
+      const res = await getHallAvailability(hall.id, selectedDate, duration ?? undefined);
+      setAvailability(res);
+      if (duration === null) setDuration(res.durationMinutes);
+      setSelectedSlot((prev) =>
+        prev && res.slots.some((x) => x.start === prev.start && x.status === "free")
+          ? res.slots.find((x) => x.start === prev.start) ?? null
+          : null,
+      );
+    } catch (err) {
+      setAvailability(null);
+      setSlotsError(getErrorMessage(err, "Не удалось загрузить свободное время"));
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSlots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hall?.id, selectedDate, duration]);
 
   if (!hall) {
     return (
@@ -144,57 +197,40 @@ export default function HallDetailScreen() {
     } catch {}
   };
 
-  // Generate Slots
-  const currentDayObj = DAYS.find((d) => d.id === selectedDate) || DAYS[0];
-  const schedDay = schedule.find((s) => s.dayOfWeek === currentDayObj.dayOfWeek);
-  const isClosedDay = schedDay?.isClosed || false;
-  const startHour = schedDay ? parseInt(schedDay.startTime.split(":")[0]) : 8;
-  const endHour = schedDay ? parseInt(schedDay.endTime.split(":")[0]) : 23;
 
-  const generatedSlots: string[] = [];
-  if (!isClosedDay) {
-    for (let h = Math.max(9, startHour); h < Math.min(23, endHour); h++) {
-      const from = `${String(h).padStart(2, "0")}:00`;
-      const to = `${String(h + 1).padStart(2, "0")}:00`;
-      generatedSlots.push(`${from} - ${to}`);
-    }
-  }
-
-  // Booking Execution
   const handleConfirmBooking = async () => {
+    if (!selectedSlot || !availability) return;
+    const phoneDigits = clientPhone.replace(/\D/g, "");
+    if (!clientName.trim()) {
+      Alert.alert("Укажите имя", "Как к вам обращаться администратору?");
+      return;
+    }
+    if (phoneDigits.length < 10) {
+      Alert.alert("Укажите телефон", "Администратор свяжется с вами по этому номеру.");
+      return;
+    }
     hapticSelection();
-    const user = getSessionUser();
     setBookingLoading(true);
     try {
-      await saveNewBooking({
+      const booking = await createHallBooking({
         hallId: hall.id,
-        hallTitle: hall.title,
-        sportType: hall.sportType,
-        arenaId: hall.arenaId,
-        arenaTitle: hall.arenaTitle,
-        clientName: user?.name || "Гость",
-        clientPhone: user?.phone || "+7 (777) 123-45-67",
         date: selectedDate,
-        timeSlot: selectedSlot,
-        durationMinutes: 60,
-        totalPrice: hall.pricePerHour,
-        status: "confirmed",
+        startTime: selectedSlot.start,
+        durationMinutes: availability.durationMinutes,
+        clientName: clientName.trim(),
+        clientPhone: clientPhone.trim(),
       });
       hapticSuccess();
       setBookingModalOpen(false);
+      setSelectedSlot(null);
+      loadSlots();
       Alert.alert(
         "Бронирование подтверждено! 🎉",
-        `Вы успешно забронировали "${hall.title}" в ${hall.arenaTitle}\n\nДата: ${selectedDate}\nВремя: ${selectedSlot}\nСумма: ${hall.pricePerHour.toLocaleString("ru-RU")} ₸\n\nАдминистратор комплекса уже ожидает вас!`,
-        [
-          {
-            text: "Мои брони",
-            onPress: () => router.push("/(tabs)/notifications"),
-          },
-          { text: "ОК" },
-        ],
+        `«${hall.title}»\n\nДата: ${dayLabel}\nВремя: ${booking.timeSlot}\nСумма: ${booking.totalPrice.toLocaleString("ru-RU")} ₸\nКод брони: ${booking.id}`,
       );
-    } catch {
-      Alert.alert("Ошибка", "Не удалось сохранить бронь");
+    } catch (err) {
+      Alert.alert("Не удалось забронировать", getErrorMessage(err));
+      loadSlots();
     } finally {
       setBookingLoading(false);
     }
@@ -208,8 +244,11 @@ export default function HallDetailScreen() {
       >
         {/* 1. Hero Image Gallery (Screen 4) */}
         <View style={styles.heroWrap}>
-          <Image source={{ uri: hall.imageUrl }} style={styles.heroImage} />
-
+          <PhotoGallery
+            photos={hall.photos?.length ? hall.photos : hall.imageUrl ? [hall.imageUrl] : []}
+            height={HERO_HEIGHT}
+            overlay={
+              <>
           {/* Top Floating Buttons Bar */}
           <SafeAreaView style={styles.floatingTopBar} edges={["top"]}>
             {/* Back Button */}
@@ -238,12 +277,9 @@ export default function HallDetailScreen() {
               </Pressable>
             </View>
           </SafeAreaView>
-
-          {/* Photo Count Indicator (Bottom Right) */}
-          <View style={styles.photoCountBadge}>
-            <Ionicons name="camera-outline" size={13} color="#FFFFFF" />
-            <Text style={styles.photoCountText}>1/12</Text>
-          </View>
+              </>
+            }
+          />
         </View>
 
         {/* 2. Venue Info Section */}
@@ -269,16 +305,27 @@ export default function HallDetailScreen() {
             </View>
 
             <View style={styles.attributeChip}>
-              <Ionicons name="grid-outline" size={13} color={colors.textSecondary} />
+              <Ionicons name="people-outline" size={13} color={colors.textSecondary} />
               <Text style={styles.attributeChipText}>
-                {hall.capacity || "5×5"}
+                {capacityLabel(hall.maxPeople ?? 0) || hall.capacity || "Вместимость не указана"}
               </Text>
             </View>
 
-            <View style={styles.attributeChip}>
-              <Ionicons name="home-outline" size={13} color={colors.textSecondary} />
-              <Text style={styles.attributeChipText}>Крытый</Text>
-            </View>
+            {sizeLabel(hall.lengthM ?? 0, hall.widthM ?? 0) ? (
+              <View style={styles.attributeChip}>
+                <Ionicons name="resize-outline" size={13} color={colors.textSecondary} />
+                <Text style={styles.attributeChipText}>
+                  {sizeLabel(hall.lengthM ?? 0, hall.widthM ?? 0)}
+                </Text>
+              </View>
+            ) : null}
+
+            {hall.surfaceType ? (
+              <View style={styles.attributeChip}>
+                <Ionicons name="layers-outline" size={13} color={colors.textSecondary} />
+                <Text style={styles.attributeChipText}>{hall.surfaceType}</Text>
+              </View>
+            ) : null}
           </View>
 
           {/* Location & Distance */}
@@ -412,7 +459,7 @@ export default function HallDetailScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.daysScroll}
               >
-                {DAYS.map((d) => {
+                {days.map((d) => {
                   const active = selectedDate === d.id;
                   return (
                     <Pressable
@@ -436,40 +483,88 @@ export default function HallDetailScreen() {
                 })}
               </ScrollView>
 
-              {/* Slots */}
-              {isClosedDay ? (
-                <View style={styles.closedCard}>
-                  <Ionicons name="time-outline" size={24} color={colors.accent} />
-                  <Text style={styles.closedText}>
-                    Зал закрыт в выбранный день
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.slotsGrid}>
-                  {generatedSlots.map((slot) => {
-                    const active = selectedSlot === slot;
+              {/* Duration */}
+              {availability && availability.slotDurations.length > 1 ? (
+                <View style={styles.durationRow}>
+                  {availability.slotDurations.map((m) => {
+                    const active = (duration ?? availability.durationMinutes) === m;
                     return (
                       <Pressable
-                        key={slot}
-                        style={[styles.slotChip, active && styles.slotChipActive]}
+                        key={m}
+                        style={[styles.durationChip, active && styles.durationChipActive]}
                         onPress={() => {
                           hapticSelection();
-                          setSelectedSlot(slot);
+                          setDuration(m);
                         }}
                       >
-                        <Text
-                          style={[
-                            styles.slotChipText,
-                            active && styles.slotChipTextActive,
-                          ]}
-                        >
-                          {slot}
+                        <Text style={[styles.durationText, active && styles.durationTextActive]}>
+                          {m % 60 === 0 ? `${m / 60} ч` : `${Math.floor(m / 60)} ч ${m % 60} мин`}
                         </Text>
                       </Pressable>
                     );
                   })}
                 </View>
-              )}
+              ) : null}
+
+              {/* Slots: free ones are bright, unavailable ones dimmed */}
+              {slotsLoading && !availability ? (
+                <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.xl }} />
+              ) : slotsError ? (
+                <View style={styles.closedCard}>
+                  <Ionicons name="cloud-offline-outline" size={24} color={colors.accent} />
+                  <Text style={styles.closedText}>{slotsError}</Text>
+                </View>
+              ) : availability?.isClosed ? (
+                <View style={styles.closedCard}>
+                  <Ionicons name="time-outline" size={24} color={colors.accent} />
+                  <Text style={styles.closedText}>Зал не работает в выбранный день</Text>
+                </View>
+              ) : availability && availability.slots.length === 0 ? (
+                <View style={styles.closedCard}>
+                  <Ionicons name="time-outline" size={24} color={colors.accent} />
+                  <Text style={styles.closedText}>На этот день нет слотов</Text>
+                </View>
+              ) : availability ? (
+                <>
+                  <Text style={styles.slotsHint}>
+                    Работает {availability.startTime}–{availability.endTime}
+                  </Text>
+                  <View style={styles.slotsGrid}>
+                    {availability.slots.map((slot) => {
+                      const free = slot.status === "free";
+                      const active = selectedSlot?.start === slot.start;
+                      return (
+                        <Pressable
+                          key={slot.start}
+                          disabled={!free}
+                          style={[
+                            styles.slotChip,
+                            !free && styles.slotChipDisabled,
+                            active && styles.slotChipActive,
+                          ]}
+                          onPress={() => {
+                            hapticSelection();
+                            setSelectedSlot(slot);
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.slotChipText,
+                              free && styles.slotChipTextFree,
+                              active && styles.slotChipTextActive,
+                            ]}
+                          >
+                            {slot.label}
+                          </Text>
+                          {!free ? (
+                            <Text style={styles.slotStatusText}>{SLOT_STATUS_LABEL[slot.status]}</Text>
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : null}
             </View>
           )}
 
@@ -510,10 +605,17 @@ export default function HallDetailScreen() {
           ]}
           onPress={() => {
             hapticImpact();
+            if (!selectedSlot) {
+              setActiveTab("schedule");
+              Alert.alert("Выберите время", "Во вкладке «Расписание» нажмите на свободный слот.");
+              return;
+            }
             setBookingModalOpen(true);
           }}
         >
-          <Text style={styles.bookButtonText}>Забронировать</Text>
+          <Text style={styles.bookButtonText}>
+            {selectedSlot ? `Забронировать ${selectedSlot.start}` : "Забронировать"}
+          </Text>
         </Pressable>
       </View>
 
@@ -546,21 +648,39 @@ export default function HallDetailScreen() {
 
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Дата игры:</Text>
-                <Text style={styles.summaryValue}>{selectedDate}</Text>
+                <Text style={styles.summaryValue}>{dayLabel}</Text>
               </View>
 
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Время слота:</Text>
-                <Text style={styles.summaryValue}>{selectedSlot}</Text>
+                <Text style={styles.summaryValue}>{selectedSlot?.label ?? ""}</Text>
               </View>
 
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Итого к оплате:</Text>
                 <Text style={styles.summaryTotal}>
-                  {hall.pricePerHour.toLocaleString("ru-RU")} ₸
+                  {(availability?.price ?? hall.pricePerHour).toLocaleString("ru-RU")} ₸
                 </Text>
               </View>
             </View>
+
+            <Text style={styles.contactLabel}>Имя</Text>
+            <TextInput
+              value={clientName}
+              onChangeText={setClientName}
+              placeholder="Ваше имя"
+              placeholderTextColor={colors.textSecondary}
+              style={styles.contactInput}
+            />
+            <Text style={styles.contactLabel}>Телефон</Text>
+            <TextInput
+              value={clientPhone}
+              onChangeText={setClientPhone}
+              placeholder="+7 (7__) ___-__-__"
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="phone-pad"
+              style={styles.contactInput}
+            />
 
             <Pressable
               style={[
@@ -574,7 +694,7 @@ export default function HallDetailScreen() {
                 <ActivityIndicator color="#080D0B" />
               ) : (
                 <Text style={styles.confirmBookingBtnText}>
-                  Оплатить и подтвердить
+                  Подтвердить бронь
                 </Text>
               )}
             </Pressable>
@@ -601,7 +721,7 @@ const styles = StyleSheet.create({
   },
   heroWrap: {
     width: "100%",
-    height: 270,
+    height: HERO_HEIGHT,
     position: "relative",
     backgroundColor: "#16201B",
   },
@@ -868,6 +988,64 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: "center",
+  },
+  slotChipDisabled: {
+    opacity: 0.35,
+  },
+  slotChipTextFree: {
+    color: colors.textPrimary,
+  },
+  slotStatusText: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  slotsHint: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  durationRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  durationChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.smallChip,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  durationChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surfaceElevated,
+  },
+  durationText: {
+    ...typography.caption,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  durationTextActive: {
+    color: colors.primary,
+  },
+  contactLabel: {
+    ...typography.caption,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  contactInput: {
+    height: 48,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.lg,
+    color: colors.textPrimary,
+    fontSize: 15,
   },
   slotChipActive: {
     backgroundColor: colors.primary,

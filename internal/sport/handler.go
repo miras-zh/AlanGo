@@ -1,8 +1,11 @@
 package sport
 
 import (
+	"alango/internal/upload"
+
 	"encoding/json"
 	"errors"
+	"github.com/lib/pq"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,10 +17,11 @@ import (
 
 type Handler struct {
 	service *Service
+	uploads *upload.Service
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, uploads *upload.Service) *Handler {
+	return &Handler{service: service, uploads: uploads}
 }
 
 // ============================================================================
@@ -186,6 +190,25 @@ func (h *Handler) CreateHall(w http.ResponseWriter, r *http.Request) {
 		req.Rating = existing.Rating
 		req.ReviewsCount = existing.ReviewsCount
 		req.CreatedAt = existing.CreatedAt
+		// The gallery is managed only by the /photos endpoints.
+		req.Photos = existing.Photos
+		req.ImageURL = existing.ImageURL
+	} else {
+		// New hall: no stock image, the cover comes from the first uploaded photo.
+		req.Photos = pq.StringArray{}
+		req.ImageURL = ""
+		req.Rating = 0
+		req.ReviewsCount = 0
+	}
+	if req.Photos == nil {
+		req.Photos = pq.StringArray{}
+	}
+	if req.Equipment == nil {
+		req.Equipment = pq.StringArray{}
+	}
+	if req.LengthM < 0 || req.LengthM > 1000 || req.WidthM < 0 || req.WidthM > 1000 || req.MaxPeople < 0 || req.MaxPeople > 10000 {
+		http.Error(w, `{"error":"invalid hall size or capacity"}`, http.StatusBadRequest)
+		return
 	}
 
 	if err := h.service.SaveHall(r.Context(), &req); err != nil {
@@ -271,7 +294,7 @@ func (h *Handler) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	booking, err := h.service.CreateBooking(r.Context(), req, userID)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(bookingErrorStatus(err))
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
@@ -302,7 +325,11 @@ func (h *Handler) ListBookings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Public list is for slot availability only: never expose who booked.
+	// "my=true" (signed in) returns the caller's own bookings in full.
 	for i := range bookings {
+		if filterUserID != nil {
+			break
+		}
 		bookings[i].ClientName = ""
 		bookings[i].ClientPhone = ""
 		bookings[i].Notes = ""

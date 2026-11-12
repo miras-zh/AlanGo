@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { apiFetch } from "@/lib/api";
+import { api, apiFetch, UPLOAD_TIMEOUT_MS } from "@/lib/api";
 
 export type SportType = "Футбол" | "Баскетбол" | "Теннис" | "Волейбол" | "Сквош и падл" | "Другое";
 
@@ -15,6 +15,10 @@ export type Hall = {
   capacity: string;
   pricePerHour: number;
   imageUrl: string;
+  photos?: string[]; // gallery, up to 5; photos[0] is the cover
+  lengthM?: number;
+  widthM?: number;
+  maxPeople?: number;
   status: "active" | "maintenance" | "inactive";
   description: string;
   rating: number;
@@ -1072,10 +1076,14 @@ export async function getStoredHalls(params?: {
         capacity: h.capacity ?? "",
         pricePerHour: h.pricePerHour ?? h.price_per_hour ?? 12000,
         imageUrl: h.imageUrl ?? h.image_url ?? "",
+        photos: h.photos ?? [],
+        lengthM: h.length_m ?? 0,
+        widthM: h.width_m ?? 0,
+        maxPeople: h.max_people ?? 0,
         status: h.status ?? "active",
         description: h.description ?? "",
-        rating: h.rating ?? 4.8,
-        reviewsCount: h.reviewsCount ?? h.reviews_count ?? 30,
+        rating: h.rating ?? 0,
+        reviewsCount: h.reviewsCount ?? h.reviews_count ?? 0,
       }));
       await AsyncStorage.setItem(HALLS_KEY, JSON.stringify(mapped));
       return mapped;
@@ -1256,32 +1264,30 @@ export async function saveNewBooking(booking: Omit<Booking, "id" | "createdAt">)
   return created;
 }
 
-export async function saveUpdatedHall(hall: Hall): Promise<void> {
-  const halls = await getStoredHalls();
-  const idx = halls.findIndex((h) => h.id === hall.id);
-  if (idx >= 0) {
-    halls[idx] = hall;
-  } else {
-    halls.unshift(hall);
-  }
-  await AsyncStorage.setItem(HALLS_KEY, JSON.stringify(halls));
+function hallPayload(hall: Partial<Hall> & { arenaId: number }) {
+  return {
+    arena_id: hall.arenaId,
+    title: hall.title,
+    sport_type: hall.sportType,
+    surface_type: hall.surfaceType,
+    price_per_hour: hall.pricePerHour,
+    description: hall.description ?? "",
+    capacity: hall.capacity ?? "",
+    equipment: hall.equipment ?? [],
+    length_m: hall.lengthM ?? 0,
+    width_m: hall.widthM ?? 0,
+    max_people: hall.maxPeople ?? 0,
+    status: hall.status ?? "active",
+  };
+}
 
-  try {
-    await apiFetch("/halls", {
-      method: "POST",
-      body: JSON.stringify({
-        id: hall.id > 1000000000 ? 0 : hall.id,
-        arena_id: hall.arenaId,
-        title: hall.title,
-        sport_type: hall.sportType,
-        surface_type: hall.surfaceType,
-        price_per_hour: hall.pricePerHour,
-        description: hall.description,
-        capacity: hall.capacity,
-        equipment: hall.equipment,
-      }),
-    });
-  } catch {}
+// Saves the hall on the server (owner only). Errors propagate to the UI —
+// no silent local-only "success".
+export async function saveUpdatedHall(hall: Hall): Promise<void> {
+  await apiFetch("/halls", {
+    method: "POST",
+    body: JSON.stringify({ id: hall.id, ...hallPayload(hall) }),
+  });
 }
 
 export async function saveUpdatedArena(arena: Arena): Promise<void> {
@@ -1434,55 +1440,165 @@ export async function updateBookingDetails(
   return updated;
 }
 
+// Creates a hall on the server and returns it with its real id (needed to
+// upload gallery photos right after).
 export async function saveNewHall(arenaId: number, data: Partial<Hall>): Promise<Hall> {
-  const halls = await getStoredHalls();
-  const arenas = await getStoredArenas();
-  const arena = arenas.find((a) => a.id === arenaId) || arenas[0];
-
-  const newHall: Hall = {
-    id: Date.now(),
+  const res = await apiFetch<any>("/halls", {
+    method: "POST",
+    body: JSON.stringify(hallPayload({ ...data, arenaId })),
+  });
+  return {
+    id: res.id,
     arenaId,
-    arenaTitle: arena.title,
-    arenaAddress: arena.address,
-    title: data.title || "Новый зал",
-    sportType: data.sportType || "Футбол",
-    surfaceType: data.surfaceType || "Спортивное покрытие",
-    equipment:
-      data.equipment && data.equipment.length > 0
-        ? data.equipment
-        : ["Освещение", "Раздевалки"],
-    capacity: data.capacity || "До 12 человек",
-    pricePerHour: data.pricePerHour || 12000,
-    imageUrl:
-      data.imageUrl ||
-      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800",
-    status: data.status || "active",
-    description: data.description || "Новая спортивная площадка",
-    rating: 5.0,
-    reviewsCount: 1,
+    arenaTitle: "",
+    arenaAddress: "",
+    title: res.title ?? data.title ?? "",
+    sportType: res.sport_type ?? data.sportType ?? "Футбол",
+    surfaceType: res.surface_type ?? data.surfaceType ?? "",
+    equipment: res.equipment ?? data.equipment ?? [],
+    capacity: res.capacity ?? data.capacity ?? "",
+    pricePerHour: res.price_per_hour ?? data.pricePerHour ?? 0,
+    imageUrl: res.image_url ?? "",
+    photos: res.photos ?? [],
+    lengthM: res.length_m ?? data.lengthM ?? 0,
+    widthM: res.width_m ?? data.widthM ?? 0,
+    maxPeople: res.max_people ?? data.maxPeople ?? 0,
+    status: res.status ?? "active",
+    description: res.description ?? data.description ?? "",
+    rating: 0,
+    reviewsCount: 0,
   };
+}
 
-  const updated = [newHall, ...halls];
-  await AsyncStorage.setItem(HALLS_KEY, JSON.stringify(updated));
+// Gallery: POST/DELETE /api/halls/{id}/photos (owner only, max 5).
+export async function uploadHallPhoto(
+  hallId: number,
+  photo: { uri: string; name: string; type: string },
+): Promise<{ photos: string[]; image_url: string }> {
+  const fd = new FormData();
+  fd.append("photo", { uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob);
+  const res = await api.post(`/api/halls/${hallId}/photos`, fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: UPLOAD_TIMEOUT_MS,
+  });
+  return res.data;
+}
 
-  try {
-    const res = await apiFetch<any>("/halls", {
-      method: "POST",
-      body: JSON.stringify({
-        arena_id: arenaId,
-        title: newHall.title,
-        sport_type: newHall.sportType,
-        surface_type: newHall.surfaceType,
-        price_per_hour: newHall.pricePerHour,
-        description: newHall.description,
-        capacity: newHall.capacity,
-        equipment: newHall.equipment,
-      }),
-    });
-    if (res?.id) {
-      newHall.id = res.id;
-    }
-  } catch {}
+export async function deleteHallPhoto(
+  hallId: number,
+  url: string,
+): Promise<{ photos: string[]; image_url: string }> {
+  const res = await api.delete(`/api/halls/${hallId}/photos`, { params: { url } });
+  return res.data;
+}
 
-  return newHall;
+// ---------------------------------------------------------------------------
+// Per-hall schedule and slot availability (backend: internal/sport/hall_schedule.go)
+// ---------------------------------------------------------------------------
+
+function mapScheduleDay(d: any): ScheduleDay {
+  return {
+    dayOfWeek: d.day_of_week ?? 0,
+    dayName: d.day_name ?? "",
+    isClosed: d.is_closed ?? false,
+    startTime: d.start_time ?? "08:00",
+    endTime: d.end_time ?? "23:00",
+    slotDurations: d.slot_durations?.length ? d.slot_durations : [60],
+  };
+}
+
+// Monday first, Sunday last — the order owners expect.
+function mondayFirst(days: ScheduleDay[]): ScheduleDay[] {
+  return [...days].sort((a, b) => ((a.dayOfWeek + 6) % 7) - ((b.dayOfWeek + 6) % 7));
+}
+
+export async function getHallSchedule(hallId: number): Promise<ScheduleDay[]> {
+  const res = await apiFetch<{ schedule: any[] }>(`/halls/${hallId}/schedule`);
+  return mondayFirst((res?.schedule ?? []).map(mapScheduleDay));
+}
+
+export async function saveHallSchedule(hallId: number, schedule: ScheduleDay[]): Promise<ScheduleDay[]> {
+  const res = await apiFetch<{ schedule: any[] }>(`/halls/${hallId}/schedule`, {
+    method: "PUT",
+    body: JSON.stringify({
+      schedule: schedule.map((s) => ({
+        day_of_week: s.dayOfWeek,
+        day_name: s.dayName,
+        is_closed: s.isClosed,
+        start_time: s.startTime,
+        end_time: s.endTime,
+        slot_durations: s.slotDurations,
+      })),
+    }),
+  });
+  return mondayFirst((res?.schedule ?? []).map(mapScheduleDay));
+}
+
+export type SlotStatus = "free" | "booked" | "closed" | "past";
+
+export type HallSlot = { start: string; end: string; label: string; status: SlotStatus };
+
+export type HallAvailability = {
+  date: string;
+  isClosed: boolean;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  slotDurations: number[];
+  pricePerHour: number;
+  price: number;
+  slots: HallSlot[];
+};
+
+export async function getHallAvailability(
+  hallId: number,
+  date: string,
+  durationMinutes?: number,
+): Promise<HallAvailability> {
+  const qs = `date=${encodeURIComponent(date)}${durationMinutes ? `&duration=${durationMinutes}` : ""}`;
+  const d = await apiFetch<any>(`/halls/${hallId}/availability?${qs}`);
+  return {
+    date: d.date,
+    isClosed: d.is_closed,
+    startTime: d.start_time,
+    endTime: d.end_time,
+    durationMinutes: d.duration_minutes,
+    slotDurations: d.slot_durations ?? [60],
+    pricePerHour: d.price_per_hour,
+    price: d.price,
+    slots: d.slots ?? [],
+  };
+}
+
+// Creates a booking on the server; the server validates the slot against the
+// hall schedule and other bookings and computes the price.
+export async function createHallBooking(data: {
+  hallId: number;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:MM
+  durationMinutes: number;
+  clientName: string;
+  clientPhone: string;
+  notes?: string;
+}): Promise<Booking> {
+  const b = await apiFetch<any>("/bookings", {
+    method: "POST",
+    body: JSON.stringify({
+      hall_id: data.hallId,
+      booking_date: data.date,
+      start_time: data.startTime,
+      duration_minutes: data.durationMinutes,
+      client_name: data.clientName,
+      client_phone: data.clientPhone,
+      notes: data.notes ?? "",
+    }),
+  });
+  return mapApiBooking(b);
+}
+
+// Local calendar date as YYYY-MM-DD.
+export function isoDate(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
 }

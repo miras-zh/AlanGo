@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Image,
@@ -18,12 +19,25 @@ import { colors, radii, spacing, typography } from "@/constants/theme";
 import { resolveMyArenaId } from "@/lib/business";
 import { getSessionUser } from "@/lib/auth";
 import {
+  deleteHallPhoto,
   getStoredHalls,
   Hall,
   saveNewHall,
   saveUpdatedHall,
   SportType,
+  uploadHallPhoto,
 } from "@/lib/sportRentData";
+import { SelectField } from "@/components/SelectField";
+import {
+  CAPACITY_OPTIONS,
+  MAX_HALL_PHOTOS,
+  SIZE_OPTIONS,
+  SURFACE_TYPES,
+  capacityLabel,
+  sizeLabel,
+} from "@/lib/hallOptions";
+import { pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
+import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 const SPORT_OPTIONS: SportType[] = [
@@ -62,13 +76,19 @@ export default function BusinessHallsScreen() {
 
   const [title, setTitle] = useState("");
   const [sportType, setSportType] = useState<SportType>("Футбол");
-  const [surfaceType, setSurfaceType] = useState("");
-  const [pricePerHour, setPricePerHour] = useState("15000");
-  const [capacity, setCapacity] = useState("5x5 (до 14 человек)");
+  const [surfaceType, setSurfaceType] = useState<string | null>(null);
+  const [pricePerHour, setPricePerHour] = useState("");
+  const [maxPeople, setMaxPeople] = useState<number | null>(null);
+  const [lengthM, setLengthM] = useState<number | null>(null);
+  const [widthM, setWidthM] = useState<number | null>(null);
   const [equipment, setEquipment] = useState<string[]>([]);
   const [customEquip, setCustomEquip] = useState("");
   const [description, setDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  // Gallery: uploaded photos (url) + photos picked for a hall not created yet.
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [pendingPhotos, setPendingPhotos] = useState<PickedPhoto[]>([]);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const loadHalls = useCallback(async () => {
     const user = getSessionUser();
@@ -91,12 +111,15 @@ export default function BusinessHallsScreen() {
     setEditingId(null);
     setTitle("");
     setSportType("Футбол");
-    setSurfaceType("Искусственный газон 50 мм");
-    setPricePerHour("15000");
-    setCapacity("5x5 (до 14 человек)");
-    setEquipment(["LED-освещение", "Раздевалка с душем", "Профессиональные мячи"]);
-    setDescription("Современный крытый зал с профессиональным покрытием");
-    setImageUrl("https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800");
+    setSurfaceType(null);
+    setPricePerHour("");
+    setMaxPeople(null);
+    setLengthM(null);
+    setWidthM(null);
+    setEquipment([]);
+    setDescription("");
+    setPhotos([]);
+    setPendingPhotos([]);
     setModalVisible(true);
   };
 
@@ -106,12 +129,15 @@ export default function BusinessHallsScreen() {
     setEditingId(hall.id);
     setTitle(hall.title);
     setSportType(hall.sportType);
-    setSurfaceType(hall.surfaceType);
-    setPricePerHour(String(hall.pricePerHour));
-    setCapacity(hall.capacity);
+    setSurfaceType(hall.surfaceType || null);
+    setPricePerHour(hall.pricePerHour ? String(hall.pricePerHour) : "");
+    setMaxPeople(hall.maxPeople || null);
+    setLengthM(hall.lengthM || null);
+    setWidthM(hall.widthM || null);
     setEquipment([...hall.equipment]);
     setDescription(hall.description);
-    setImageUrl(hall.imageUrl);
+    setPhotos(hall.photos ?? []);
+    setPendingPhotos([]);
     setModalVisible(true);
   };
 
@@ -130,70 +156,142 @@ export default function BusinessHallsScreen() {
     setCustomEquip("");
   };
 
+  const photoCount = photos.length + pendingPhotos.length;
+
+  const handleAddPhoto = async () => {
+    if (photoCount >= MAX_HALL_PHOTOS) {
+      Alert.alert("Максимум 5 фото", "Удалите одно из фото, чтобы добавить новое.");
+      return;
+    }
+    hapticSelection();
+    let picked: PickedPhoto | null = null;
+    try {
+      picked = await pickImageAsJpeg("hall");
+    } catch (err) {
+      Alert.alert("Ошибка", getErrorMessage(err, "Не удалось открыть галерею"));
+      return;
+    }
+    if (!picked) return;
+    // Existing hall: upload right away. New hall: keep until it is created.
+    if (isEditing && editingId) {
+      setPhotoBusy(true);
+      try {
+        const res = await uploadHallPhoto(editingId, picked);
+        setPhotos(res.photos);
+      } catch (err) {
+        Alert.alert("Не удалось загрузить фото", getErrorMessage(err));
+      } finally {
+        setPhotoBusy(false);
+      }
+    } else {
+      setPendingPhotos((prev) => [...prev, picked as PickedPhoto]);
+    }
+  };
+
+  const handleRemovePhoto = (photo: string | PickedPhoto) => {
+    hapticImpact();
+    if (typeof photo !== "string") {
+      setPendingPhotos((prev) => prev.filter((p) => p !== photo));
+      return;
+    }
+    if (!editingId) return;
+    Alert.alert("Удалить фото?", "Фото будет удалено из галереи зала.", [
+      { text: "Отмена", style: "cancel" },
+      {
+        text: "Удалить",
+        style: "destructive",
+        onPress: async () => {
+          setPhotoBusy(true);
+          try {
+            const res = await deleteHallPhoto(editingId, photo);
+            setPhotos(res.photos);
+          } catch (err) {
+            Alert.alert("Не удалось удалить фото", getErrorMessage(err));
+          } finally {
+            setPhotoBusy(false);
+          }
+        },
+      },
+    ]);
+  };
+
   const handleSave = async () => {
     if (!title.trim()) {
       Alert.alert("Ошибка", "Укажите название зала");
       return;
     }
-    if (!surfaceType.trim()) {
-      Alert.alert("Ошибка", "Укажите тип покрытия зала");
+    if (!surfaceType) {
+      Alert.alert("Ошибка", "Выберите тип покрытия зала");
       return;
     }
-    const numPrice = parseInt(pricePerHour) || 12000;
+    const numPrice = parseInt(pricePerHour.replace(/\D/g, ""), 10) || 0;
+    if (numPrice <= 0) {
+      Alert.alert("Ошибка", "Укажите цену за 1 час");
+      return;
+    }
     if (!arenaId) {
       Alert.alert("Ошибка", "Не удалось определить вашу площадку. Обновите экран.");
       return;
     }
 
+    const fields = {
+      title: title.trim(),
+      sportType,
+      surfaceType,
+      pricePerHour: numPrice,
+      maxPeople: maxPeople ?? 0,
+      capacity: capacityLabel(maxPeople ?? 0),
+      lengthM: lengthM ?? 0,
+      widthM: widthM ?? 0,
+      equipment,
+      description: description.trim(),
+    };
+
+    setSaving(true);
     try {
       if (isEditing && editingId) {
         const existing = halls.find((h) => h.id === editingId);
         if (existing) {
-          const updated: Hall = {
-            ...existing,
-            title: title.trim(),
-            sportType,
-            surfaceType: surfaceType.trim(),
-            pricePerHour: numPrice,
-            capacity: capacity.trim() || "До 12 человек",
-            equipment,
-            description: description.trim() || existing.description,
-            imageUrl: imageUrl.trim() || existing.imageUrl,
-          };
-          await saveUpdatedHall(updated);
+          await saveUpdatedHall({ ...existing, ...fields });
           hapticSuccess();
-          Alert.alert("Успешно", "Параметры зала обновлены!");
         }
       } else {
-        await saveNewHall(arenaId, {
-          title: title.trim(),
-          sportType,
-          surfaceType: surfaceType.trim(),
-          pricePerHour: numPrice,
-          capacity: capacity.trim() || "До 12 человек",
-          equipment,
-          description: description.trim() || "Новая спортивная площадка",
-          imageUrl:
-            imageUrl.trim() ||
-            "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800",
-        });
+        const created = await saveNewHall(arenaId, fields);
+        // Upload photos picked before the hall existed.
+        let failed = 0;
+        for (const photo of pendingPhotos) {
+          try {
+            await uploadHallPhoto(created.id, photo);
+          } catch {
+            failed += 1;
+          }
+        }
         hapticSuccess();
-        Alert.alert("Успешно", "Новый зал добавлен в ваш комплекс!");
+        if (failed > 0) {
+          Alert.alert(
+            "Зал создан",
+            `Не удалось загрузить фото: ${failed}. Добавьте их снова в редактировании зала.`,
+          );
+        }
       }
-
       setModalVisible(false);
       loadHalls();
-    } catch (e: any) {
-      Alert.alert("Ошибка", e?.message || "Не удалось сохранить");
+    } catch (e) {
+      Alert.alert("Не удалось сохранить зал", getErrorMessage(e));
+    } finally {
+      setSaving(false);
     }
   };
 
   const toggleHallStatus = async (hall: Hall) => {
     hapticImpact();
     const nextStatus = hall.status === "active" ? "maintenance" : "active";
-    const updated: Hall = { ...hall, status: nextStatus };
-    await saveUpdatedHall(updated);
-    loadHalls();
+    try {
+      await saveUpdatedHall({ ...hall, status: nextStatus });
+      loadHalls();
+    } catch (e) {
+      Alert.alert("Ошибка", getErrorMessage(e));
+    }
   };
 
   return (
@@ -245,7 +343,20 @@ export default function BusinessHallsScreen() {
         }
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+            {item.imageUrl ? (
+              <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+            ) : (
+              <Pressable style={[styles.cardImage, styles.cardImageEmpty]} onPress={() => openEditModal(item)}>
+                <Ionicons name="images-outline" size={32} color={colors.textSecondary} />
+                <Text style={styles.cardImageEmptyText}>Добавьте фото зала</Text>
+              </Pressable>
+            )}
+            {(item.photos?.length ?? 0) > 1 ? (
+              <View style={styles.photoCountBadge}>
+                <Ionicons name="images" size={12} color={colors.textPrimary} />
+                <Text style={styles.photoCountText}>{item.photos?.length}</Text>
+              </View>
+            ) : null}
 
             <View style={styles.cardBody}>
               <View style={styles.cardHeader}>
@@ -297,8 +408,18 @@ export default function BusinessHallsScreen() {
               <View style={styles.metaRow}>
                 <Ionicons name="people-outline" size={14} color="#60A5FA" />
                 <Text style={styles.metaLabel}>Вместимость:</Text>
-                <Text style={styles.metaValue}>{item.capacity}</Text>
+                <Text style={styles.metaValue}>
+                  {capacityLabel(item.maxPeople ?? 0) || item.capacity || "не указана"}
+                </Text>
               </View>
+
+              {sizeLabel(item.lengthM ?? 0, item.widthM ?? 0) ? (
+                <View style={styles.metaRow}>
+                  <Ionicons name="resize-outline" size={14} color="#EAB308" />
+                  <Text style={styles.metaLabel}>Размер:</Text>
+                  <Text style={styles.metaValue}>{sizeLabel(item.lengthM ?? 0, item.widthM ?? 0)}</Text>
+                </View>
+              ) : null}
 
               {/* Equipment Tags */}
               <View style={styles.equipWrap}>
@@ -348,7 +469,13 @@ export default function BusinessHallsScreen() {
               </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalScroll}>
+            {/* "handled": with the keyboard open, a tap on a list / chip must
+                select it right away instead of only closing the keyboard. */}
+            <ScrollView
+              contentContainerStyle={styles.modalScroll}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+            >
               {/* Hall Title */}
               <Text style={styles.inputLabel}>Название зала</Text>
               <TextInput
@@ -364,6 +491,7 @@ export default function BusinessHallsScreen() {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={styles.optionsScroll}
               >
                 {SPORT_OPTIONS.map((sport) => {
@@ -390,24 +518,75 @@ export default function BusinessHallsScreen() {
                 })}
               </ScrollView>
 
+              {/* Gallery */}
+              <Text style={styles.inputLabel}>
+                Фото зала ({photoCount}/{MAX_HALL_PHOTOS})
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.galleryRow}
+              >
+                {photos.map((url, i) => (
+                  <View key={url} style={styles.galleryItem}>
+                    <Image source={{ uri: url }} style={styles.galleryImage} />
+                    {i === 0 ? (
+                      <View style={styles.coverBadge}>
+                        <Text style={styles.coverBadgeText}>Обложка</Text>
+                      </View>
+                    ) : null}
+                    <Pressable style={styles.galleryRemove} hitSlop={6} onPress={() => handleRemovePhoto(url)}>
+                      <Ionicons name="close" size={14} color={colors.textPrimary} />
+                    </Pressable>
+                  </View>
+                ))}
+                {pendingPhotos.map((p, i) => (
+                  <View key={p.uri} style={styles.galleryItem}>
+                    <Image source={{ uri: p.uri }} style={styles.galleryImage} />
+                    {photos.length === 0 && i === 0 ? (
+                      <View style={styles.coverBadge}>
+                        <Text style={styles.coverBadgeText}>Обложка</Text>
+                      </View>
+                    ) : null}
+                    <Pressable style={styles.galleryRemove} hitSlop={6} onPress={() => handleRemovePhoto(p)}>
+                      <Ionicons name="close" size={14} color={colors.textPrimary} />
+                    </Pressable>
+                  </View>
+                ))}
+                {photoCount < MAX_HALL_PHOTOS ? (
+                  <Pressable style={styles.galleryAdd} onPress={handleAddPhoto} disabled={photoBusy}>
+                    {photoBusy ? (
+                      <ActivityIndicator color={colors.primary} />
+                    ) : (
+                      <>
+                        <Ionicons name="add" size={26} color={colors.primary} />
+                        <Text style={styles.galleryAddText}>Фото</Text>
+                      </>
+                    )}
+                  </Pressable>
+                ) : null}
+              </ScrollView>
+
               {/* Surface Type */}
-              <Text style={styles.inputLabel}>Тип покрытия</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Например: Искусственный газон 60 мм / Паркет клён"
-                placeholderTextColor="#6B7C72"
-                value={surfaceType}
-                onChangeText={setSurfaceType}
-              />
+              <View style={styles.fieldGap}>
+                <SelectField
+                  label="Тип покрытия"
+                  placeholder="Выберите покрытие"
+                  value={surfaceType}
+                  options={SURFACE_TYPES.map((t) => ({ value: t, label: t }))}
+                  onChange={setSurfaceType}
+                />
+              </View>
 
               {/* Price & Capacity in Row */}
               <View style={styles.inputRow}>
                 <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={styles.inputLabel}>Цена за 1 час (₸)</Text>
+                  <Text style={[styles.inputLabel, { marginBottom: spacing.sm }]}>Цена за 1 час (₸)</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, styles.inputTall]}
                     keyboardType="numeric"
-                    placeholder="15000"
+                    placeholder="Например, 15000"
                     placeholderTextColor="#6B7C72"
                     value={pricePerHour}
                     onChangeText={setPricePerHour}
@@ -415,13 +594,37 @@ export default function BusinessHallsScreen() {
                 </View>
 
                 <View style={{ flex: 1, marginLeft: 8 }}>
-                  <Text style={styles.inputLabel}>Вместимость</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="5x5 (14 чел)"
-                    placeholderTextColor="#6B7C72"
-                    value={capacity}
-                    onChangeText={setCapacity}
+                  <SelectField
+                    label="Вместимость"
+                    placeholder="Человек"
+                    sheetTitle="Сколько человек вмещает зал"
+                    value={maxPeople}
+                    options={CAPACITY_OPTIONS.map((n) => ({ value: n, label: capacityLabel(n) }))}
+                    onChange={setMaxPeople}
+                  />
+                </View>
+              </View>
+
+              {/* Hall size */}
+              <View style={[styles.inputRow, styles.fieldGap]}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <SelectField
+                    label="Длина, м"
+                    placeholder="Длина"
+                    sheetTitle="Длина зала"
+                    value={lengthM}
+                    options={SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} м` }))}
+                    onChange={setLengthM}
+                  />
+                </View>
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <SelectField
+                    label="Ширина, м"
+                    placeholder="Ширина"
+                    sheetTitle="Ширина зала"
+                    value={widthM}
+                    options={SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} м` }))}
+                    onChange={setWidthM}
                   />
                 </View>
               </View>
@@ -488,10 +691,18 @@ export default function BusinessHallsScreen() {
               />
 
               {/* Save Button */}
-              <Pressable style={styles.saveBtn} onPress={handleSave}>
-                <Text style={styles.saveBtnText}>
-                  {isEditing ? "Сохранить изменения" : "Создать зал"}
-                </Text>
+              <Pressable
+                style={[styles.saveBtn, (saving || photoBusy) && { opacity: 0.6 }]}
+                onPress={handleSave}
+                disabled={saving || photoBusy}
+              >
+                {saving ? (
+                  <ActivityIndicator color={colors.background} />
+                ) : (
+                  <Text style={styles.saveBtnText}>
+                    {isEditing ? "Сохранить изменения" : "Создать зал"}
+                  </Text>
+                )}
               </Pressable>
             </ScrollView>
           </View>
@@ -550,6 +761,92 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
     flexGrow: 1,
+  },
+  fieldGap: {
+    marginBottom: spacing.md,
+  },
+  cardImageEmpty: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.surfaceElevated,
+  },
+  cardImageEmptyText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  photoCountBadge: {
+    position: "absolute",
+    top: spacing.md,
+    right: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.smallChip,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  photoCountText: {
+    ...typography.caption,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  galleryRow: {
+    gap: spacing.sm,
+    paddingBottom: spacing.md,
+  },
+  galleryItem: {
+    width: 88,
+    height: 88,
+    borderRadius: radii.smallChip,
+    overflow: "hidden",
+    backgroundColor: colors.surfaceElevated,
+  },
+  galleryImage: {
+    width: "100%",
+    height: "100%",
+  },
+  galleryRemove: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  coverBadge: {
+    position: "absolute",
+    left: 4,
+    bottom: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+  },
+  coverBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.background,
+  },
+  galleryAdd: {
+    width: 88,
+    height: 88,
+    borderRadius: radii.smallChip,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+  },
+  galleryAddText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: "600",
   },
   emptyWrap: {
     flex: 1,
@@ -765,6 +1062,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.1)",
     marginBottom: 14,
+  },
+  inputTall: {
+    height: 50,
+    paddingVertical: 0,
+    borderRadius: radii.button,
+    fontSize: 15,
   },
   textArea: {
     height: 70,

@@ -10,9 +10,18 @@ import {
   SafeAreaView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Booking, Hall, SportType } from "@/lib/sportRentData";
+import {
+  Booking,
+  createHallBooking,
+  getHallAvailability,
+  Hall,
+  HallAvailability,
+  isoDate,
+} from "@/lib/sportRentData";
+import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 interface ManualBookingModalProps {
@@ -24,20 +33,16 @@ interface ManualBookingModalProps {
   onCreated: (booking: Booking) => void;
 }
 
-const COMMON_SLOTS = [
-  "09:00 - 10:00",
-  "10:00 - 11:00",
-  "11:00 - 12:00",
-  "14:00 - 15:00",
-  "17:00 - 18:00",
-  "18:00 - 19:00",
-  "19:00 - 20:00",
-  "20:00 - 21:00",
-  "21:00 - 22:00",
-  "22:00 - 23:00",
-];
+const WEEKDAYS_SHORT = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
-const DATES = ["Сегодня", "Завтра", "Послезавтра"];
+function nextDays(count: number) {
+  const today = new Date();
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+    const label = i === 0 ? "Сегодня" : i === 1 ? "Завтра" : `${WEEKDAYS_SHORT[d.getDay()]}, ${d.getDate()}`;
+    return { id: isoDate(d), label };
+  });
+}
 
 export function ManualBookingModal({
   visible,
@@ -49,77 +54,82 @@ export function ManualBookingModal({
 }: ManualBookingModalProps) {
   const [selectedHallId, setSelectedHallId] = useState<number | null>(null);
   const [clientName, setClientName] = useState("");
-  const [clientPhone, setClientPhone] = useState("+7 (7");
-  const [selectedDate, setSelectedDate] = useState("Сегодня");
-  const [timeSlot, setTimeSlot] = useState("19:00 - 20:00");
-  const [priceInput, setPriceInput] = useState("");
-  const [paidInput, setPaidInput] = useState("0");
+  const [clientPhone, setClientPhone] = useState("+7 ");
+  const [days] = useState(() => nextDays(7));
+  const [selectedDate, setSelectedDate] = useState(() => isoDate(new Date()));
+  const [duration, setDuration] = useState<number | null>(null);
+  const [availability, setAvailability] = useState<HallAvailability | null>(null);
+  const [slotStart, setSlotStart] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (halls.length > 0 && !selectedHallId) {
       setSelectedHallId(halls[0].id);
-      setPriceInput(String(halls[0].pricePerHour));
     }
   }, [halls, selectedHallId, visible]);
 
   const selectedHall = halls.find((h) => h.id === selectedHallId) || halls[0];
 
+  // The owner sees the same per-hall availability as clients.
+  useEffect(() => {
+    if (!visible || !selectedHall) return;
+    let cancelled = false;
+    setSlotStart(null);
+    getHallAvailability(selectedHall.id, selectedDate, duration ?? undefined)
+      .then((res) => {
+        if (cancelled) return;
+        setAvailability(res);
+        if (duration === null) setDuration(res.durationMinutes);
+      })
+      .catch(() => !cancelled && setAvailability(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, selectedHall?.id, selectedDate, duration]);
+
   const handleHallChange = (hall: Hall) => {
     hapticSelection();
     setSelectedHallId(hall.id);
-    setPriceInput(String(hall.pricePerHour));
+    setDuration(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!selectedHall || !slotStart || !availability) {
+      Alert.alert("Ошибка", "Выберите свободное время");
+      return;
+    }
     if (!clientName.trim()) {
       Alert.alert("Ошибка", "Укажите имя клиента");
       return;
     }
-    if (clientPhone.trim().length < 8) {
+    if (clientPhone.replace(/\D/g, "").length < 10) {
       Alert.alert("Ошибка", "Укажите корректный номер телефона");
       return;
     }
-
-    hapticSuccess();
-    const finalPrice = parseInt(priceInput, 10) || selectedHall?.pricePerHour || 15000;
-    const finalPaid = Math.max(0, parseInt(paidInput || "0", 10) || 0);
-    let paymentStatus: "not_paid" | "partial" | "paid" = "not_paid";
-    if (finalPaid >= finalPrice && finalPrice > 0) {
-      paymentStatus = "paid";
-    } else if (finalPaid > 0) {
-      paymentStatus = "partial";
+    setSaving(true);
+    try {
+      const booking = await createHallBooking({
+        hallId: selectedHall.id,
+        date: selectedDate,
+        startTime: slotStart,
+        durationMinutes: availability.durationMinutes,
+        clientName: clientName.trim(),
+        clientPhone: clientPhone.trim(),
+        notes: notes.trim(),
+      });
+      hapticSuccess();
+      onCreated(booking);
+      onClose();
+      setClientName("");
+      setClientPhone("+7 ");
+      setNotes("");
+      setSlotStart(null);
+    } catch (err) {
+      Alert.alert("Не удалось записать", getErrorMessage(err));
+    } finally {
+      setSaving(false);
     }
-
-    const newBooking: Booking = {
-      id: `SR-${Date.now().toString().slice(-4)}`,
-      hallId: selectedHall?.id || 101,
-      hallTitle: selectedHall?.title || "Зал",
-      sportType: (selectedHall?.sportType as SportType) || "Футбол",
-      arenaId,
-      arenaTitle,
-      clientName: clientName.trim(),
-      clientPhone: clientPhone.trim(),
-      date: selectedDate,
-      timeSlot,
-      durationMinutes: 60,
-      totalPrice: finalPrice,
-      paidAmount: finalPaid,
-      paymentStatus,
-      status: "confirmed",
-      source: "manual",
-      notes: notes.trim() || undefined,
-      createdAt: new Date().toISOString(),
-    };
-
-    onCreated(newBooking);
-    onClose();
-
-    // Reset fields
-    setClientName("");
-    setClientPhone("+7 (7");
-    setPaidInput("0");
-    setNotes("");
   };
 
   return (
@@ -180,47 +190,76 @@ export function ManualBookingModal({
 
             {/* 2. Дата */}
             <Text style={styles.sectionLabel}>День записи</Text>
-            <View style={styles.chipsRow}>
-              {DATES.map((d) => {
-                const active = selectedDate === d;
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+              {days.map((d) => {
+                const active = selectedDate === d.id;
                 return (
                   <Pressable
-                    key={d}
+                    key={d.id}
                     style={[styles.dateChip, active && styles.dateChipActive]}
                     onPress={() => {
                       hapticSelection();
-                      setSelectedDate(d);
+                      setSelectedDate(d.id);
                     }}
                   >
                     <Text style={[styles.dateChipText, active && styles.dateChipTextActive]}>
-                      {d}
+                      {d.label}
                     </Text>
                   </Pressable>
                 );
               })}
-            </View>
+            </ScrollView>
 
-            {/* 3. Время слота */}
+            {/* 3. Длительность и слот (занятые — тусклые) */}
+            {availability && availability.slotDurations.length > 1 ? (
+              <View style={[styles.chipsRow, { marginBottom: 8 }]}>
+                {availability.slotDurations.map((m) => {
+                  const active = (duration ?? availability.durationMinutes) === m;
+                  return (
+                    <Pressable
+                      key={m}
+                      style={[styles.dateChip, active && styles.dateChipActive]}
+                      onPress={() => {
+                        hapticSelection();
+                        setDuration(m);
+                      }}
+                    >
+                      <Text style={[styles.dateChipText, active && styles.dateChipTextActive]}>
+                        {m} мин
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
             <Text style={styles.sectionLabel}>Слот времени</Text>
-            <View style={styles.slotsWrap}>
-              {COMMON_SLOTS.map((s) => {
-                const active = timeSlot === s;
-                return (
-                  <Pressable
-                    key={s}
-                    style={[styles.slotChip, active && styles.slotChipActive]}
-                    onPress={() => {
-                      hapticSelection();
-                      setTimeSlot(s);
-                    }}
-                  >
-                    <Text style={[styles.slotChipText, active && styles.slotChipTextActive]}>
-                      {s}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            {!availability ? (
+              <ActivityIndicator color="#22C55E" style={{ marginVertical: 12 }} />
+            ) : availability.isClosed || availability.slots.length === 0 ? (
+              <Text style={styles.closedNote}>Зал не работает в этот день</Text>
+            ) : (
+              <View style={styles.slotsWrap}>
+                {availability.slots.map((slot) => {
+                  const free = slot.status === "free";
+                  const active = slotStart === slot.start;
+                  return (
+                    <Pressable
+                      key={slot.start}
+                      disabled={!free}
+                      style={[styles.slotChip, !free && { opacity: 0.35 }, active && styles.slotChipActive]}
+                      onPress={() => {
+                        hapticSelection();
+                        setSlotStart(slot.start);
+                      }}
+                    >
+                      <Text style={[styles.slotChipText, active && styles.slotChipTextActive]}>
+                        {slot.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
 
             {/* 4. Контактные данные */}
             <Text style={styles.sectionLabel}>Данные клиента</Text>
@@ -249,81 +288,37 @@ export function ManualBookingModal({
               </View>
             </View>
 
-            {/* 5. Сумма и комментарий */}
-            <View style={styles.priceRow}>
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={styles.sectionLabel}>Стоимость аренды (₸)</Text>
-                <TextInput
-                  style={styles.priceInput}
-                  value={priceInput}
-                  onChangeText={setPriceInput}
-                  placeholder="15 000"
-                  placeholderTextColor="#6B7C72"
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={{ flex: 1.5, marginLeft: 8 }}>
-                <Text style={styles.sectionLabel}>Заметка (инвентарь / мячи)</Text>
-                <TextInput
-                  style={styles.notesInput}
-                  value={notes}
-                  onChangeText={setNotes}
-                  placeholder="Нужен комплект манишек"
-                  placeholderTextColor="#6B7C72"
-                />
-              </View>
-            </View>
-
-            {/* 6. Оплата при записи (Предоплата / 100%) */}
-            <View style={{ marginTop: 14 }}>
-              <Text style={styles.sectionLabel}>Оплата при бронировании (₸)</Text>
-              <View style={styles.priceRow}>
-                <TextInput
-                  style={[styles.priceInput, { color: "#22C55E", flex: 1 }]}
-                  value={paidInput}
-                  onChangeText={(txt) => setPaidInput(txt.replace(/[^\d]/g, ""))}
-                  placeholder="0"
-                  placeholderTextColor="#6B7C72"
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={styles.quickPaymentRow}>
-                <Pressable
-                  style={styles.quickFillBtn}
-                  onPress={() => {
-                    hapticSelection();
-                    setPaidInput(priceInput || "15000");
-                  }}
-                >
-                  <Text style={styles.quickFillText}>Оплачено 100%</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.quickFillBtn}
-                  onPress={() => {
-                    hapticSelection();
-                    setPaidInput("2000");
-                  }}
-                >
-                  <Text style={styles.quickFillText}>Предоплата 2 000 ₸</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.quickFillBtn}
-                  onPress={() => {
-                    hapticSelection();
-                    setPaidInput("0");
-                  }}
-                >
-                  <Text style={styles.quickFillText}>Не оплачено (0 ₸)</Text>
-                </Pressable>
-              </View>
-            </View>
+            {/* 5. Комментарий и сумма (сумму считает сервер по цене зала) */}
+            <Text style={styles.sectionLabel}>Заметка (инвентарь / мячи)</Text>
+            <TextInput
+              style={styles.notesInput}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Например, нужен комплект манишек"
+              placeholderTextColor="#6B7C72"
+            />
+            {availability ? (
+              <Text style={styles.priceNote}>
+                Стоимость: {availability.price.toLocaleString("ru-RU")} ₸ ({availability.durationMinutes} мин по тарифу зала)
+              </Text>
+            ) : null}
           </ScrollView>
 
           {/* Bottom Button */}
           <View style={styles.bottomBar}>
-            <Pressable style={styles.submitBtn} onPress={handleSave}>
-              <Ionicons name="checkmark-done" size={20} color="#0B0F0D" />
-              <Text style={styles.submitBtnText}>Зафиксировать бронь</Text>
+            <Pressable
+              style={[styles.submitBtn, (saving || !slotStart) && { opacity: 0.5 }]}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color="#0B0F0D" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-done" size={20} color="#0B0F0D" />
+                  <Text style={styles.submitBtnText}>Зафиксировать бронь</Text>
+                </>
+              )}
             </Pressable>
           </View>
         </SafeAreaView>
@@ -333,6 +328,16 @@ export function ManualBookingModal({
 }
 
 const styles = StyleSheet.create({
+  closedNote: {
+    fontSize: 13,
+    color: "#8E9B94",
+    marginBottom: 12,
+  },
+  priceNote: {
+    fontSize: 13,
+    color: "#8E9B94",
+    marginTop: 10,
+  },
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.75)",

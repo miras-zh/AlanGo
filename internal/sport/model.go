@@ -30,7 +30,7 @@ type Arena struct {
 	CreatedAt       time.Time      `gorm:"column:created_at;default:now()" json:"created_at"`
 	UpdatedAt       time.Time      `gorm:"column:updated_at;default:now()" json:"updated_at"`
 
-	Halls           []Hall         `gorm:"foreignKey:ArenaID" json:"halls,omitempty"`
+	Halls []Hall `gorm:"foreignKey:ArenaID" json:"halls,omitempty"`
 }
 
 func (Arena) TableName() string {
@@ -49,6 +49,10 @@ type Hall struct {
 	Capacity     string         `gorm:"column:capacity;type:varchar(100);not null;default:''" json:"capacity"`
 	PricePerHour int            `gorm:"column:price_per_hour;not null;default:12000" json:"price_per_hour"`
 	ImageURL     string         `gorm:"column:image_url;type:text;not null;default:''" json:"image_url"`
+	Photos       pq.StringArray `gorm:"column:photos;type:text[];not null;default:'{}'" json:"photos"`
+	LengthM      int            `gorm:"column:length_m;not null;default:0" json:"length_m"`
+	WidthM       int            `gorm:"column:width_m;not null;default:0" json:"width_m"`
+	MaxPeople    int            `gorm:"column:max_people;not null;default:0" json:"max_people"`
 	Status       string         `gorm:"column:status;type:varchar(50);not null;default:'active'" json:"status"`
 	Description  string         `gorm:"column:description;type:text;not null;default:''" json:"description"`
 	Rating       float64        `gorm:"column:rating;type:numeric(3,2);not null;default:4.8" json:"rating"`
@@ -113,7 +117,8 @@ type CreateBookingRequest struct {
 	ClientName      string `json:"client_name"`
 	ClientPhone     string `json:"client_phone"`
 	BookingDate     string `json:"booking_date"`
-	TimeSlot        string `json:"time_slot"`
+	TimeSlot        string `json:"time_slot"`  // "19:00 - 20:30" (legacy)
+	StartTime       string `json:"start_time"` // "19:00"
 	DurationMinutes int    `json:"duration_minutes"`
 	TotalPrice      int    `json:"total_price"`
 	Notes           string `json:"notes"`
@@ -128,10 +133,9 @@ type SaveScheduleRequest struct {
 }
 
 type BusinessDashboard struct {
-	Arena        *Arena    `json:"arena"`
-	TodayRevenue int       `json:"today_revenue"`
-	TotalBookings int      `json:"total_bookings"`
-	HallsCount   int       `json:"halls_count"`
+	Arena          *Arena    `json:"arena"`
+	TodayRevenue   int       `json:"today_revenue"`
+	TotalBookings  int       `json:"total_bookings"`
+	HallsCount     int       `json:"halls_count"`
 	RecentBookings []Booking `json:"recent_bookings"`
 }
-

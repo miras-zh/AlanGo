@@ -15,10 +15,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { resolveMyArenaId } from "@/lib/business";
 import {
   DEFAULT_WEEK_SCHEDULE,
-  getStoredSchedule,
-  saveStoredSchedule,
+  getHallSchedule,
+  getStoredHalls,
+  Hall,
+  saveHallSchedule,
   ScheduleDay,
 } from "@/lib/sportRentData";
+import { getErrorMessage } from "@/lib/errorMessage";
+import { colors, radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 const TIME_PRESETS = [
@@ -41,21 +45,32 @@ function formatTime(val: string): string {
 
 export default function BusinessScheduleScreen() {
   const [schedule, setSchedule] = useState<ScheduleDay[]>(DEFAULT_WEEK_SCHEDULE);
-  const [arenaId, setArenaId] = useState<number | null>(null);
+  const [halls, setHalls] = useState<Hall[]>([]);
+  const [hallId, setHallId] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeDayIdx, setActiveDayIdx] = useState<number | null>(null);
 
-  const loadSchedule = useCallback(async () => {
-    const id = await resolveMyArenaId();
-    setArenaId(id);
-    if (!id) return;
-    const data = await getStoredSchedule(id);
-    setSchedule(data);
+  // Each hall has its own schedule (and its own booking slots).
+  const loadHalls = useCallback(async () => {
+    const arenaId = await resolveMyArenaId();
+    const all = arenaId ? await getStoredHalls() : [];
+    const mine = arenaId ? all.filter((h) => h.arenaId === arenaId) : [];
+    setHalls(mine);
+    setHallId((prev) => (prev && mine.some((h) => h.id === prev) ? prev : mine[0]?.id ?? null));
+    setLoaded(true);
   }, []);
 
   useEffect(() => {
-    loadSchedule();
-  }, [loadSchedule]);
+    loadHalls();
+  }, [loadHalls]);
+
+  useEffect(() => {
+    if (!hallId) return;
+    getHallSchedule(hallId)
+      .then(setSchedule)
+      .catch((err) => Alert.alert("Ошибка", getErrorMessage(err, "Не удалось загрузить график зала")));
+  }, [hallId]);
 
   const toggleDayClosed = (index: number) => {
     hapticImpact();
@@ -154,18 +169,49 @@ export default function BusinessScheduleScreen() {
     );
   };
 
+  const currentHall = halls.find((h) => h.id === hallId);
+
   const handleSave = async () => {
+    if (!hallId) return;
     setSaving(true);
     try {
-      if (!arenaId) throw new Error("Не удалось определить вашу площадку");
-      await saveStoredSchedule(arenaId, schedule);
+      setSchedule(await saveHallSchedule(hallId, schedule));
       hapticSuccess();
-      Alert.alert("Сохранено", "График работы спорткомплекса успешно обновлен!");
-    } catch {
-      Alert.alert("Ошибка", "Не удалось сохранить график");
+      Alert.alert("Сохранено", `График зала «${currentHall?.title ?? ""}» обновлён.`);
+    } catch (err) {
+      Alert.alert("Не удалось сохранить график", getErrorMessage(err));
     } finally {
       setSaving(false);
     }
+  };
+
+  const copyToAllHalls = () => {
+    if (!hallId || halls.length < 2) return;
+    hapticImpact();
+    Alert.alert(
+      "Скопировать на все залы?",
+      `График зала «${currentHall?.title ?? ""}» заменит графики остальных залов (${halls.length - 1}).`,
+      [
+        { text: "Отмена", style: "cancel" },
+        {
+          text: "Скопировать",
+          onPress: async () => {
+            setSaving(true);
+            try {
+              for (const h of halls) {
+                await saveHallSchedule(h.id, schedule);
+              }
+              hapticSuccess();
+              Alert.alert("Готово", "График применён ко всем залам.");
+            } catch (err) {
+              Alert.alert("Не удалось скопировать график", getErrorMessage(err));
+            } finally {
+              setSaving(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -177,20 +223,58 @@ export default function BusinessScheduleScreen() {
             График работы
           </Text>
           <Text style={styles.headerSubtitle} numberOfLines={1}>
-            Настройка доступных слотов и рабочих часов арены
+            У каждого зала свои часы и слоты брони
           </Text>
         </View>
         <Pressable
-          style={[styles.saveTopBtn, saving && { opacity: 0.5 }]}
+          style={[styles.saveTopBtn, (saving || !hallId) && { opacity: 0.5 }]}
           onPress={handleSave}
-          disabled={saving}
+          disabled={saving || !hallId}
         >
           <Ionicons name="checkmark-done" size={16} color="#0B0F0D" />
           <Text style={styles.saveTopBtnText}>Сохранить</Text>
         </Pressable>
       </View>
 
+      {loaded && halls.length === 0 ? (
+        <View style={styles.noHalls}>
+          <Ionicons name="layers-outline" size={44} color={colors.border} />
+          <Text style={styles.noHallsTitle}>Сначала добавьте зал</Text>
+          <Text style={styles.noHallsSub}>
+            График настраивается для каждого зала отдельно — добавьте первый зал во вкладке «Залы».
+          </Text>
+        </View>
+      ) : (
       <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Hall picker */}
+        <Text style={styles.sectionHeader}>Зал</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hallChips}>
+          {halls.map((h) => {
+            const active = h.id === hallId;
+            return (
+              <Pressable
+                key={h.id}
+                style={[styles.hallChip, active && styles.hallChipActive]}
+                onPress={() => {
+                  hapticSelection();
+                  setActiveDayIdx(null);
+                  setHallId(h.id);
+                }}
+              >
+                <Text style={[styles.hallChipText, active && styles.hallChipTextActive]} numberOfLines={1}>
+                  {h.title}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+        {halls.length > 1 ? (
+          <Pressable style={styles.copyAllBtn} onPress={copyToAllHalls} disabled={saving}>
+            <Ionicons name="git-network-outline" size={15} color={colors.primary} />
+            <Text style={styles.copyAllText}>Скопировать этот график на все залы</Text>
+          </Pressable>
+        ) : null}
+
         {/* Banner with sync button */}
         <View style={styles.banner}>
           <View style={styles.bannerLeft}>
@@ -461,11 +545,67 @@ export default function BusinessScheduleScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  noHalls: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xxl,
+    gap: spacing.sm,
+  },
+  noHallsTitle: {
+    ...typography.cardTitle,
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
+  },
+  noHallsSub: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  hallChips: {
+    gap: spacing.sm,
+    paddingBottom: spacing.md,
+  },
+  hallChip: {
+    maxWidth: 200,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.smallChip,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  hallChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surfaceElevated,
+  },
+  hallChipText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontWeight: "600",
+  },
+  hallChipTextActive: {
+    color: colors.primary,
+  },
+  copyAllBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    alignSelf: "flex-start",
+    marginBottom: spacing.lg,
+  },
+  copyAllText: {
+    ...typography.caption,
+    fontWeight: "600",
+    color: colors.primary,
+  },
   container: {
     flex: 1,
     backgroundColor: "#0B0F0D",

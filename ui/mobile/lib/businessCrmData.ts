@@ -29,8 +29,10 @@ export interface IncomeBreakdown {
   period: "today" | "week" | "month" | "all";
   totalRevenue: number;
   confirmedBookingsCount: number;
-  averageCheckPerHour: number;
-  utilizationRate: number; // in percent (e.g. 78%)
+  hoursPlayed: number;
+  averageCheckPerHour: number | null; // null when nothing was played
+  utilizationRate: number; // percent of open hours booked, 0..100
+  growthPercent: number | null; // vs the previous period; null if no baseline
   hallRevenues: {
     hallId: number;
     hallTitle: string;
@@ -43,7 +45,6 @@ export interface IncomeBreakdown {
     clientName: string;
     hallTitle: string;
     amount: number;
-    paymentMethod: "Kaspi QR" | "Банковская карта" | "Наличные";
     date: string;
     timeSlot: string;
   }[];
@@ -91,6 +92,29 @@ export async function removeStaffMember(id: string): Promise<void> {
   await AsyncStorage.setItem(STAFF_KEY, JSON.stringify(filtered));
 }
 
+// Hours a hall is bookable per day, used for the utilization estimate until
+// real working hours are wired into the calculation.
+const OPEN_HOURS_PER_DAY = 15;
+const PERIOD_DAYS: Record<"today" | "week" | "month", number> = { today: 1, week: 7, month: 30 };
+
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+// Booking dates come as "YYYY-MM-DD" (older local records may say "Сегодня").
+function bookingDay(date: string): Date | null {
+  if (date === "Сегодня") return startOfDay(new Date());
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(date);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+}
+
+function inRange(b: Booking, from: Date, to: Date): boolean {
+  const d = bookingDay(b.date);
+  return d !== null && d >= from && d < to;
+}
+
+// Revenue analytics from the arena's real confirmed bookings only — no
+// placeholders: a new business sees zeros.
 export async function calculateIncomeStats(
   arenaId: number,
   period: "today" | "week" | "month" | "all" = "month"
@@ -100,55 +124,68 @@ export async function calculateIncomeStats(
     getStoredHalls(),
   ]);
 
-  const arenaBookings = allBookings.filter((b) => b.arenaId === arenaId);
   const arenaHalls = allHalls.filter((h) => h.arenaId === arenaId);
-
-  // Filter confirmed bookings
-  const confirmed = arenaBookings.filter(
-    (b) => b.status === "confirmed" || (b.status as any) === "completed"
+  const confirmedAll = allBookings.filter(
+    (b) =>
+      b.arenaId === arenaId && (b.status === "confirmed" || (b.status as any) === "completed")
   );
 
-  const totalRevenue = confirmed.reduce((sum, b) => sum + b.totalPrice, 0);
-  const confirmedCount = confirmed.length;
-  const totalHours = confirmed.reduce((sum, b) => sum + b.durationMinutes / 60, 0);
-  const avgCheck = totalHours > 0 ? Math.round(totalRevenue / totalHours) : 15000;
+  const tomorrow = new Date(startOfDay(new Date()).getTime() + 86400000);
+  let confirmed = confirmedAll;
+  let previous: Booking[] | null = null;
+  let days = 0;
+  if (period !== "all") {
+    days = PERIOD_DAYS[period];
+    const from = new Date(tomorrow.getTime() - days * 86400000);
+    const prevFrom = new Date(from.getTime() - days * 86400000);
+    confirmed = confirmedAll.filter((b) => inRange(b, from, tomorrow));
+    previous = confirmedAll.filter((b) => inRange(b, prevFrom, from));
+  }
 
-  // Breakdown by hall
+  const sum = (list: Booking[]) => list.reduce((acc, b) => acc + b.totalPrice, 0);
+  const totalRevenue = sum(confirmed);
+  const hoursPlayed = confirmed.reduce((acc, b) => acc + b.durationMinutes / 60, 0);
+
+  let growthPercent: number | null = null;
+  if (previous) {
+    const prevRevenue = sum(previous);
+    if (prevRevenue > 0) {
+      growthPercent = Math.round(((totalRevenue - prevRevenue) / prevRevenue) * 1000) / 10;
+    }
+  }
+
+  const availableHours = period === "all" ? 0 : arenaHalls.length * OPEN_HOURS_PER_DAY * days;
+  const utilizationRate =
+    availableHours > 0 ? Math.min(100, Math.round((hoursPlayed / availableHours) * 100)) : 0;
+
   const hallRevenues = arenaHalls.map((h) => {
     const hallBookings = confirmed.filter((b) => b.hallId === h.id);
-    const rev = hallBookings.reduce((sum, b) => sum + b.totalPrice, 0);
-    const hrs = hallBookings.reduce((sum, b) => sum + b.durationMinutes / 60, 0);
     return {
       hallId: h.id,
       hallTitle: h.title,
       sportType: h.sportType,
-      revenue: rev > 0 ? rev : h.pricePerHour * 3, // fallback baseline
-      hoursCount: hrs > 0 ? hrs : 3,
+      revenue: sum(hallBookings),
+      hoursCount: Math.round(hallBookings.reduce((acc, b) => acc + b.durationMinutes / 60, 0) * 10) / 10,
     };
   });
 
-  const methods: ("Kaspi QR" | "Банковская карта" | "Наличные")[] = [
-    "Kaspi QR",
-    "Банковская карта",
-    "Наличные",
-  ];
-
-  const recentTransactions = confirmed.slice(0, 10).map((b, idx) => ({
+  const recentTransactions = confirmed.slice(0, 10).map((b) => ({
     id: `tx-${b.id}`,
     clientName: b.clientName,
     hallTitle: b.hallTitle,
     amount: b.totalPrice,
-    paymentMethod: methods[idx % methods.length],
     date: b.date,
     timeSlot: b.timeSlot,
   }));
 
   return {
     period,
-    totalRevenue: totalRevenue > 0 ? totalRevenue : 84000,
-    confirmedBookingsCount: confirmedCount > 0 ? confirmedCount : 5,
-    averageCheckPerHour: avgCheck,
-    utilizationRate: 74, // 74% capacity
+    totalRevenue,
+    confirmedBookingsCount: confirmed.length,
+    hoursPlayed: Math.round(hoursPlayed * 10) / 10,
+    averageCheckPerHour: hoursPlayed > 0 ? Math.round(totalRevenue / hoursPlayed) : null,
+    utilizationRate,
+    growthPercent,
     hallRevenues,
     recentTransactions,
   };

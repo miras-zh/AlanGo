@@ -99,7 +99,7 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	itemHandler := item.NewHandler(itemService, uploadService, auditService, hub)
 
 	sportService := sport.NewService(db)
-	sportHandler := sport.NewHandler(sportService)
+	sportHandler := sport.NewHandler(sportService, uploadService)
 
 	telegramBot := telegram.NewBotService()
 	telegramHandler := telegram.NewHandler(telegramBot)
@@ -134,8 +134,11 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	r.HandleFunc("/api/arenas/{id:[0-9]+}/schedule", sportHandler.GetSchedule).Methods("GET")
 	r.HandleFunc("/api/halls", sportHandler.ListHalls).Methods("GET")
 	r.HandleFunc("/api/halls/{id:[0-9]+}", sportHandler.GetHall).Methods("GET")
-	r.HandleFunc("/api/bookings", sportHandler.CreateBooking).Methods("POST")
-	r.HandleFunc("/api/bookings", sportHandler.ListBookings).Methods("GET")
+	r.HandleFunc("/api/halls/{id:[0-9]+}/schedule", sportHandler.GetHallSchedule).Methods("GET")
+	r.HandleFunc("/api/halls/{id:[0-9]+}/availability", sportHandler.HallAvailability).Methods("GET")
+	optionalAuth := auth.OptionalAuthMiddleware(cfg.JWTSecret, cfg.JWTSecretPrevious, rdb, userService.IsActive)
+	r.Handle("/api/bookings", optionalAuth(http.HandlerFunc(sportHandler.CreateBooking))).Methods("POST")
+	r.Handle("/api/bookings", optionalAuth(http.HandlerFunc(sportHandler.ListBookings))).Methods("GET")
 	r.HandleFunc("/api/business/telegram/notify", telegramHandler.NotifyBooking).Methods("POST")
 	r.HandleFunc("/api/business/telegram/status", telegramHandler.GetStatus).Methods("GET")
 
@@ -182,6 +185,9 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/arenas/{id:[0-9]+}", sportHandler.UpdateArena).Methods("PATCH")
 	authRouter.HandleFunc("/arenas/{id:[0-9]+}/schedule", sportHandler.SaveSchedule).Methods("PUT")
 	authRouter.HandleFunc("/halls", sportHandler.CreateHall).Methods("POST")
+	authRouter.HandleFunc("/halls/{id:[0-9]+}/photos", sportHandler.UploadHallPhoto).Methods("POST")
+	authRouter.HandleFunc("/halls/{id:[0-9]+}/schedule", sportHandler.SaveHallSchedule).Methods("PUT")
+	authRouter.HandleFunc("/halls/{id:[0-9]+}/photos", sportHandler.DeleteHallPhoto).Methods("DELETE")
 	authRouter.HandleFunc("/bookings/{id:[0-9]+}/status", sportHandler.UpdateBookingStatus).Methods("PATCH")
 
 	return withSecurityHeaders(withCORS(withRateLimit(withMaxBodySize(r), rdb), cfg.CORSAllowedOrigin))
