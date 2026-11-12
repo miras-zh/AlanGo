@@ -9,6 +9,12 @@
 
 ## [Unreleased]
 
+### 🧭 Нижняя капсула навигации на экранах «Спорткомплексы» и «Комплекс»
+- **Проблема**: `app/arenas.tsx` и `app/arena/[id].tsx` лежат в корневом `Stack` поверх `(tabs)`, поэтому при открытии спорткомплекса нижняя капсула пропадала.
+- **[`components/LiquidGlassTabBar.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/LiquidGlassTabBar.tsx)**: внешний вид капсулы вынесен в `TabBarCapsule` (`tabs`, `activeTab`, `onTabPress`). `LiquidGlassTabBar` (таб-бар навигатора) рендерит его с прежней логикой `tabPress`, внешне без изменений. Новый `StandaloneTabBar` — капсула для экранов поверх табов: подсвечена «Главная», нажатие на вкладку — `router.dismissTo("/(tabs)/<вкладка>")` (закрывает экраны до табов и открывает выбранную).
+- **Экраны**: `StandaloneTabBar` добавлен на «Спорткомплексы» и страницу комплекса. На странице комплекса нижний отступ скролла `40` → `spacing.bottomScrollPadding`, фон `#0B0F0D` → `colors.background`. Навигация не перестраивалась: переходы на комплекс с карты, из бизнес-кабинета и со страницы зала и кнопка «Назад» работают как раньше. Экран зала (`hall/[id]`) без капсулы — там своя нижняя кнопка «Забронировать».
+- **Проверка**: `tsc` проходит; в симуляторе капсула видна на «Спорткомплексах» и в Nomad Pro Complex, нажатие «Залы» со страницы комплекса закрывает экраны и открывает вкладку «Залы». Первая горячая перезагрузка дала «Element type is invalid» (гонка Fast Refresh при одновременном изменении файлов), после перезапуска приложения ошибки нет.
+
 ### 📦 Подготовка сборки 1.0.0 (6) для TestFlight
 - **Номер сборки 5 → 6** в `app.json` (`ios.buildNumber`), `ios/AlanGo/Info.plist` (`CFBundleVersion`) и `AlanGo.xcodeproj` (`CURRENT_PROJECT_VERSION`, Debug и Release). Версия остаётся `1.0.0`. Папка `ios/` в `.gitignore`, поэтому в коммит попадает только `app.json`.
 - **`scripts/build_testflight.sh`**: устаревшие «билд 2» и имя архива `AlanGo_v1.0.0_b2.xcarchive` исправлены на 6.

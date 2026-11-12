@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ArenaCard, arenaMinPrice } from "@/components/ArenaCard";
+import { StandaloneTabBar } from "@/components/LiquidGlassTabBar";
 import { ArenaWithHalls, getArenasWithHalls } from "@/lib/sportRentData";
 import { getSelectedCity } from "@/lib/cities";
 import { plural } from "@/lib/plural";
@@ -182,6 +183,7 @@ export default function ArenasScreen() {
           />
         )}
       />
+      <StandaloneTabBar />
     </SafeAreaView>
   );
 }

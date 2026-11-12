@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { TabBarGlassBackground } from "@/components/TabBarGlassBackground";
 import { hapticSelection } from "@/lib/haptics";
 import { colors } from "@/constants/theme";
@@ -39,38 +40,40 @@ const TAB_CONFIG: Record<
   },
 };
 
-export function LiquidGlassTabBar(props: any) {
-  const { state, navigation } = props;
+/** Порядок вкладок — как в app/(tabs)/_layout.tsx. */
+export const TAB_NAMES = ["index", "items", "events", "notifications", "profile"] as const;
+export type TabName = (typeof TAB_NAMES)[number];
+
+type CapsuleProps = {
+  tabs: readonly string[];
+  activeTab: string | null;
+  onTabPress: (name: string) => void;
+};
+
+/** Внешний вид плавающей капсулы без привязки к навигатору табов. */
+export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
   return (
     <View style={styles.floatingContainer} pointerEvents="box-none">
       <View style={styles.tabBarPill}>
         <TabBarGlassBackground isCapsule={true} />
 
         <View style={styles.tabsRow}>
-          {state.routes.map((route: any, index: number) => {
-            const isFocused = state.index === index;
-            const config = TAB_CONFIG[route.name] || {
-              label: route.name,
+          {tabs.map((name) => {
+            const isFocused = activeTab === name;
+            const config = TAB_CONFIG[name] || {
+              label: name,
               icon: "ellipse-outline",
               iconFocused: "ellipse",
             };
 
             const onPress = () => {
               hapticSelection();
-              const event = navigation.emit({
-                type: "tabPress",
-                target: route.key,
-                canPreventDefault: true,
-              });
-
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
+              onTabPress(name);
             };
 
             return (
               <Pressable
-                key={route.key}
+                key={name}
                 onPress={onPress}
                 style={[
                   styles.tabButton,
@@ -98,6 +101,48 @@ export function LiquidGlassTabBar(props: any) {
         </View>
       </View>
     </View>
+  );
+}
+
+/** Таб-бар навигатора (tabs): капсула + стандартная логика tabPress. */
+export function LiquidGlassTabBar(props: any) {
+  const { state, navigation } = props;
+  const routes: any[] = state.routes;
+  return (
+    <TabBarCapsule
+      tabs={routes.map((r) => r.name)}
+      activeTab={routes[state.index]?.name ?? null}
+      onTabPress={(name) => {
+        const route = routes.find((r) => r.name === name);
+        if (!route) return;
+        const isFocused = routes[state.index]?.key === route.key;
+        const event = navigation.emit({
+          type: "tabPress",
+          target: route.key,
+          canPreventDefault: true,
+        });
+        if (!isFocused && !event.defaultPrevented) {
+          navigation.navigate(route.name);
+        }
+      }}
+    />
+  );
+}
+
+/**
+ * Капсула для экранов поверх табов (корневой Stack): закрывает экраны
+ * до табов и открывает выбранную вкладку.
+ */
+export function StandaloneTabBar({ activeTab = "index" }: { activeTab?: TabName | null }) {
+  const router = useRouter();
+  return (
+    <TabBarCapsule
+      tabs={TAB_NAMES}
+      activeTab={activeTab}
+      onTabPress={(name) => {
+        router.dismissTo(name === "index" ? "/(tabs)" : (`/(tabs)/${name}` as any));
+      }}
+    />
   );
 }
 

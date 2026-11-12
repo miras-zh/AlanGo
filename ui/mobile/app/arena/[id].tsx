@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { colors, spacing } from "@/constants/theme";
 import {
   Arena,
   getStoredArenas,
@@ -24,6 +25,7 @@ import {
   ScheduleDay,
 } from "@/lib/sportRentData";
 import { hapticSelection } from "@/lib/haptics";
+import { StandaloneTabBar } from "@/components/LiquidGlassTabBar";
 
 const { width } = Dimensions.get("window");
 
@@ -58,7 +60,7 @@ export default function ArenaDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: "#0B0F0D" }]} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Top Nav */}
       <View style={styles.topNav}>
         <Pressable onPress={() => router.back()} style={styles.roundBtn}>
@@ -207,6 +209,7 @@ export default function ArenaDetailScreen() {
           </View>
         </View>
       </ScrollView>
+      <StandaloneTabBar />
     </SafeAreaView>
   );
 }
@@ -214,6 +217,7 @@ export default function ArenaDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   topNav: {
     flexDirection: "row",
@@ -221,7 +225,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: colors.background,
   },
   roundBtn: {
     width: 38,
@@ -240,7 +244,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   scroll: {
-    paddingBottom: 40,
+    paddingBottom: spacing.bottomScrollPadding,
   },
   imageWrap: {
     width: "100%",
