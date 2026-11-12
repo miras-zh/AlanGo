@@ -63,6 +63,7 @@ export type Arena = {
   sports?: SportType[];
   latitude?: number;
   longitude?: number;
+  venueType?: "complex" | "single" | "outdoor";
 };
 
 export type Booking = {
@@ -1018,6 +1019,7 @@ export async function getStoredArenas(params?: {
         sports: a.sports ?? ["Футбол", "Баскетбол", "Теннис"],
         latitude: a.latitude ?? a.lat,
         longitude: a.longitude ?? a.lng,
+        venueType: a.venue_type ?? "complex",
       }));
       await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(mapped));
       return mapped;

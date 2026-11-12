@@ -468,7 +468,7 @@ export default function HomeScreen() {
               <Pressable
                 onPress={() => {
                   hapticSelection();
-                  router.push("/(tabs)/items");
+                  router.push({ pathname: "/arenas", params: selectedCategory !== "all" ? { sport: selectedCategory } : {} });
                 }}
                 hitSlop={10}
                 style={styles.seeAllBtn}
