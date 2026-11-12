@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, radii, spacing, typography } from "@/constants/theme";
 import { resolveMyArenaId } from "@/lib/business";
@@ -63,6 +64,7 @@ const PRESET_EQUIPMENT = [
 ];
 
 export default function BusinessHallsScreen() {
+  const router = useRouter();
   const [arenaId, setArenaId] = useState<number | null>(null);
   const [hallsLoaded, setHallsLoaded] = useState(false);
   const [halls, setHalls] = useState<Hall[]>([]);
@@ -101,9 +103,12 @@ export default function BusinessHallsScreen() {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => {
-    loadHalls();
-  }, [loadHalls]);
+  // Reload on focus: returning from the schedule tab updates the badge.
+  useFocusEffect(
+    useCallback(() => {
+      loadHalls();
+    }, [loadHalls]),
+  );
 
   const openCreateModal = () => {
     hapticSelection();
@@ -440,13 +445,33 @@ export default function BusinessHallsScreen() {
                   </Text>
                 </View>
 
-                <Pressable
-                  style={styles.editBtn}
-                  onPress={() => openEditModal(item)}
-                >
-                  <Ionicons name="pencil-outline" size={16} color="#22C55E" />
-                  <Text style={styles.editBtnText}>Редактировать</Text>
-                </Pressable>
+                <View style={styles.cardActions}>
+                  {/* Per-hall schedule: labelled until configured, then icon only */}
+                  <Pressable
+                    style={[styles.editBtn, !item.scheduleConfigured && styles.scheduleBtnCta]}
+                    hitSlop={6}
+                    accessibilityLabel="Настроить график зала"
+                    onPress={() => {
+                      hapticSelection();
+                      router.push({ pathname: "/business/schedule", params: { hallId: String(item.id) } });
+                    }}
+                  >
+                    <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                    {!item.scheduleConfigured ? (
+                      <Text style={styles.editBtnText}>Настроить график</Text>
+                    ) : null}
+                  </Pressable>
+                  <Pressable
+                    style={styles.editBtn}
+                    accessibilityLabel="Редактировать зал"
+                    onPress={() => openEditModal(item)}
+                  >
+                    <Ionicons name="pencil-outline" size={16} color="#22C55E" />
+                    {item.scheduleConfigured ? (
+                      <Text style={styles.editBtnText}>Редактировать</Text>
+                    ) : null}
+                  </Pressable>
+                </View>
               </View>
             </View>
           </View>
@@ -1009,6 +1034,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(34, 197, 94, 0.3)",
+  },
+  cardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  scheduleBtnCta: {
+    borderColor: colors.primary,
   },
   editBtnText: {
     fontSize: 12,

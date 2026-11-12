@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { resolveMyArenaId } from "@/lib/business";
 import {
@@ -45,6 +46,8 @@ function formatTime(val: string): string {
 
 export default function BusinessScheduleScreen() {
   const [schedule, setSchedule] = useState<ScheduleDay[]>(DEFAULT_WEEK_SCHEDULE);
+  // Opened from a hall card: "/business/schedule?hallId=12".
+  const { hallId: hallIdParam } = useLocalSearchParams<{ hallId?: string }>();
   const [halls, setHalls] = useState<Hall[]>([]);
   const [hallId, setHallId] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -59,11 +62,27 @@ export default function BusinessScheduleScreen() {
     setHalls(mine);
     setHallId((prev) => (prev && mine.some((h) => h.id === prev) ? prev : mine[0]?.id ?? null));
     setLoaded(true);
+    return mine;
   }, []);
 
   useEffect(() => {
     loadHalls();
   }, [loadHalls]);
+
+  // Select the hall passed from the card (the tab stays mounted, so react to
+  // every new param; reload the list first in case the hall was just created).
+  useEffect(() => {
+    const wanted = Number(hallIdParam);
+    if (!wanted) return;
+    (async () => {
+      const mine = halls.some((h) => h.id === wanted) ? halls : await loadHalls();
+      if (mine.some((h) => h.id === wanted)) {
+        setActiveDayIdx(null);
+        setHallId(wanted);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hallIdParam]);
 
   useEffect(() => {
     if (!hallId) return;

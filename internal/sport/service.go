@@ -93,7 +93,7 @@ func (s *Service) SaveArena(ctx context.Context, arena *Arena) error {
 func (s *Service) ListHalls(ctx context.Context, sport string, arenaID uint, q string) ([]Hall, error) {
 	tx := s.db.WithContext(ctx).
 		Table("halls").
-		Select("halls.*, arenas.title as arena_title, arenas.address as arena_address").
+		Select("halls.*, arenas.title as arena_title, arenas.address as arena_address, "+scheduleConfiguredSQL).
 		Joins("JOIN arenas ON arenas.id = halls.arena_id").
 		Where("arenas.hidden = ?", false)
 
@@ -119,7 +119,7 @@ func (s *Service) GetHallByID(ctx context.Context, id uint) (*Hall, error) {
 	var hall Hall
 	err := s.db.WithContext(ctx).
 		Table("halls").
-		Select("halls.*, arenas.title as arena_title, arenas.address as arena_address").
+		Select("halls.*, arenas.title as arena_title, arenas.address as arena_address, "+scheduleConfiguredSQL).
 		Joins("JOIN arenas ON arenas.id = halls.arena_id").
 		Where("halls.id = ?", id).
 		First(&hall).Error
@@ -326,3 +326,6 @@ func (s *Service) SetHallPhotos(ctx context.Context, hallID uint, photos pq.Stri
 	}
 	return s.GetHallByID(ctx, hallID)
 }
+
+// scheduleConfiguredSQL marks halls that have their own weekly schedule.
+const scheduleConfiguredSQL = "EXISTS (SELECT 1 FROM hall_schedules hs WHERE hs.hall_id = halls.id) AS schedule_configured"

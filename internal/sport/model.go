@@ -53,12 +53,14 @@ type Hall struct {
 	LengthM      int            `gorm:"column:length_m;not null;default:0" json:"length_m"`
 	WidthM       int            `gorm:"column:width_m;not null;default:0" json:"width_m"`
 	MaxPeople    int            `gorm:"column:max_people;not null;default:0" json:"max_people"`
-	Status       string         `gorm:"column:status;type:varchar(50);not null;default:'active'" json:"status"`
-	Description  string         `gorm:"column:description;type:text;not null;default:''" json:"description"`
-	Rating       float64        `gorm:"column:rating;type:numeric(3,2);not null;default:4.8" json:"rating"`
-	ReviewsCount int            `gorm:"column:reviews_count;not null;default:0" json:"reviews_count"`
-	CreatedAt    time.Time      `gorm:"column:created_at;default:now()" json:"created_at"`
-	UpdatedAt    time.Time      `gorm:"column:updated_at;default:now()" json:"updated_at"`
+	// Read-only: true when the hall has its own rows in hall_schedules.
+	ScheduleConfigured bool      `gorm:"->;column:schedule_configured" json:"schedule_configured"`
+	Status             string    `gorm:"column:status;type:varchar(50);not null;default:'active'" json:"status"`
+	Description        string    `gorm:"column:description;type:text;not null;default:''" json:"description"`
+	Rating             float64   `gorm:"column:rating;type:numeric(3,2);not null;default:4.8" json:"rating"`
+	ReviewsCount       int       `gorm:"column:reviews_count;not null;default:0" json:"reviews_count"`
+	CreatedAt          time.Time `gorm:"column:created_at;default:now()" json:"created_at"`
+	UpdatedAt          time.Time `gorm:"column:updated_at;default:now()" json:"updated_at"`
 }
 
 func (Hall) TableName() string {

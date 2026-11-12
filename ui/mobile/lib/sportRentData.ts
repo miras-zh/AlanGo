@@ -19,6 +19,7 @@ export type Hall = {
   lengthM?: number;
   widthM?: number;
   maxPeople?: number;
+  scheduleConfigured?: boolean; // hall has its own weekly schedule
   status: "active" | "maintenance" | "inactive";
   description: string;
   rating: number;
@@ -1080,6 +1081,7 @@ export async function getStoredHalls(params?: {
         lengthM: h.length_m ?? 0,
         widthM: h.width_m ?? 0,
         maxPeople: h.max_people ?? 0,
+        scheduleConfigured: h.schedule_configured ?? false,
         status: h.status ?? "active",
         description: h.description ?? "",
         rating: h.rating ?? 0,
