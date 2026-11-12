@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   Image,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,10 +12,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import * as AppleAuthentication from "expo-apple-authentication";
 import { useAppTheme } from "@/theme/ThemeProvider";
-import { loginWithApple, loginWithEmail } from "@/lib/registration";
-import { loginAsGuest, switchTestAccount } from "@/lib/auth";
+import { loginWithEmail } from "@/lib/registration";
+import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 import { PasswordInput } from "@/components/PasswordInput";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
@@ -27,101 +25,17 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
-
-  useEffect(() => {
-    console.log("[AppleAuth] Platform.OS:", Platform.OS);
-    if (Platform.OS === "ios") {
-      AppleAuthentication.isAvailableAsync()
-        .then((available) => {
-          console.log("[AppleAuth] isAvailableAsync result:", available);
-          setAppleAuthAvailable(available);
-        })
-        .catch((err) => {
-          console.log("[AppleAuth] isAvailableAsync error:", err);
-        });
-    }
-  }, []);
-
-  const handleAppleLogin = async () => {
-    try {
-      hapticSelection();
-      setLoading(true);
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-
-      if (!credential.identityToken) {
-        Alert.alert("Ошибка", "Apple не предоставил токен авторизации");
-        return;
-      }
-
-      const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
-        .filter(Boolean)
-        .join(" ") || undefined;
-
-      const res = await loginWithApple({
-        identityToken: credential.identityToken,
-        authorizationCode: credential.authorizationCode || undefined,
-        fullName,
-      });
-
-      hapticSuccess();
-      if (res?.user?.role === "business" || res?.user_info?.role === "business") {
-        router.replace("/business");
-      } else {
-        router.replace("/(tabs)");
-      }
-    } catch (e: any) {
-      if (e.code === "ERR_REQUEST_CANCELED") {
-        return;
-      }
-      if (e.code === "ERR_UNAVAILABLE" || !appleAuthAvailable) {
-        // Бесшовный вход в Expo Go / dev-среде без блокирующего окна
-        try {
-          const fallbackEmail = email.trim() || "apple.miko@alango.kz";
-          const res = await loginWithApple({
-            identityToken: "expo_go_mock_apple_token",
-            fullName: "Мико Аскаров",
-            mockEmail: fallbackEmail,
-          });
-          hapticSuccess();
-          if (res?.user?.role === "business" || res?.user_info?.role === "business") {
-            router.replace("/business");
-          } else {
-            router.replace("/(tabs)");
-          }
-          return;
-        } catch (devErr) {
-          Alert.alert("Ошибка входа", getErrorMessage(devErr));
-          return;
-        }
-      }
-      Alert.alert("Ошибка входа через Apple", getErrorMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleLogin = async () => {
     const trimmed = email.trim();
-    if (trimmed.toLowerCase() === "guest" || trimmed.toLowerCase() === "гость") {
-      await handleGuestLogin();
-      return;
-    }
-
     if (!trimmed || !password) {
-      Alert.alert("Ошибка", "Введите логин и пароль");
+      Alert.alert("Ошибка", "Введите email и пароль");
       return;
     }
     setLoading(true);
     try {
       const res = await loginWithEmail({ email: trimmed, password });
       hapticSuccess();
-      if (res?.user?.role === "business") {
+      if (res?.user?.role === "business" || res?.user_info?.role === "business") {
         router.replace("/business");
       } else {
         router.replace("/(tabs)");
@@ -133,54 +47,26 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGuestLogin = async () => {
+  const handleBack = () => {
     hapticSelection();
-    setLoading(true);
-    try {
-      await loginAsGuest();
-      hapticSuccess();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
       router.replace("/(tabs)");
-    } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickDevLogin = async (key: "dev.arena1" | "dev.arena2" | "dev.client" | "guest") => {
-    hapticSelection();
-    setLoading(true);
-    try {
-      const user = await switchTestAccount(key);
-      hapticSuccess();
-      if (user.role === "business") {
-        router.replace("/business");
-      } else {
-        router.replace("/(tabs)");
-      }
-    } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err));
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: "#0B0F0D" }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Top Bar with Back and Guest Skip button */}
+        {/* Top Bar with Back button */}
         <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-          </Pressable>
-
           <Pressable
-            onPress={handleGuestLogin}
-            disabled={loading}
-            style={styles.skipGuestPill}
+            onPress={handleBack}
+            style={styles.backBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="person-outline" size={15} color="#22C55E" />
-            <Text style={styles.skipGuestText}>Войти как гость</Text>
+            <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
           </Pressable>
         </View>
 
@@ -193,99 +79,26 @@ export default function LoginScreen() {
           />
           <Text style={styles.title}>Вход в Alan Go</Text>
           <Text style={styles.subtitle}>
-            Введите учетные данные или выберите тестовый аккаунт для проверки экранов
+            Войдите в свой аккаунт, чтобы бронировать площадки и участвовать в событиях
           </Text>
-        </View>
-
-        {/* --- QUICK DEV TEST ACCOUNTS (1-TAP) --- */}
-        <View style={styles.devCard}>
-          <View style={styles.devCardHeader}>
-            <Ionicons name="flash" size={16} color="#22C55E" />
-            <Text style={styles.devCardTitle}>Быстрый вход для тестирования</Text>
-          </View>
-          <Text style={styles.devCardSub}>Пароль для всех аккаунтов: 12345</Text>
-
-          <View style={styles.devBtnCol}>
-            <Pressable
-              style={styles.devBtn}
-              onPress={() => handleQuickDevLogin("dev.arena1")}
-            >
-              <View style={styles.devBtnIconWrap}>
-                <Ionicons name="business" size={18} color="#22C55E" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.devBtnName}>dev.arena1 (Бизнес)</Text>
-                <Text style={styles.devBtnDesc}>Astana Arena Sport • 3 зала</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#8E9B94" />
-            </Pressable>
-
-            <Pressable
-              style={styles.devBtn}
-              onPress={() => handleQuickDevLogin("dev.arena2")}
-            >
-              <View style={styles.devBtnIconWrap}>
-                <Ionicons name="business" size={18} color="#22C55E" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.devBtnName}>dev.arena2 (Бизнес)</Text>
-                <Text style={styles.devBtnDesc}>Nomad Pro Complex • 3 зала</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#8E9B94" />
-            </Pressable>
-
-            <Pressable
-              style={styles.devBtn}
-              onPress={() => handleQuickDevLogin("dev.client")}
-            >
-              <View style={[styles.devBtnIconWrap, { backgroundColor: "#182635" }]}>
-                <Ionicons name="person" size={18} color="#3B82F6" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.devBtnName}>dev.client (Игрок / Клиент)</Text>
-                <Text style={styles.devBtnDesc}>Мико Аскаров • 5 экранов клиента</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#8E9B94" />
-            </Pressable>
-
-            <Pressable
-              style={[styles.devBtn, styles.devBtnGuest]}
-              onPress={() => handleQuickDevLogin("guest")}
-            >
-              <View style={[styles.devBtnIconWrap, { backgroundColor: "rgba(34, 197, 94, 0.15)" }]}>
-                <Ionicons name="sparkles" size={18} color="#22C55E" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.devBtnName, { color: "#22C55E" }]}>Войти как гость</Text>
-                <Text style={styles.devBtnDesc}>Без пароля • 5 экранов клиента</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#22C55E" />
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Divider */}
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>ИЛИ ВХОД ВРУЧНУЮ</Text>
-          <View style={styles.dividerLine} />
         </View>
 
         {/* Form */}
         <View style={styles.form}>
-          <Text style={styles.label}>Логин или Email</Text>
+          <Text style={styles.label}>Email</Text>
           <TextInput
-            placeholder="dev.arena1 или email"
+            placeholder="name@example.com"
             placeholderTextColor="#6B7C72"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
+            keyboardType="email-address"
             style={styles.input}
           />
 
           <Text style={styles.label}>Пароль</Text>
           <PasswordInput
-            placeholder="12345"
+            placeholder="Введите пароль"
             placeholderTextColor="#6B7C72"
             value={password}
             onChangeText={setPassword}
@@ -301,36 +114,7 @@ export default function LoginScreen() {
             </Text>
           </Pressable>
 
-          {/* Apple ID Sign-In Button */}
-          <View style={styles.appleContainer}>
-            {appleAuthAvailable ? (
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-                cornerRadius={14}
-                style={styles.appleBtn}
-                onPress={handleAppleLogin}
-              />
-            ) : (
-              <Pressable
-                onPress={handleAppleLogin}
-                disabled={loading}
-                style={styles.appleFallbackBtn}
-              >
-                <Ionicons name="logo-apple" size={20} color="#000000" />
-                <Text style={styles.appleFallbackBtnText}>Войти через Apple</Text>
-              </Pressable>
-            )}
-          </View>
-
-          <Pressable
-            onPress={handleGuestLogin}
-            disabled={loading}
-            style={styles.guestOutlineBtn}
-          >
-            <Ionicons name="person-outline" size={18} color="#22C55E" />
-            <Text style={styles.guestOutlineBtnText}>Войти как гость</Text>
-          </Pressable>
+          <SocialAuthButtons mode="signin" />
 
           <Pressable
             onPress={() => router.push("/register")}
@@ -535,30 +319,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: "#22C55E",
-  },
-  appleContainer: {
-    marginTop: 10,
-    width: "100%",
-  },
-  appleBtn: {
-    width: "100%",
-    height: 50,
-  },
-  appleFallbackBtn: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  appleFallbackBtnText: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: -0.3,
   },
   registerLinkWrap: {
     marginTop: 18,

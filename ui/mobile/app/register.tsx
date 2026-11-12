@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,16 +11,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import * as AppleAuthentication from "expo-apple-authentication";
 import { useAppTheme } from "@/theme/ThemeProvider";
 import { useI18n } from "@/lib/i18n";
 import {
   startRegistration,
   verifyRegistration,
   resendRegistrationCode,
-  loginWithApple,
 } from "@/lib/registration";
 import { PasswordInput } from "@/components/PasswordInput";
+import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
@@ -39,76 +37,6 @@ export default function RegisterScreen() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
-
-  useEffect(() => {
-    if (Platform.OS === "ios") {
-      AppleAuthentication.isAvailableAsync().then(setAppleAuthAvailable).catch(() => {});
-    }
-  }, []);
-
-  const handleAppleRegister = async () => {
-    try {
-      hapticSelection();
-      setLoading(true);
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-
-      if (!credential.identityToken) {
-        Alert.alert("Ошибка", "Apple не предоставил токен");
-        return;
-      }
-
-      const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
-        .filter(Boolean)
-        .join(" ") || undefined;
-
-      const res = await loginWithApple({
-        identityToken: credential.identityToken,
-        authorizationCode: credential.authorizationCode || undefined,
-        fullName,
-      });
-
-      hapticSuccess();
-      if (res?.user?.role === "business" || res?.user_info?.role === "business") {
-        router.replace("/business");
-      } else {
-        router.replace("/(tabs)");
-      }
-    } catch (e: any) {
-      if (e.code === "ERR_REQUEST_CANCELED") return;
-      if (e.code === "ERR_UNAVAILABLE" || !appleAuthAvailable) {
-        // Бесшовный вход в Expo Go / dev-среде без блокирующего окна
-        try {
-          const fallbackName = name.trim() || "Мико Аскаров";
-          const fallbackEmail = email.trim() || "miko.apple@alango.kz";
-          const res = await loginWithApple({
-            identityToken: "expo_go_mock_apple_token",
-            fullName: fallbackName,
-            mockEmail: fallbackEmail,
-          });
-          hapticSuccess();
-          if (res?.user?.role === "business" || res?.user_info?.role === "business") {
-            router.replace("/business");
-          } else {
-            router.replace("/(tabs)");
-          }
-          return;
-        } catch (devErr) {
-          Alert.alert("Ошибка регистрации", getErrorMessage(devErr));
-          return;
-        }
-      }
-      Alert.alert("Ошибка регистрации через Apple", getErrorMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setInterval(() => {
@@ -121,10 +49,10 @@ export default function RegisterScreen() {
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
 
-    if (!trimmedName || !trimmedEmail || password.length < 6) {
+    if (!trimmedName || !trimmedEmail || password.length < 8) {
       Alert.alert(
         "Ошибка",
-        "Заполните имя, корректный email и пароль (минимум 6 символов, содержащий буквы и цифры)"
+        "Заполните имя, корректный email и пароль (минимум 8 символов, содержащий буквы и цифры)"
       );
       return;
     }
@@ -187,19 +115,25 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleBack = () => {
+    hapticSelection();
+    if (step === "code") {
+      setStep("form");
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)");
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: "#0B0F0D" }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.topBar}>
           <Pressable
-            onPress={() => {
-              if (step === "code") {
-                setStep("form");
-              } else {
-                router.back();
-              }
-            }}
+            onPress={handleBack}
             style={styles.backBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
           </Pressable>
@@ -220,7 +154,7 @@ export default function RegisterScreen() {
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Мико Аскаров"
+                placeholder="Иван Иванов"
                 placeholderTextColor="#6B7C72"
                 style={styles.input}
               />
@@ -240,7 +174,7 @@ export default function RegisterScreen() {
               <PasswordInput
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Минимум 6 символов, буквы и цифры"
+                placeholder="Минимум 8 символов, буквы и цифры"
               />
 
               <Pressable
@@ -253,27 +187,7 @@ export default function RegisterScreen() {
                 </Text>
               </Pressable>
 
-              {/* Apple Sign-In on Registration */}
-              <View style={styles.appleContainer}>
-                {appleAuthAvailable ? (
-                  <AppleAuthentication.AppleAuthenticationButton
-                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
-                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-                    cornerRadius={14}
-                    style={styles.appleBtn}
-                    onPress={handleAppleRegister}
-                  />
-                ) : (
-                  <Pressable
-                    onPress={handleAppleRegister}
-                    disabled={loading}
-                    style={styles.appleFallbackBtn}
-                  >
-                    <Ionicons name="logo-apple" size={20} color="#000000" />
-                    <Text style={styles.appleFallbackBtnText}>Зарегистрироваться через Apple</Text>
-                  </Pressable>
-                )}
-              </View>
+              <SocialAuthButtons mode="signup" />
             </View>
 
             <Pressable onPress={() => router.replace("/login")} style={styles.switchBtn}>
@@ -454,28 +368,4 @@ const styles = StyleSheet.create({
     color: "#8E9B94",
   },
   switchBtn: { marginTop: 28, alignItems: "center" },
-  appleContainer: {
-    marginTop: 10,
-    width: "100%",
-  },
-  appleBtn: {
-    width: "100%",
-    height: 50,
-  },
-  appleFallbackBtn: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  appleFallbackBtnText: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: -0.3,
-  },
 });

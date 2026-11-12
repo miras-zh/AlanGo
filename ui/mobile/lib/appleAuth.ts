@@ -1,75 +1,84 @@
 import * as AppleAuthentication from "expo-apple-authentication";
-import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "./api";
-import { saveSession, SessionUser } from "./auth";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { Platform } from "react-native";
+import { loginWithApple } from "@/lib/registration";
+import { getErrorMessage } from "@/lib/errorMessage";
 
-export interface AppleSignInResult {
-  user: SessionUser;
-  needsName: boolean;
-}
+// The backend answers 422 when it would create a brand-new account but has
+// no name (Apple sends the name only on the very first authorization, and
+// the user may hide it). The client then collects it on app/apple-name.tsx
+// and retries with the same, still unused, identity token.
+const NAME_REQUIRED_STATUS = 422;
 
-export async function signInWithApple(): Promise<AppleSignInResult | null> {
-  const credential = await AppleAuthentication.signInAsync({
-    requestedScopes: [
-      AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-      AppleAuthentication.AppleAuthenticationScope.EMAIL,
-    ],
-  });
-
-  if (!credential.identityToken) {
-    throw new Error("Apple не вернул identityToken");
-  }
-
-  const fullName = [
-    credential.fullName?.givenName,
-    credential.fullName?.familyName,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-
-  const res = await apiFetch<{
-    token: string;
-    refresh_token?: string;
-    user: SessionUser;
-  }>("/auth/apple", {
-    method: "POST",
-    skipAuth: true,
-    body: JSON.stringify({
-      identity_token: credential.identityToken,
-      authorization_code: credential.authorizationCode || "",
-      name: fullName,
-    }),
-  });
-
-  await saveSession({
-    token: res.token,
-    refreshToken: res.refresh_token || null,
-    user: res.user,
-  });
-
-  const needsName = !res.user.name || res.user.name === "Apple User";
-  return { user: res.user, needsName };
-}
+export type AppleSignInOutcome =
+  | { type: "success"; role?: string }
+  | { type: "needs_name"; identityToken: string; authorizationCode?: string }
+  | { type: "cancelled" };
 
 export function useAppleSignIn() {
   const [available, setAvailable] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    AppleAuthentication.isAvailableAsync().then(setAvailable).catch(() => setAvailable(false));
+    if (Platform.OS !== "ios") return;
+    let cancelled = false;
+    AppleAuthentication.isAvailableAsync()
+      .then((ok) => {
+        if (!cancelled) setAvailable(ok);
+      })
+      .catch(() => {
+        // Native module missing (Expo Go / stale binary) — just hide the button.
+        if (!cancelled) setAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const signIn = useCallback(async () => {
+  async function signIn(): Promise<AppleSignInOutcome> {
+    setError(null);
+    setLoading(true);
     try {
-      setError(null);
-      await signInWithApple();
-    } catch (e: any) {
-      if (e?.code !== "ERR_REQUEST_CANCELED") {
-        setError(e?.message || "Ошибка входа Apple");
-      }
-    }
-  }, []);
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
 
-  return { available, signIn, error };
+      const identityToken = credential.identityToken;
+      if (!identityToken) {
+        setError("Apple не вернул токен авторизации. Попробуйте ещё раз.");
+        return { type: "cancelled" };
+      }
+      const authorizationCode = credential.authorizationCode ?? undefined;
+      const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      try {
+        const data = await loginWithApple({ identityToken, authorizationCode, fullName });
+        return { type: "success", role: data?.user_info?.role };
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === NAME_REQUIRED_STATUS) {
+          return { type: "needs_name", identityToken, authorizationCode };
+        }
+        setError(getErrorMessage(err) || "Не удалось войти через Apple.");
+        return { type: "cancelled" };
+      }
+    } catch (err: any) {
+      if (err?.code === "ERR_REQUEST_CANCELED") {
+        return { type: "cancelled" };
+      }
+      setError(getErrorMessage(err) || "Не удалось войти через Apple.");
+      return { type: "cancelled" };
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { available, signIn, loading, error };
 }

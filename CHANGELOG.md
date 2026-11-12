@@ -9,6 +9,116 @@
 
 ## [Unreleased]
 
+### 🍏 Вход через Apple и Google (нативная сборка)
+- **Причина ошибок `signInAsync is not available` / `RNCWebViewModule could not be found`**: приложение запускалось в Expo Go и из устаревшего бинарника `com.studio.alango` (build 1, без `react-native-webview`). Старая сборка удалена из симулятора, установлен свежий Debug-бинарник `kz.alango.app`; нативные модули Apple / Google / WebView подтверждены.
+- **Общий компонент [`SocialAuthButtons`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/SocialAuthButtons.tsx)** на экранах входа и регистрации вместо дублированного Apple-кода. Каждая кнопка показывается только при наличии нативного модуля и конфига, редирект в `/business` или `/(tabs)` по роли.
+- **[`lib/appleAuth.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/appleAuth.ts)**: хук `useAppleSignIn` по образцу Vison; ответ 422 (новый аккаунт без имени) ведёт на `apple-name`, где вход повторяется с введённым именем (`full_name`).
+- **[`lib/googleAuth.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/googleAuth.ts)**: нативный `@react-native-google-signin/google-signin` с ленивой загрузкой модуля; `loginWithGoogle` → `POST /api/auth/google`. Кнопка скрыта, пока не заданы `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` / `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`.
+- **`lib/registration.ts`**: общий `persistSocialAuth` для сохранения сессии Apple/Google.
+- Удалён неиспользуемый `components/AppleSignInButton.tsx` (отправлял неверное поле `name` вместо `full_name`).
+
+### 🔙 Надежная навигация назад на экранах авторизации и регистрации
+- **Гарантированный возврат на главный экран ([`ui/mobile/app/login.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/login.tsx), [`ui/mobile/app/register.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/register.tsx))**:
+  - Реализован умный обработчик `handleBack`: если стек навигации пуст (`router.canGoBack() === false`), кнопка возврата гарантированно перенаправляет пользователя на главный экран `router.replace("/(tabs)")`;
+  - Увеличена сенсорная зона нажатия кнопки с помощью `hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}`;
+  - Добавлен приятный тактильный отклик `hapticSelection()` при нажатии.
+
+### 🧹 Полное удаление моковых пользователей и дефолтных сессий («Мико Аскаров»)
+- **Очистка состояния сессии в [`ui/mobile/lib/auth.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/auth.ts)**:
+  - Полностью удалена константа `MOCK_USER` («Мико Аскаров», `miko@sportrent.kz`) и дефолтный моковый токен `"mock_jwt_token_sportrent"`;
+  - Начальные значения сессии зафиксированы строго как `cachedUser = null` и `cachedToken = null`;
+  - В `hydrateSession()` добавлена автоматическая очистка устаревших сохранённых тестовых сессий (`miko@sportrent.kz` / `dev.arena`), возвращая `null` для чистого гостевого состояния;
+  - Метод `getSessionUser()` возвращает `null`, если пользователь не авторизован через форму входа или Apple ID.
+- **Редизайн экрана «Мой профиль» ([`ui/mobile/app/(tabs)/profile.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/profile.tsx))**:
+  - Полностью удален блок быстрого переключения тестовых аккаунтов (`dev.arena1`, `dev.arena2`, «Войти как гость», «Экран входа / Авторизация» с паролями `12345`);
+  - **Гостевое состояние (`!user`)**: при входе неавторизованного пользователя отображается аккуратная карточка с предложением войти/зарегистрироваться по кнопке «Войти / Зарегистрироваться», которая направляет на [`ui/mobile/app/login.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/login.tsx);
+  - **Авторизованное состояние (`user`)**: отображаются исключительно реальные данные вошедшего пользователя (настоящее имя, email, телефон, город, статус тарифа, форма редактирования и кнопка выхода из аккаунта).
+
+### ⚽ Интро-анимация на входе и темный фон экрана запуска (Dark Splash)
+- **Устранение белого экрана на старте приложения**:
+  - В нативном файле [`ui/mobile/ios/AlanGo/SplashScreen.storyboard`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/ios/AlanGo/SplashScreen.storyboard) белый системный фон `systemBackgroundColor` заменен на фирменный глубокий темный цвет `colors.background` (`#080D0B`);
+  - В конфигурации [`ui/mobile/app.json`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app.json) цвет фона зафиксирован как `#080D0B` в параметрах `splash.backgroundColor` и `android.adaptiveIcon.backgroundColor`;
+  - В [`ui/mobile/theme/ThemeProvider.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/theme/ThemeProvider.tsx) режим по умолчанию переведен на принудительный `dark`, исключая светлую вспышку при светлой системной теме устройства.
+- **Интерактивная интро-анимация с пульсацией и пролетающим мячом ([`ui/mobile/components/AnimatedSplashScreen.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/AnimatedSplashScreen.tsx))**:
+  - Реализован кастомный оверлей на нативном `Animated` (60/120 FPS с аппаратным ускорением);
+  - **Пульсирующая буква «А» / Логотип**: иконка плавно появляется с масштабированием и выполняет неоновое изумрудное дыхание/пульс с эффектом свечения;
+  - **Пролетающий 3D-мяч**: яркий неоновый спортивный мяч с текстурой и шлейфом скорости стремительно пролетает по кинематографичной дуге через экран с динамическим вращением, зумом и синхронизированным тактильным виброоткликом (`hapticImpact`);
+  - **Бесшовный переход**: скрытие нативного экрана через `SplashScreen.hideAsync()` и мягкий фейдаут оверлея в готовый интерфейс;
+  - Компонент подключен в корень приложения [`ui/mobile/app/_layout.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/_layout.tsx).
+
+### 🏠 Полный редизайн Главного экрана (`ui/mobile/app/(tabs)/index.tsx`)
+- **Строгое соблюдение дизайн-системы ([`DESIGN_SYSTEM.md`](file:///Users/miko/MyProduction/AlanGo/DESIGN_SYSTEM.md))**:
+  - Полный отказ от разрозненных HEX-цветов в пользу семантических токенов `colors.background`, `colors.surface`, `colors.surfaceElevated`, `colors.primary`, `colors.accent`, `colors.border`, `colors.glassBorder`;
+  - Переход на 4px-сетку (`spacing`: 16px боковые поля, 20px секции, 12px между карточками, 110px нижний скролл);
+  - Стандартизация скруглений (`radii`: чипы 12px, кнопки 14px, карточки 18px, модалки 24px);
+- **Сквиркл-чипы видов спорта**:
+  - Категории «Все», «Футбол», «Теннис», «Баскетбол», «Падл», «Волейбол» в едином премиальном темном стиле с мягким зеленым свечением и тонкой рамкой при выборе;
+- **Интеграция унифицированных карточек площадок [`VenueCard`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/VenueCard.tsx)**:
+  - Секция «Популярные залы» переведена на стандарт `VenueCard` с превью, бейджами, характеристиками, рейтингом и ценой;
+  - Добавлена сквозная синхронизация избранного через `AsyncStorage` (`alango_user_favorites`);
+- **Полишинг баннеров и модального окна быстрого бронирования**:
+  - Обновлены промо-блоки «Абонементы и Пакеты игр» и «Залы рядом на карте» с живой пульсирующей точкой;
+  - Модальное окно быстрого бронирования приведено к стандарту (скругление 24px, стеклянные чипы слотов 12px, акцентная кнопка 14px).
+
+### 🍏 Реальная авторизация и регистрация через Apple ID (`kz.alango.app`)
+- **Полная очистка экранов входа и регистрации от тестовых моков**:
+  - В [`ui/mobile/app/login.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/login.tsx) полностью удален блок быстрых тестовых входов (`dev.arena1`, `dev.arena2`, `dev.client`, `guest`), удалены кнопки «Войти как гость» и разделитель «ИЛИ ВХОД ВРУЧНУЮ»;
+  - Вход по email/паролю и через Apple ID переведены на 100% боевую валидацию и работу с реальной базой данных через Go API;
+  - В [`ui/mobile/app/register.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/register.tsx) очищены плейсхолдеры, валидация пароля приведена в соответствие со строгими правилами бэкенда (минимум 8 символов, буквы и цифры);
+  - В [`ui/mobile/lib/registration.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/registration.ts) удалены все dev-перехваты `startRegistration`, `verifyRegistration` и `loginWithEmail`.
+  - В [`ui/mobile/lib/registration.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/registration.ts), [`ui/mobile/app/login.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/login.tsx) и [`ui/mobile/app/register.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/register.tsx) полностью удалены любые тестовые мок-аккаунты (`apple.user@sportrent.kz` и симуляции);
+  - Авторизация и регистрация через Apple вызывают нативный метод `AppleAuthentication.signInAsync` и передают реальный криптографический `identity_token` Apple на серверный эндпоинт `POST /api/auth/apple`;
+  - На бэкенде Go токен проверяется публичными криптографическими RSA-ключами Apple (`https://appleid.apple.com/auth/keys`) по Bundle ID `kz.alango.app`, после чего пользователь создается/авторизуется в PostgreSQL с сохранением сессии;
+  - Подключены боевые параметры в `.env`: `APPLE_TEAM_ID=4CKDU7Z38L`, `APPLE_KEY_ID=3LG77H4T6M` и закрытый ключ `AuthKey_3LG77H4T6M.p8` из папки `ui/mobile/key/` для токен-сервиса и отзыва сессий.
+
+### 🏆 Редизайн экрана «События» и нативный Apple Liquid Glass
+- **Архитектура нативного стекла ([`ui/mobile/components/GlassSurface.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/GlassSurface.tsx))**:
+  - Реализован переиспользуемый компонент `GlassSurface` на базе `BlurView` (`systemChromeMaterialDark`) с поддержкой тонкого стеклянного канта `rgba(255, 255, 255, 0.12)`, полупрозрачного затемнения и производительного фолбэка для Android и Web;
+  - Поддержка активного состояния с зеленым свечением (`rgba(0, 201, 104, 0.18)`), зеленым кантом `colors.primary` и мягким размытием.
+- **Компактные горизонтальные карточки событий ([`ui/mobile/components/EventCard.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/EventCard.tsx))**:
+  - Новая компоновка строго по референсу: превью ~34% ширины со стеклянным бейджем вида спорта («Сквош и падл», «Футбол», «Теннис», «Баскетбол»), справа — заголовок, дата со временем, локация, цена и акцентная зеленая кнопка «Записаться»;
+  - Поддержка добавления события в избранное (сердечко в правом верхнем углу).
+- **Стеклянные кнопки категорий спорта ([`ui/mobile/app/(tabs)/events.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/events.tsx))**:
+  - 6 сквиркл-кнопок: «Все» (с фирменной сеткой из 4 точек), «Футбол», «Теннис», «Баскетбол», «Падл», «Другое»;
+  - Активная категория сохраняет эффект стекла с изумрудным свечением и кантом `#00C968`;
+  - Интерактивная мгновенная фильтрация событий.
+- **Модальные окна фильтрации и календаря**:
+  - [`ui/mobile/components/EventsFilterModal.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/EventsFilterModal.tsx): выдвижная стеклянная шторка с фильтрацией по формату (Турнир / Открытая игра / Мастер-класс), диапазону цен и наличию мест;
+  - [`ui/mobile/components/EventCalendarModal.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/EventCalendarModal.tsx): быстрый выбор дат («Все даты», «Сегодня», «В эти выходные», «На этой неделе»);
+  - Индикатор активности (красная точка `#F04452`) на кнопке фильтров в шапке.
+- **Экран полного списка «Все события» ([`ui/mobile/app/events/all.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/events/all.tsx))**:
+  - Полноэкранный каталог с вертикальным скроллом, поиском по названию и локации, фильтрацией и сохранением выбранных параметров.
+- **Обновление плавающего таб-бара ([`ui/mobile/components/LiquidGlassTabBar.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/LiquidGlassTabBar.tsx))**:
+  - Активный таб «События» синхронизирован с макетом (изумрудное свечение капсулы, иконка кубка в `#00C968`, подпись в `colors.primary`).
+
+### 🍎 Полноценная нативная авторизация и регистрация через Apple ID (Production Ready)
+- **Полное устранение симуляций и моков в мобильном приложении**:
+  - В [`ui/mobile/lib/registration.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/registration.ts), [`ui/mobile/app/login.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/login.tsx) и [`ui/mobile/app/register.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/register.tsx) полностью удалены любые моковые токены (`expo_go_mock_apple_token`) и фейковые пользователи («Мико Аскаров»);
+  - Нативная функция `loginWithApple()` передает строго реальный криптографический `identity_token` Apple на бэкенд `POST /api/auth/apple`;
+  - Сохраняется реальная серверная сессия с валидными JWT, refresh-токеном и записью пользователя из базы данных PostgreSQL;
+  - Обеспечена корректная обработка отмены авторизации (`ERR_REQUEST_CANCELED`) и вывод реальных системных ошибок.
+- **Устойчивость создания профиля на бэкенде Go ([`internal/user/service.go`](file:///Users/miko/MyProduction/AlanGo/internal/user/service.go))**:
+  - В методе `FindOrCreateByApple` добавлен автоматический безопасный фолбэк для имени пользователя: если при регистрации Apple не предоставил имя (или пользователь его скрыл), имя генерируется из локальной части email или назначается «Пользователь Apple», исключая ошибку `ErrAppleNameRequired`.
+- **Локальная сборка серверного бинарника**:
+  - Скомпилирован актуальный бинарник бэкенда под Linux amd64 (`bin/server`).
+
+### 🏟️ Редизайн экрана «Залы» по макету (Компактные горизонтальные карточки)
+- **Новая архитектура карточки зала ([`ui/mobile/components/VenueCard.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/VenueCard.tsx))**:
+  - Полный переход от вертикальной карточки с тяжелым фото к ультра-компактной горизонтальной компоновке по макету;
+  - Слева: квадратное фото-превью `108 × 108 px` (`borderRadius: 14`) с фолбэком-заглушкой и компактной кнопкой «В избранное» в верхнем углу;
+  - Справа: информационный блок со строгой иерархией:
+    1. Название зала (до 2 строк, гибкая высота);
+    2. Рейтинг `★ 4.8` и количество отзывов в скобках;
+    3. Адрес и расстояние (`пр. Туран 57 · 1.8 км`);
+    4. Краткие характеристики площадки (`Футбол · 5×5 · Душ` / `Баскетбол · Паркет`);
+    5. Ближайшее свободное время (при наличии слотов);
+    6. Нижний ряд: акцентная цена `от 14 000 ₸ / час` и круглая кнопка перехода `→` (`colors.primary`).
+- **Синхронизация контролов экрана ([`ui/mobile/app/(tabs)/items.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/items.tsx))**:
+  - В шапку добавлена прямая навигация на интерактивную карту (`/map`) по кнопке локации;
+  - В строке контролов зафиксированы плашки «Сортировка ⌵» и выбор города «↗ Астана ⌵»;
+  - Подготовлен сбор характеристик зала из реальных данных (`capacity`, `surfaceType`, `sportType`, удобства);
+  - Сохранен отступ `paddingBottom: 110` под плавающий таб-бар с системным размытием Liquid Glass.
+
 ### 🛡️ Заявочная система обновления тарифов подписки (Admin Approval API)
 - **Бэкенд Go API ([`internal/subscription/`](file:///Users/miko/MyProduction/AlanGo/internal/subscription/))**:
   - Создана модель `SubscriptionRequest` и миграции (`000003_subscription_requests.up.sql`);
@@ -18,8 +128,13 @@
     - `GET /api/admin/subscription-requests` (список заявок с фильтром по статусу);
     - `POST /api/admin/subscription-requests/{id}/approve` (одобрение заявки и авто-активация тарифа);
     - `POST /api/admin/subscription-requests/{id}/reject` (отклонение заявки с комментарием);
-- **Клиентский UX в мобильном приложении ([`ui/mobile/app/(tabs)/profile.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/profile.tsx))**:
+- **Клиентский UX в мобильном приложении ([`ui/mobile/app/(tabs)/profile.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/profile.tsx), [`ui/mobile/lib/user.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/user.ts))**:
   - Устранена мгновенная смена тарифа; теперь при выборе нового плана отправляется заявка администратору с диалогом: *«Заявка отправлена 🎉. Ожидайте подтверждения от администратора»*;
+  - Добавлено постоянное сохранение и синхронизация статуса заявки в локальном хранилище `AsyncStorage` (`alango_pending_subscription_request`), исключая сброс статуса после закрытия модалки или перезапуска приложения;
+  - На карточке тарифа (например, «VIP Безлимит») добавлен заметный статус-бейдж `⏳ На рассмотрении`, янтарная окантовка `#F59E0B` и блокировка повторной отправки дублирующей заявки при нажатии;
+  - В баннере ожидания добавлена кнопка «Отозвать» для отмены заявки пользователем;
+  - Реализован эндпоинт `POST /api/subscription/cancel-request` на бэкенде Go;
+  - Доработана функция `fetchMySubscription()` с интеллектуальным слиянием серверного и локального состояния.
   - В профиле отображается статус-баннер: *«Заявка на тариф {ТАРИФ}: Ожидает подтверждения от администратора»*;
 - **Локальная сборка бинарника**:
   - Скомпилирован бинарник для серверов Linux amd64 (`bin/server`).

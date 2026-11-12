@@ -1,14 +1,21 @@
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAppTheme } from "@/theme/ThemeProvider";
 import { updateMyProfile } from "@/lib/user";
+import { loginWithApple } from "@/lib/registration";
 import { getErrorMessage } from "@/lib/errorMessage";
 
 export default function AppleNameScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
+  // Set when the backend answered 422 (new Apple account without a name):
+  // the sign-in is retried with the same, still unused, identity token.
+  const { identityToken, authorizationCode } = useLocalSearchParams<{
+    identityToken?: string;
+    authorizationCode?: string;
+  }>();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -19,8 +26,17 @@ export default function AppleNameScreen() {
     }
     setSaving(true);
     try {
-      await updateMyProfile({ name: name.trim() });
-      router.replace("/(tabs)");
+      if (identityToken) {
+        const data = await loginWithApple({
+          identityToken,
+          authorizationCode: authorizationCode || undefined,
+          fullName: name.trim(),
+        });
+        router.replace(data?.user_info?.role === "business" ? "/business" : "/(tabs)");
+      } else {
+        await updateMyProfile({ name: name.trim() });
+        router.replace("/(tabs)");
+      }
     } catch (err) {
       Alert.alert("Ошибка", getErrorMessage(err));
     } finally {

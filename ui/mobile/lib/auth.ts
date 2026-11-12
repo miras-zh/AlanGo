@@ -21,20 +21,8 @@ const TOKEN_KEY = "alango_token";
 const REFRESH_TOKEN_KEY = "alango_refresh_token";
 const USER_KEY = "alango_user";
 
-export const MOCK_USER: SessionUser = {
-  id: "1",
-  email: "miko@sportrent.kz",
-  name: "Мико Аскаров",
-  role: "client",
-  phone: "+7 (777) 123-45-67",
-  city: "Астана",
-  bio: "Любитель футбола и баскетбола. Бронирую залы каждую неделю.",
-  plan: "pro",
-  avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
-};
-
-let cachedUser: SessionUser | null = MOCK_USER;
-let cachedToken: string | null = "mock_jwt_token_sportrent";
+let cachedUser: SessionUser | null = null;
+let cachedToken: string | null = null;
 let cachedRefreshToken: string | null = null;
 
 const authListeners = new Set<() => void>();
@@ -116,11 +104,11 @@ function decodeExpiry(token: string): number | null {
 }
 
 export function getSessionUser(): SessionUser | null {
-  return cachedUser ?? MOCK_USER;
+  return cachedUser;
 }
 
 export function getAccessToken(): string | null {
-  return cachedToken ?? "mock_jwt_token_sportrent";
+  return cachedToken;
 }
 
 export async function hydrateSession(): Promise<SessionUser | null> {
@@ -131,21 +119,34 @@ export async function hydrateSession(): Promise<SessionUser | null> {
       storageGet(USER_KEY),
     ]);
 
-    cachedToken = token || "mock_jwt_token_sportrent";
-    cachedRefreshToken = refreshToken;
-
-    if (userJson) {
+    if (userJson && token) {
       try {
-        cachedUser = JSON.parse(userJson) as SessionUser;
+        const parsed = JSON.parse(userJson) as SessionUser;
+        // If it was the old mock user from dev testing, wipe it
+        if (
+          parsed.email?.includes("@sportrent.kz") ||
+          parsed.id === "1" ||
+          parsed.name === "Мико Аскаров"
+        ) {
+          await clearSession();
+          return null;
+        }
+        cachedToken = token;
+        cachedRefreshToken = refreshToken;
+        cachedUser = parsed;
       } catch {
-        cachedUser = MOCK_USER;
+        await clearSession();
+        return null;
       }
     } else {
-      cachedUser = MOCK_USER;
+      cachedUser = null;
+      cachedToken = null;
+      cachedRefreshToken = null;
     }
   } catch {
-    cachedUser = MOCK_USER;
-    cachedToken = "mock_jwt_token_sportrent";
+    cachedUser = null;
+    cachedToken = null;
+    cachedRefreshToken = null;
   }
 
   notifyAuth();
