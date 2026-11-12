@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { BusinessAccountCard } from "@/components/BusinessAccountCard";
 import { clearSession, getSessionUser, switchTestAccount } from "@/lib/auth";
 import {
   Arena,
@@ -187,7 +188,27 @@ export default function BusinessProfileScreen() {
           ))}
         </View>
 
-        {/* Dev Account Switcher Section */}
+        {/* Business account management (real accounts) */}
+        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Аккаунт</Text>
+        <BusinessAccountCard />
+        <Pressable
+          style={[styles.switchBtn, styles.switchBtnClient]}
+          onPress={() => {
+            hapticSelection();
+            router.replace("/(tabs)");
+          }}
+        >
+          <Ionicons name="person-outline" size={18} color="#22C55E" />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.switchBtnTitle, { color: "#22C55E" }]}>Открыть приложение как клиент</Text>
+            <Text style={styles.switchBtnSub}>Бронировать залы и смотреть события</Text>
+          </View>
+          <Ionicons name="arrow-forward" size={18} color="#22C55E" />
+        </Pressable>
+
+        {/* Dev Account Switcher Section — development builds only (mock accounts) */}
+        {__DEV__ && (
+          <>
         <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
           Тестовое переключение ролей
         </Text>
@@ -261,6 +282,9 @@ export default function BusinessProfileScreen() {
             <Ionicons name="arrow-forward" size={18} color="#9CA3AF" />
           </Pressable>
         </View>
+
+          </>
+        )}
 
         {/* Logout */}
         <Pressable style={styles.logoutBtn} onPress={handleLogout}>

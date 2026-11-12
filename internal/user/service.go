@@ -151,7 +151,11 @@ func (s *UserService) FindOrCreateByApple(sub, email, name string, emailVerified
 		return nil, ErrAppleNoEmail
 	}
 	if name == "" {
-		return nil, ErrAppleNameRequired
+		if idx := strings.Index(email, "@"); idx > 0 {
+			name = strings.Title(email[:idx])
+		} else {
+			name = "Пользователь Apple"
+		}
 	}
 	newUser := User{
 		FullName: name,

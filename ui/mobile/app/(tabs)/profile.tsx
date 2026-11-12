@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -12,45 +13,85 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { getSessionUser, MOCK_USER, subscribeAuth, switchTestAccount } from "@/lib/auth";
+import { getSessionUser, subscribeAuth, updateSessionUser } from "@/lib/auth";
 import { deleteAccountApi, logoutCurrentSession } from "@/lib/registration";
 import {
+  cancelSubscriptionRequest,
   changeMySubscriptionPlan,
   requestSubscriptionPlan,
   fetchMySubscription,
   SubscriptionInfo,
   updateMyProfile,
+  uploadAvatar,
 } from "@/lib/user";
+import { pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
+import { AvatarCropModal } from "@/components/AvatarCropModal";
+import { BusinessAccountCard } from "@/components/BusinessAccountCard";
+import { colors } from "@/constants/theme";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getErrorMessage } from "@/lib/errorMessage";
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [user, setUser] = useState(getSessionUser() || MOCK_USER);
-  const [name, setName] = useState(user?.name || "Мико Аскаров");
-  const [phone, setPhone] = useState(user?.phone || "+7 (777) 123-45-67");
-  const [city, setCity] = useState(user?.city || "Астана");
+  const [user, setUser] = useState(getSessionUser());
+  const [name, setName] = useState(user?.name || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [city, setCity] = useState(user?.city || "");
   const [saving, setSaving] = useState(false);
-  const [sub, setSub] = useState<SubscriptionInfo | null>({
-    plan: "pro",
-    status: "active",
-    expires_at: "через 25 дней",
-  });
+  const [sub, setSub] = useState<SubscriptionInfo | null>(null);
+  const [cropSource, setCropSource] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const avatarUrl = user?.avatar_url || user?.photo || "";
+  const avatarLetter = (name || user?.name || user?.email || "?").trim().charAt(0).toUpperCase();
+
+  // Pick from the gallery, then hand the JPEG to the circular cropper.
+  const handlePickAvatar = async () => {
+    hapticSelection();
+    try {
+      const picked = await pickImageAsJpeg("avatar");
+      if (picked) setCropSource(picked.uri);
+    } catch (err) {
+      Alert.alert("Ошибка", getErrorMessage(err, "Не удалось открыть галерею"));
+    }
+  };
+
+  const handleCroppedUpload = async (file: PickedPhoto) => {
+    setCropSource(null);
+    setUploadingAvatar(true);
+    try {
+      const me = await uploadAvatar(file);
+      const photo = me?.photo || "";
+      await updateSessionUser({ photo, avatar_url: photo });
+      hapticSuccess();
+    } catch (err) {
+      Alert.alert("Не удалось загрузить фото", getErrorMessage(err));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   useEffect(() => {
     return subscribeAuth(() => {
-      const u = getSessionUser() || MOCK_USER;
+      const u = getSessionUser();
       setUser(u);
-      setName(u.name || "");
-      setPhone(u.phone || "");
-      setCity(u.city || "");
+      setName(u?.name || u?.full_name || "");
+      setPhone(u?.phone || "");
+      setCity(u?.city || "");
+      if (u) {
+        fetchMySubscription().then(setSub).catch(() => {});
+      } else {
+        setSub(null);
+      }
     });
   }, []);
 
   useEffect(() => {
-    fetchMySubscription()
-      .then((s) => setSub(s))
-      .catch(() => {});
+    if (getSessionUser()) {
+      fetchMySubscription()
+        .then((s) => setSub(s))
+        .catch(() => {});
+    }
   }, []);
 
   const handleSave = async () => {
@@ -68,21 +109,61 @@ export default function ProfileScreen() {
 
   const handlePlanChange = async (newPlan: string) => {
     if (newPlan === (sub?.plan || "pro")) {
+      Alert.alert("Текущий тариф", "Этот тариф уже активирован в вашем аккаунте.");
       return;
     }
+
+    if (
+      sub?.pending_request &&
+      sub.pending_request.status === "pending" &&
+      sub.pending_request.requested_plan === newPlan
+    ) {
+      Alert.alert(
+        "Заявка на рассмотрении ⏳",
+        `Ваша заявка на тариф ${newPlan.toUpperCase()} уже отправлена и находится на рассмотрении у администратора.`
+      );
+      return;
+    }
+
     hapticSelection();
     try {
-      await requestSubscriptionPlan(newPlan);
+      const res = await requestSubscriptionPlan(newPlan);
       const fresh = await fetchMySubscription();
       setSub(fresh);
       hapticSuccess();
       Alert.alert(
         "Заявка отправлена 🎉",
-        `Ваша заявка на тариф ${newPlan.toUpperCase()} успешно отправлена. Ожидайте подтверждения от администратора.`
+        res.message || `Ваша заявка на тариф ${newPlan.toUpperCase()} успешно отправлена. Ожидайте подтверждения от администратора.`
       );
     } catch (err) {
       Alert.alert("Ошибка", getErrorMessage(err));
     }
+  };
+
+  const handleCancelPending = () => {
+    hapticImpact();
+    Alert.alert(
+      "Отмена заявки",
+      "Вы действительно хотите отменить отправленную заявку на смену тарифа?",
+      [
+        { text: "Нет", style: "cancel" },
+        {
+          text: "Отменить заявку",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelSubscriptionRequest();
+              const fresh = await fetchMySubscription();
+              setSub(fresh);
+              hapticSuccess();
+              Alert.alert("Заявка отменена", "Заявка на смену тарифа успешно отменена.");
+            } catch (e) {
+              Alert.alert("Ошибка", getErrorMessage(e));
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleLogout = () => {
@@ -149,305 +230,284 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* User Card */}
-        <View style={styles.userCard}>
-          <Image
-            source={{
-              uri:
-                user?.avatar_url ||
-                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
-            }}
-            style={styles.avatar}
-          />
-          <View style={styles.userInfo}>
-            <View style={styles.userNameRow}>
-              <Text style={styles.userName}>{name}</Text>
-              <View style={styles.proBadge}>
-                <Ionicons name="shield-checkmark" size={12} color="#22C55E" />
-                <Text style={styles.proBadgeText}>PRO</Text>
+        {!user ? (
+          /* Unauthenticated Guest State */
+          <>
+            <View style={styles.guestCard}>
+              <View style={styles.guestIconWrap}>
+                <Ionicons name="person-circle-outline" size={54} color="#22C55E" />
               </View>
-            </View>
-            <Text style={styles.userEmail}>{user?.email || "miko@sportrent.kz"}</Text>
-            <Text style={styles.userLocation}>📍 {city}</Text>
-          </View>
-        </View>
-
-        {/* Stats Grid */}
-        <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>14</Text>
-            <Text style={styles.statLabel}>Игр сыграно</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>28 ч</Text>
-            <Text style={styles.statLabel}>На корте</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>★ 4.9</Text>
-            <Text style={styles.statLabel}>Рейтинг</Text>
-          </View>
-        </View>
-
-        {/* Subscription Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrap}>
-              <Ionicons name="flash" size={20} color="#22C55E" />
-            </View>
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={styles.cardTitle}>SportRent Club</Text>
-              <Text style={styles.cardSubtitle}>
-                Скидка 15% на дневные слоты и приоритетное бронирование
+              <Text style={styles.guestTitle}>Войдите в аккаунт</Text>
+              <Text style={styles.guestSubtitle}>
+                Авторизуйтесь, чтобы бронировать площадки, сохранять избранное и управлять абонементами.
               </Text>
+              <Pressable
+                style={styles.guestLoginBtn}
+                onPress={() => {
+                  hapticSelection();
+                  router.push("/login");
+                }}
+              >
+                <Ionicons name="log-in-outline" size={20} color="#0B0F0D" />
+                <Text style={styles.guestLoginBtnText}>Войти / Зарегистрироваться</Text>
+              </Pressable>
             </View>
-          </View>
 
-          {/* Pending Tariff Application Banner */}
-          {sub?.pending_request && sub.pending_request.status === "pending" && (
-            <View style={styles.pendingRequestBanner}>
-              <View style={styles.pendingDot} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.pendingRequestTitle}>
-                  Заявка на тариф {sub.pending_request.requested_plan.toUpperCase()}
-                </Text>
-                <Text style={styles.pendingRequestSub}>
-                  Ожидает подтверждения от администратора
-                </Text>
-              </View>
-              <Ionicons name="time-outline" size={18} color="#F59E0B" />
-            </View>
-          )}
-
-          <View style={styles.planSelector}>
-            {[
-              { id: "standard", name: "Базовый", price: "0 ₸" },
-              { id: "pro", name: "PRO Клуб", price: "4 990 ₸ / мес" },
-              { id: "vip", name: "VIP Безлимит", price: "12 990 ₸ / мес" },
-            ].map((p) => {
-              const active = (sub?.plan || "pro") === p.id;
-              return (
-                <Pressable
-                  key={p.id}
-                  style={[styles.planChip, active && styles.planChipActive]}
-                  onPress={() => handlePlanChange(p.id)}
-                >
-                  <Text style={[styles.planName, active && styles.planNameActive]}>
-                    {p.name}
-                  </Text>
-                  <Text style={[styles.planPrice, active && styles.planPriceActive]}>
-                    {p.price}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Sports Subscriptions Card */}
-        <Pressable
-          style={[styles.card, { borderColor: "#059669", backgroundColor: "#111814" }]}
-          onPress={() => {
-            hapticSelection();
-            router.push("/subscriptions");
-          }}
-        >
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardIconWrap, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
-              <Ionicons name="ticket" size={20} color="#10b981" />
-            </View>
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={styles.cardTitle}>Спортивные абонементы</Text>
-              <Text style={styles.cardSubtitle}>
-                Пакеты игр (8-12 тренировок), экономия до 25% и QR-пропуск
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#10b981" />
-          </View>
-        </Pressable>
-
-        {/* Business Arena Switcher Card */}
-        <View style={[styles.card, { borderColor: "rgba(34, 197, 94, 0.3)", backgroundColor: "#111814" }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardIconWrap, { backgroundColor: "rgba(34, 197, 94, 0.15)" }]}>
-              <Ionicons name="business" size={20} color="#22C55E" />
-            </View>
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={styles.cardTitle}>Бизнес-кабинет (Аренда залов)</Text>
-              <Text style={styles.cardSubtitle}>
-                Управление спорткомплексом, залами, ценами и графиком
-              </Text>
-            </View>
-          </View>
-
-          <Text style={{ fontSize: 12, color: "#8E9B94", marginTop: 8, marginBottom: 12 }}>
-            Быстрый вход в тестовые бизнес-аккаунты (3 зала: Футбол, Баскетбол, Теннис):
-          </Text>
-
-          <View style={{ gap: 8 }}>
+            {/* Sports Subscriptions Card */}
             <Pressable
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#161F1A",
-                padding: 12,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: "rgba(34, 197, 94, 0.3)",
-                gap: 10,
-              }}
-              onPress={async () => {
-                hapticSelection();
-                await switchTestAccount("dev.arena1");
-                router.push("/business");
-              }}
-            >
-              <Ionicons name="business-outline" size={20} color="#22C55E" />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13, fontWeight: "700", color: "#FFFFFF" }}>
-                  🏢 dev.arena1 (Astana Arena Sport)
-                </Text>
-                <Text style={{ fontSize: 11, color: "#6B7C72" }}>
-                  Пароль: 12345 • 3 зала • ул. Нур-Султан 12
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#22C55E" />
-            </Pressable>
-
-            <Pressable
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#161F1A",
-                padding: 12,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: "rgba(96, 165, 250, 0.3)",
-                gap: 10,
-              }}
-              onPress={async () => {
-                hapticSelection();
-                await switchTestAccount("dev.arena2");
-                router.push("/business");
-              }}
-            >
-              <Ionicons name="business-outline" size={20} color="#60A5FA" />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13, fontWeight: "700", color: "#FFFFFF" }}>
-                  🏢 dev.arena2 (Nomad Pro Complex)
-                </Text>
-                <Text style={{ fontSize: 11, color: "#6B7C72" }}>
-                  Пароль: 12345 • 3 зала • пр. Туран 54
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#60A5FA" />
-            </Pressable>
-
-            <Pressable
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#161F1A",
-                padding: 12,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: "rgba(156, 163, 175, 0.3)",
-                gap: 10,
-              }}
-              onPress={async () => {
-                hapticSelection();
-                await switchTestAccount("guest");
-              }}
-            >
-              <Ionicons name="sparkles" size={20} color="#9CA3AF" />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13, fontWeight: "700", color: "#FFFFFF" }}>
-                  Войти как гость
-                </Text>
-                <Text style={{ fontSize: 11, color: "#6B7C72" }}>
-                  Свободный просмотр 5 экранов без роли бизнеса
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
-            </Pressable>
-
-            <Pressable
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#1B221E",
-                padding: 12,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: "rgba(34, 197, 94, 0.4)",
-                gap: 10,
-                marginTop: 4,
-              }}
+              style={[styles.card, { borderColor: "#059669", backgroundColor: "#111814" }]}
               onPress={() => {
                 hapticSelection();
-                router.push("/login");
+                router.push("/subscriptions");
               }}
             >
-              <Ionicons name="log-in-outline" size={20} color="#22C55E" />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13, fontWeight: "700", color: "#22C55E" }}>
-                  Экран входа / Авторизация
-                </Text>
-                <Text style={{ fontSize: 11, color: "#8E9B94" }}>
-                  Вход по логину или выбор тестового аккаунта
-                </Text>
+              <View style={styles.cardHeader}>
+                <View style={[styles.cardIconWrap, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
+                  <Ionicons name="ticket" size={20} color="#10b981" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.cardTitle}>Спортивные абонементы</Text>
+                  <Text style={styles.cardSubtitle}>
+                    Пакеты игр (8-12 тренировок), экономия до 25% и QR-пропуск
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#10b981" />
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#22C55E" />
             </Pressable>
-          </View>
-        </View>
+          </>
+        ) : (
+          /* Authenticated User State */
+          <>
+            {/* User Card */}
+            <View style={styles.userCard}>
+              <View style={styles.avatarWrap}>
+                <Pressable onPress={handlePickAvatar} disabled={uploadingAvatar}>
+                  {avatarUrl ? (
+                    <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                  ) : (
+                    <View style={[styles.avatar, styles.avatarFallback]}>
+                      <Text style={styles.avatarLetter}>{avatarLetter}</Text>
+                    </View>
+                  )}
+                  {uploadingAvatar ? (
+                    <View style={[styles.avatar, styles.avatarOverlay]}>
+                      <ActivityIndicator color={colors.textPrimary} />
+                    </View>
+                  ) : null}
+                </Pressable>
+                <Pressable
+                  onPress={handlePickAvatar}
+                  disabled={uploadingAvatar}
+                  hitSlop={8}
+                  style={styles.avatarEditBadge}
+                >
+                  <Ionicons name="pencil" size={12} color={colors.background} />
+                </Pressable>
+              </View>
+              <View style={styles.userInfo}>
+                <View style={styles.userNameRow}>
+                  <Text style={styles.userName}>{name || user.email?.split("@")[0] || "Пользователь"}</Text>
+                  {sub?.plan && sub.plan !== "standard" && (
+                    <View style={styles.proBadge}>
+                      <Ionicons name="shield-checkmark" size={12} color="#22C55E" />
+                      <Text style={styles.proBadgeText}>{sub.plan.toUpperCase()}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.userEmail}>{user.email}</Text>
+                {city ? <Text style={styles.userLocation}>📍 {city}</Text> : null}
+              </View>
+            </View>
 
-        {/* Edit Profile Form */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Персональные данные</Text>
+            {/* Stats Grid */}
+            <View style={styles.statsRow}>
+              <View style={styles.statBox}>
+                <Text style={styles.statNumber}>14</Text>
+                <Text style={styles.statLabel}>Игр сыграно</Text>
+              </View>
+              <View style={styles.statBox}>
+                <Text style={styles.statNumber}>28 ч</Text>
+                <Text style={styles.statLabel}>На корте</Text>
+              </View>
+              <View style={styles.statBox}>
+                <Text style={styles.statNumber}>★ 4.9</Text>
+                <Text style={styles.statLabel}>Рейтинг</Text>
+              </View>
+            </View>
 
-          <Text style={styles.label}>ФИО</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-            placeholderTextColor="#6B7C72"
-          />
+            {/* Subscription Card */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardIconWrap}>
+                  <Ionicons name="flash" size={20} color="#22C55E" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.cardTitle}>SportRent Club</Text>
+                  <Text style={styles.cardSubtitle}>
+                    Скидка 15% на дневные слоты и приоритетное бронирование
+                  </Text>
+                </View>
+              </View>
 
-          <Text style={styles.label}>Телефон</Text>
-          <TextInput
-            value={phone}
-            onChangeText={setPhone}
-            style={styles.input}
-            placeholderTextColor="#6B7C72"
-            keyboardType="phone-pad"
-          />
+              {/* Pending Tariff Application Banner */}
+              {sub?.pending_request && sub.pending_request.status === "pending" && (
+                <View style={styles.pendingRequestBanner}>
+                  <View style={styles.pendingDot} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.pendingRequestTitle}>
+                      Заявка на {sub.pending_request.requested_plan.toUpperCase()}
+                    </Text>
+                    <Text style={styles.pendingRequestSub}>
+                      Ожидает подтверждения от администратора
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={handleCancelPending}
+                    style={styles.cancelRequestBtn}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.cancelRequestBtnText}>Отозвать</Text>
+                  </Pressable>
+                </View>
+              )}
 
-          <Text style={styles.label}>Город</Text>
-          <TextInput
-            value={city}
-            onChangeText={setCity}
-            style={styles.input}
-            placeholderTextColor="#6B7C72"
-          />
+              <View style={styles.planSelector}>
+                {[
+                  { id: "standard", name: "Базовый", price: "0 ₸" },
+                  { id: "pro", name: "PRO Клуб", price: "4 990 ₸ / мес" },
+                  { id: "vip", name: "VIP Безлимит", price: "12 990 ₸ / мес" },
+                ].map((p) => {
+                  const active = (sub?.plan || "standard") === p.id;
+                  const isPending =
+                    sub?.pending_request?.status === "pending" &&
+                    sub.pending_request.requested_plan === p.id;
 
-          <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-            <Text style={styles.saveBtnText}>{saving ? "Сохраняем..." : "Сохранить изменения"}</Text>
-          </Pressable>
-        </View>
+                  return (
+                    <Pressable
+                      key={p.id}
+                      style={[
+                        styles.planChip,
+                        active && styles.planChipActive,
+                        isPending && styles.planChipPending,
+                      ]}
+                      onPress={() => handlePlanChange(p.id)}
+                    >
+                      <View style={styles.planNameWrap}>
+                        <Text
+                          style={[
+                            styles.planName,
+                            active && styles.planNameActive,
+                            isPending && styles.planNamePending,
+                          ]}
+                        >
+                          {p.name}
+                        </Text>
+                        {isPending && (
+                          <View style={styles.pendingBadgeMini}>
+                            <Ionicons name="time-outline" size={11} color="#F59E0B" />
+                            <Text style={styles.pendingBadgeMiniText}>На рассмотрении</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.planPrice,
+                          active && styles.planPriceActive,
+                          isPending && styles.planPricePending,
+                        ]}
+                      >
+                        {p.price}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
 
-        {/* Account Safety Actions (Apple Guideline 5.1.1) */}
-        <View style={styles.accountActionsCard}>
-          <Pressable style={styles.logoutBtn} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.logoutBtnText}>Выйти из аккаунта</Text>
-          </Pressable>
+            {/* Sports Subscriptions Card */}
+            <Pressable
+              style={[styles.card, { borderColor: "#059669", backgroundColor: "#111814" }]}
+              onPress={() => {
+                hapticSelection();
+                router.push("/subscriptions");
+              }}
+            >
+              <View style={styles.cardHeader}>
+                <View style={[styles.cardIconWrap, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
+                  <Ionicons name="ticket" size={20} color="#10b981" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.cardTitle}>Спортивные абонементы</Text>
+                  <Text style={styles.cardSubtitle}>
+                    Пакеты игр (8-12 тренировок), экономия до 25% и QR-пропуск
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#10b981" />
+              </View>
+            </Pressable>
 
-          <Pressable style={styles.deleteAccountBtn} onPress={handleDeleteAccount}>
-            <Ionicons name="trash-outline" size={17} color="#EF4444" />
-            <Text style={styles.deleteAccountBtnText}>Удалить аккаунт</Text>
-          </Pressable>
-        </View>
+            {/* Business account: create / open / disable / enable */}
+            <BusinessAccountCard />
+
+            {/* Edit Profile Form */}
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Персональные данные</Text>
+
+              <Text style={styles.label}>ФИО</Text>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                style={styles.input}
+                placeholder="Ваше имя"
+                placeholderTextColor="#6B7C72"
+              />
+
+              <Text style={styles.label}>Телефон</Text>
+              <TextInput
+                value={phone}
+                onChangeText={setPhone}
+                style={styles.input}
+                placeholder="+7 (___) ___-__-__"
+                placeholderTextColor="#6B7C72"
+                keyboardType="phone-pad"
+              />
+
+              <Text style={styles.label}>Город</Text>
+              <TextInput
+                value={city}
+                onChangeText={setCity}
+                style={styles.input}
+                placeholder="Город"
+                placeholderTextColor="#6B7C72"
+              />
+
+              <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+                <Text style={styles.saveBtnText}>{saving ? "Сохраняем..." : "Сохранить изменения"}</Text>
+              </Pressable>
+            </View>
+
+            {/* Account Safety Actions (Apple Guideline 5.1.1) */}
+            <View style={styles.accountActionsCard}>
+              <Pressable style={styles.logoutBtn} onPress={handleLogout}>
+                <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.logoutBtnText}>Выйти из аккаунта</Text>
+              </Pressable>
+
+              <Pressable style={styles.deleteAccountBtn} onPress={handleDeleteAccount}>
+                <Ionicons name="trash-outline" size={17} color="#EF4444" />
+                <Text style={styles.deleteAccountBtnText}>Удалить аккаунт</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
       </ScrollView>
+      {cropSource ? (
+        <AvatarCropModal
+          source={cropSource}
+          onCancel={() => setCropSource(null)}
+          onSave={handleCroppedUpload}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -485,6 +545,55 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 
+  // Guest Card
+  guestCard: {
+    backgroundColor: "#141A17",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#1F2823",
+    padding: 24,
+    alignItems: "center",
+  },
+  guestIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(34, 197, 94, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  guestTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  guestSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#8E9B94",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  guestLoginBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#22C55E",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    width: "100%",
+  },
+  guestLoginBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0B0F0D",
+  },
+
   // User Card
   userCard: {
     backgroundColor: "#141A17",
@@ -496,12 +605,47 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
   },
+  avatarWrap: {
+    width: 68,
+    height: 68,
+  },
   avatar: {
     width: 68,
     height: 68,
     borderRadius: 34,
     borderWidth: 2,
-    borderColor: "#22C55E",
+    borderColor: colors.primary,
+  },
+  avatarFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceElevated,
+  },
+  avatarLetter: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: colors.primary,
+  },
+  avatarOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  avatarEditBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.surface,
   },
   userInfo: {
     flex: 1,
@@ -645,6 +789,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#132E1D",
     borderColor: "#22C55E",
   },
+  planChipPending: {
+    backgroundColor: "rgba(245, 158, 11, 0.08)",
+    borderColor: "#F59E0B",
+  },
+  planNameWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   planName: {
     fontSize: 14,
     fontWeight: "600",
@@ -654,6 +807,24 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "700",
   },
+  planNamePending: {
+    color: "#FBBF24",
+    fontWeight: "700",
+  },
+  pendingBadgeMini: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(245, 158, 11, 0.2)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  pendingBadgeMiniText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#F59E0B",
+  },
   planPrice: {
     fontSize: 13,
     color: "#6B7C72",
@@ -661,6 +832,23 @@ const styles = StyleSheet.create({
   planPriceActive: {
     color: "#22C55E",
     fontWeight: "700",
+  },
+  planPricePending: {
+    color: "#F59E0B",
+    fontWeight: "700",
+  },
+  cancelRequestBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.3)",
+  },
+  cancelRequestBtnText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#F59E0B",
   },
 
   // Form

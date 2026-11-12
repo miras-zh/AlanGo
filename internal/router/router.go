@@ -150,6 +150,10 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/profile", userHandler.DeleteAccount).Methods("DELETE")
 	authRouter.HandleFunc("/profile/avatar", userHandler.UploadAvatar).Methods("POST")
 	authRouter.HandleFunc("/profile/push-token", userHandler.UpdatePushToken).Methods("PUT")
+	authRouter.HandleFunc("/profile/business/disable", userHandler.DisableBusiness).Methods("POST")
+	authRouter.HandleFunc("/profile/business/enable", userHandler.EnableBusiness).Methods("POST")
+	authRouter.HandleFunc("/business/onboard", userHandler.OnboardBusiness).Methods("POST")
+	authRouter.HandleFunc("/business/me", userHandler.GetBusiness).Methods("GET")
 
 	authRouter.HandleFunc("/realtime/ticket", realtimeHandler.MintTicket).Methods("POST")
 	authRouter.HandleFunc("/notifications", notificationHandler.List).Methods("GET")
@@ -157,6 +161,7 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 
 	authRouter.HandleFunc("/subscription", subscriptionHandler.Get).Methods("GET")
 	authRouter.HandleFunc("/subscription/request", subscriptionHandler.RequestChange).Methods("POST")
+	authRouter.HandleFunc("/subscription/cancel-request", subscriptionHandler.CancelRequest).Methods("POST")
 	authRouter.HandleFunc("/subscription/change", subscriptionHandler.Change).Methods("POST")
 
 	// Admin API for future Admin Panel

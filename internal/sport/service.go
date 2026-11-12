@@ -23,7 +23,8 @@ func NewService(db *gorm.DB) *Service {
 // ============================================================================
 
 func (s *Service) ListArenas(ctx context.Context, q, city, district, sport string) ([]Arena, error) {
-	tx := s.db.WithContext(ctx).Model(&Arena{})
+	// Arenas of owners who disabled their business account stay out of the catalog.
+	tx := s.db.WithContext(ctx).Model(&Arena{}).Where("hidden = ?", false)
 
 	if city != "" {
 		tx = tx.Where("LOWER(city) = ?", strings.ToLower(city))
@@ -94,7 +95,8 @@ func (s *Service) ListHalls(ctx context.Context, sport string, arenaID uint, q s
 	tx := s.db.WithContext(ctx).
 		Table("halls").
 		Select("halls.*, arenas.title as arena_title, arenas.address as arena_address").
-		Joins("JOIN arenas ON arenas.id = halls.arena_id")
+		Joins("JOIN arenas ON arenas.id = halls.arena_id").
+		Where("arenas.hidden = ?", false)
 
 	if arenaID > 0 {
 		tx = tx.Where("halls.arena_id = ?", arenaID)

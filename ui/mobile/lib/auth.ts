@@ -7,7 +7,9 @@ export interface SessionUser {
   name: string;
   role?: string;
   arenaId?: number;
+  business_role?: string;
   avatar_url?: string;
+  photo?: string;
   phone?: string;
   bio?: string;
   city?: string;
@@ -122,11 +124,12 @@ export async function hydrateSession(): Promise<SessionUser | null> {
     if (userJson && token) {
       try {
         const parsed = JSON.parse(userJson) as SessionUser;
-        // If it was the old mock user from dev testing, wipe it
+        // If it was the old mock user from dev testing, wipe it. Never match
+        // by id: real ids start at 1, so the first real user was logged out
+        // on every launch.
         if (
           parsed.email?.includes("@sportrent.kz") ||
-          parsed.id === "1" ||
-          parsed.name === "Мико Аскаров"
+          (token.startsWith("mock_jwt_token") && parsed.role !== "guest" && !parsed.staffMemberId)
         ) {
           await clearSession();
           return null;

@@ -133,6 +133,12 @@ func (s *Service) ListRequests(status string) ([]SubscriptionRequest, error) {
 	return list, nil
 }
 
+func (s *Service) CancelRequest(userID uint) error {
+	return s.DB.Model(&SubscriptionRequest{}).
+		Where("user_id = ? AND status = ?", userID, "pending").
+		Update("status", "cancelled").Error
+}
+
 func (s *Service) ApproveRequest(requestID uint, adminNotes string) (*SubscriptionRequest, error) {
 	var req SubscriptionRequest
 	if err := s.DB.Where("id = ?", requestID).Take(&req).Error; err != nil {

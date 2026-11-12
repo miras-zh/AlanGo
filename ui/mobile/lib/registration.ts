@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import { saveSession, clearSession } from "@/lib/auth";
+import { saveSession, clearSession, type SessionUser } from "@/lib/auth";
 
 export type StartRegistrationRequest = {
   full_name: string;
@@ -116,9 +116,13 @@ export async function logoutCurrentSession(): Promise<void> {
   }
 }
 
-// Shared by Apple / Google sign-in: the backend answers both with
-// { token, refresh_token, email, user_info }.
-async function persistSocialAuth(data: any, fallbackName: string): Promise<void> {
+// Shared by Apple / Google sign-in and business-mode switches: the backend
+// answers all of them with { token, refresh_token, email, user_info }.
+export async function persistAuthResponse(
+  data: any,
+  fallbackName: string,
+  extra: Partial<SessionUser> = {},
+): Promise<void> {
   if (!data?.token) {
     throw new Error("Сервер не вернул токен авторизации");
   }
@@ -132,6 +136,7 @@ async function persistSocialAuth(data: any, fallbackName: string): Promise<void>
       email: data.email || user.email || "",
       name: user.full_name || user.name || fallbackName,
       role: user.role || "client",
+      ...extra,
     },
   });
 }
@@ -146,13 +151,13 @@ export async function loginWithApple(payload: {
     authorization_code: payload.authorizationCode || "",
     full_name: payload.fullName || "",
   });
-  await persistSocialAuth(res.data, payload.fullName || "Пользователь Apple");
+  await persistAuthResponse(res.data, payload.fullName || "Пользователь Apple");
   return res.data;
 }
 
 export async function loginWithGoogle(idToken: string): Promise<any> {
   const res = await api.post<any>("/api/auth/google", { id_token: idToken });
-  await persistSocialAuth(res.data, "Пользователь Google");
+  await persistAuthResponse(res.data, "Пользователь Google");
   return res.data;
 }
 

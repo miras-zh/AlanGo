@@ -25,6 +25,8 @@ type Arena struct {
 	HallsCount      int            `gorm:"column:halls_count;not null;default:0" json:"halls_count"`
 	MinPricePerHour int            `gorm:"column:min_price_per_hour;not null;default:12000" json:"min_price_per_hour"`
 	Sports          pq.StringArray `gorm:"column:sports;type:text[];not null;default:'{}'" json:"sports"`
+	VenueType       string         `gorm:"column:venue_type;type:varchar(32);not null;default:'complex'" json:"venue_type"`
+	Hidden          bool           `gorm:"column:hidden;not null;default:false" json:"hidden"`
 	CreatedAt       time.Time      `gorm:"column:created_at;default:now()" json:"created_at"`
 	UpdatedAt       time.Time      `gorm:"column:updated_at;default:now()" json:"updated_at"`
 

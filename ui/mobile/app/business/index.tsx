@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { getSessionUser, switchTestAccount } from "@/lib/auth";
+import { fetchMyBusiness, type BusinessArena } from "@/lib/business";
 import {
   Arena,
   Booking,
@@ -35,7 +36,18 @@ export default function BusinessDashboardScreen() {
   const loadData = useCallback(async () => {
     const currentUser = getSessionUser();
     setUser(currentUser);
-    const arenaId = currentUser?.arenaId || 1;
+
+    // Real business owners: resolve *their* arena on the server. The old
+    // fallback to arena #1 showed someone else's complex to every new owner.
+    let ownArena: BusinessArena | null = null;
+    if (currentUser && !String(currentUser.id).startsWith("staff_") && currentUser.role === "business") {
+      try {
+        ownArena = (await fetchMyBusiness()).arena;
+      } catch {
+        // offline — fall back to the cached session arenaId below
+      }
+    }
+    const arenaId = ownArena?.id ?? currentUser?.arenaId;
 
     const [allArenas, allHalls, allBookings] = await Promise.all([
       getStoredArenas(),
@@ -43,9 +55,31 @@ export default function BusinessDashboardScreen() {
       getStoredBookings(),
     ]);
 
-    const myArena = allArenas.find((a) => a.id === arenaId) || allArenas[0];
-    const myHalls = allHalls.filter((h) => h.arenaId === arenaId);
-    const myBookings = allBookings.filter((b) => b.arenaId === arenaId);
+    const listed = arenaId ? allArenas.find((a) => a.id === arenaId) : undefined;
+    const myArena: Arena | null =
+      listed ??
+      (ownArena
+        ? {
+            id: ownArena.id,
+            ownerId: Number(currentUser?.id) || 0,
+            ownerEmail: currentUser?.email ?? "",
+            title: ownArena.title,
+            category: ownArena.category,
+            city: ownArena.city,
+            address: ownArena.address,
+            phone: "",
+            rating: 0,
+            reviewsCount: 0,
+            imageUrl: "",
+            description: "",
+            features: [],
+            workingHours: "",
+            hallsCount: ownArena.halls_count,
+            sports: ownArena.sports as Arena["sports"],
+          }
+        : null);
+    const myHalls = arenaId ? allHalls.filter((h) => h.arenaId === arenaId) : [];
+    const myBookings = arenaId ? allBookings.filter((b) => b.arenaId === arenaId) : [];
 
     setArena(myArena);
     setHalls(myHalls);
@@ -85,7 +119,7 @@ export default function BusinessDashboardScreen() {
           </Text>
           <View style={styles.cityRow}>
             <Ionicons name="location-sharp" size={13} color="#22C55E" />
-            <Text style={styles.cityText}>{arena?.address || "г. Астана"}</Text>
+            <Text style={styles.cityText}>{arena?.address || (arena?.city ? `г. ${arena.city}` : "Адрес не указан")}</Text>
             {user?.staffMemberId && (
               <View style={styles.staffActivePill}>
                 <Ionicons name="person-circle" size={13} color="#10B981" />
@@ -107,7 +141,8 @@ export default function BusinessDashboardScreen() {
         </Pressable>
       </View>
 
-      {/* Dev Switcher Bar */}
+      {/* Dev Switcher Bar — development builds only (mock accounts) */}
+      {__DEV__ && (
       <View style={styles.devBar}>
         <Text style={styles.devBarLabel}>Тестовый вход:</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.devChips}>
@@ -153,6 +188,7 @@ export default function BusinessDashboardScreen() {
           </Pressable>
         </ScrollView>
       </View>
+      )}
 
       <ScrollView
         contentContainerStyle={styles.scroll}

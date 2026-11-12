@@ -11,9 +11,11 @@ import { hydrateSession } from "@/lib/auth";
 import { initPushNotifications } from "@/lib/push";
 import { trackFirstLaunchOnce, startOnlineHeartbeat, stopOnlineHeartbeat } from "@/lib/analytics";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
+import { AnimatedSplashScreen } from "@/components/AnimatedSplashScreen";
+import { colors as themeColors } from "@/constants/theme";
 
 function RootNavigator() {
-  const { isDark, colors } = useAppTheme();
+  const { colors } = useAppTheme();
 
   useEffect(() => {
     let mounted = true;
@@ -32,15 +34,16 @@ function RootNavigator() {
 
   return (
     <>
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: colors.bg },
+          contentStyle: { backgroundColor: themeColors.background },
         }}
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="business" />
+        <Stack.Screen name="business-onboarding" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
         <Stack.Screen name="hall/[id]" />
         <Stack.Screen name="arena/[id]" />
         <Stack.Screen name="login" options={{ presentation: "modal" }} />
@@ -60,7 +63,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <I18nProvider>
-          <RootNavigator />
+          <AnimatedSplashScreen>
+            <RootNavigator />
+          </AnimatedSplashScreen>
         </I18nProvider>
       </ThemeProvider>
     </SafeAreaProvider>

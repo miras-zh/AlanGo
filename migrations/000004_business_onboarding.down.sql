@@ -1,0 +1,3 @@
+DROP INDEX IF EXISTS idx_arenas_hidden;
+ALTER TABLE arenas DROP COLUMN IF EXISTS hidden;
+ALTER TABLE arenas DROP COLUMN IF EXISTS venue_type;

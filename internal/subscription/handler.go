@@ -83,6 +83,26 @@ func (h *Handler) RequestChange(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// CancelRequest cancels the user's active pending subscription request
+func (h *Handler) CancelRequest(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.GetUserID(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := h.service.CancelRequest(userID); err != nil {
+		http.Error(w, "failed to cancel request", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"ok":      true,
+		"message": "Заявка успешно отменена",
+	})
+}
+
 func (h *Handler) Change(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.GetUserID(r)
 	if !ok {

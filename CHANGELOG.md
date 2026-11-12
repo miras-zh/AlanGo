@@ -9,6 +9,43 @@
 
 ## [Unreleased]
 
+### 💼 Бизнес-аккаунт: самостоятельное открытие, отключение и включение (по образцу Vison)
+- **Задача**: клиент сам открывает бизнес-аккаунт через мастер (тип объекта → название → виды спорта → город → подтверждение), попадает в бизнес-кабинет, может отключить бизнес и включить его обратно без потери данных.
+- **Миграция `000004_business_onboarding`**: в `arenas` добавлены `venue_type` (`complex` | `single` | `outdoor`) и `hidden` (арена скрыта из каталога), индекс `idx_arenas_hidden`.
+- **Бэкенд ([`internal/user/business.go`](file:///Users/miko/MyProduction/AlanGo/internal/user/business.go))**:
+  - `POST /api/business/onboard`: создаёт арену владельца (`owner_id`). Для «Отдельного зала» и «Открытой площадки» сразу создаётся один зал. Роль меняется на `business`, ответ — новая пара токенов, `user_info` и `arena`. Валидация формата, названия (до 120 байт), видов спорта (дубликаты убираются, максимум 12) и города. Повторный onboard → 409.
+  - `GET /api/business/me`: роль, `business_role` и своя арена.
+  - `POST /api/profile/business/disable`: роль → `client`, арена `hidden = true`, данные сохраняются.
+  - `POST /api/profile/business/enable`: роль → `business`, арена снова видна, без повторного онбординга.
+  - При смене роли старый access-токен отзывается (blacklist), выдаётся новый. Действия пишутся в аудит (`role_change`).
+  - Публичные `/api/arenas` и `/api/halls` больше не отдают скрытые арены и их залы.
+- **Мобильное приложение**:
+  - [`lib/business.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/business.ts): API и справочники (типы объектов, виды спорта).
+  - [`components/BusinessAccountCard.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/BusinessAccountCard.tsx): карточка в профиле с тремя состояниями — «Создать бизнес-аккаунт», «Активен» (открыть кабинет / отключить с подтверждением), «Отключён» (включить). Добавлена и в профиль бизнес-кабинета.
+  - [`app/business-onboarding.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/business-onboarding.tsx): мастер из 5 шагов с прогресс-баром, экраном «Поздравляем!» и автопереходом в бизнес-кабинет.
+  - `lib/registration.ts`: общий `persistAuthResponse` (вход через Apple/Google и смена бизнес-режима).
+- **🐛 Исправлено: бизнес-кабинет показывал чужую арену.** `app/business/index.tsx` подставлял арену #1 («Astana Arena Sport»), если `arenaId` не задан. Теперь своя арена берётся с сервера (`/api/business/me`).
+- **Тестовые переключатели аккаунтов** (`dev.arena1`, `dev.client`, гость) в бизнес-кабинете показываются только в dev-сборках (`__DEV__`), в TestFlight/App Store их нет.
+- **Проверка**: на временных Postgres и Redis (Docker) прогнан полный сценарий API: onboard → старый токен 401 → повторный onboard 409 → `/business/me` → арена в каталоге → disable (арена и зал скрыты) → повторный disable 400 → enable. `go build`, `go test ./internal/...` и `tsc` проходят. В симуляторе пройдены все 5 шагов мастера. Подтверждение на боевом сервере вернуло `404`, потому что бэкенд ещё не задеплоен.
+- **Осталось**: деплой бэкенда (миграция 000004 применится автоматически при старте). Разделы кабинета (залы, график, брони) пока на тестовых данных — перевести их на реальное API.
+
+### 🧾 Инцидент: `RequestUnknownException` при входе через Apple (симулятор, 2026-11-12)
+- **Симптом**: под кнопкой «Вход с Apple» красный текст `RequestUnknownException: The authorization attempt failed for an unknown reason (ExpoAppleAuthentication/AppleAuthenticationExceptions.swift:61)`.
+- **Причина**: это системная ошибка iOS `ASAuthorizationError.unknown` (1000), а не баг приложения. Apple ID в симуляторе потребовал повторной проверки пароля («Проверка Аккаунта Apple»), а диалог закрыли кнопкой «Не сейчас». iOS прервал авторизацию с кодом `unknown`.
+- **Решение**: ввести пароль Apple ID в «Настройках» симулятора и повторить вход.
+- **Недочёт UX (не исправлен)**: пользователю показывается сырой английский текст исключения вместо понятного сообщения на русском.
+- **Итог (18:21)**: вход через Apple в симуляторе прошёл. Пароль запрашивается при каждом входе, потому что в «Настройках» симулятора указано «Доверенные устройства недоступны»: симулятор не считается доверенным устройством Apple ID, и Apple каждый раз перепроверяет пароль. На реальном iPhone так не происходит.
+- **Аватар проверен пользователем**: буква «M» по умолчанию, карандаш, выбор фото, круговая обрезка, сохранение. Фото загрузилось на сервер и сразу отобразилось в профиле.
+- **Продолжение**: при повторном вводе пароля Apple ID iOS показал системное окно «Сбой подключения». Проверено: с Mac серверы Apple (`idmsa.apple.com`, `appleid.apple.com`) и API AlanGo доступны, VPN (VPN Proxy Master, VPNSuper) отключены, маршрут через `en0`. Значит, сбой внутри службы Apple ID симулятора (`akd`), к приложению он не относится. Рекомендация: перезагрузить симулятор (Device → Restart) или выйти и снова войти в Apple ID в «Настройках» симулятора. Для проверки остальных функций (аватар и т. п.) можно войти по email.
+
+### 🖼️ Аватар профиля: загрузка, обрезка, буква по умолчанию
+- **Аватар по умолчанию ([`app/(tabs)/profile.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/(tabs)/profile.tsx))**: убрана чужая заглушка с Unsplash. Без фото показывается первая буква имени на `colors.surfaceElevated` с обводкой `colors.primary`.
+- **Значок-карандаш** в углу аватара: нажатие на него или на аватар открывает галерею. Во время загрузки поверх аватара крутится индикатор.
+- **[`lib/pickImage.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/pickImage.ts)** (из Vison): выбор фото, уменьшение до 2048px и перекодировка в JPEG (HEIC с iPhone сервер не принимает).
+- **[`components/AvatarCropModal.tsx`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/AvatarCropModal.tsx)** (из Vison, на токенах AlanGo): круговая обрезка с перемещением и масштабом, результат — JPEG 640×640. Загружается через существующий `POST /api/profile/avatar`, новый URL сразу пишется в сессию (`photo` / `avatar_url`).
+- **Зависимость**: `expo-image-manipulator ~57.0.22` (нативный модуль, потребовались `pod install` и пересборка iOS).
+- **🐛 Исправлено: первый реальный пользователь разлогинивался при каждом запуске.** `hydrateSession` в [`lib/auth.ts`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/lib/auth.ts) удалял сессию с `id === "1"` как «мок». Теперь мок-сессии определяются по токену `mock_jwt_token…` и email `@sportrent.kz`.
+
 ### 🍏 Вход через Apple и Google (нативная сборка)
 - **Причина ошибок `signInAsync is not available` / `RNCWebViewModule could not be found`**: приложение запускалось в Expo Go и из устаревшего бинарника `com.studio.alango` (build 1, без `react-native-webview`). Старая сборка удалена из симулятора, установлен свежий Debug-бинарник `kz.alango.app`; нативные модули Apple / Google / WebView подтверждены.
 - **Общий компонент [`SocialAuthButtons`](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/SocialAuthButtons.tsx)** на экранах входа и регистрации вместо дублированного Apple-кода. Каждая кнопка показывается только при наличии нативного модуля и конфига, редирект в `/business` или `/(tabs)` по роли.
