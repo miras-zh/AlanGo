@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { TabBarGlassBackground } from "@/components/TabBarGlassBackground";
 import { hapticSelection } from "@/lib/haptics";
+import { colors } from "@/constants/theme";
 
 const TAB_CONFIG: Record<
   string,
@@ -80,7 +81,7 @@ export function LiquidGlassTabBar(props: any) {
                 <Ionicons
                   name={isFocused ? config.iconFocused : config.icon}
                   size={20}
-                  color={isFocused ? "#22C55E" : "#8E9B94"}
+                  color={isFocused ? colors.primary : colors.textSecondary}
                 />
                 <Text
                   style={[
@@ -140,19 +141,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   tabButtonActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.18)",
+    backgroundColor: "rgba(0, 201, 104, 0.18)",
     borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.35)",
+    borderColor: "rgba(0, 201, 104, 0.45)",
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
   },
   tabLabel: {
     fontSize: 10,
     fontWeight: "500",
-    color: "#8E9B94",
+    color: colors.textSecondary,
     marginTop: 2,
     textAlign: "center",
   },
   tabLabelActive: {
-    color: "#22C55E",
+    color: colors.primary,
     fontWeight: "700",
   },
 });

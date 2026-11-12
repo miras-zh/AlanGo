@@ -55,7 +55,7 @@ function getExtendedColors(name: ThemeName): ExtendedThemeColors {
 const defaultColors = getExtendedColors("dark");
 
 const ThemeContext = createContext<ThemeContextValue>({
-  mode: "system",
+  mode: "dark",
   setMode: () => {},
   themeName: "dark",
   tokens: tokenColors.dark,
@@ -67,7 +67,7 @@ const ThemeContext = createContext<ThemeContextValue>({
 
 export function ThemeProvider({ children }: PropsWithChildren) {
   const systemScheme = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>("system");
+  const [mode, setModeState] = useState<ThemeMode>("dark");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {

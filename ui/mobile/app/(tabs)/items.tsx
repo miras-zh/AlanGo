@@ -232,7 +232,7 @@ export default function ItemsScreen() {
 
         {/* Action Buttons Right */}
         <View style={styles.headerActions}>
-          {/* Location Button */}
+          {/* Map Button (Mockup: Map Pin) */}
           <Pressable
             style={({ pressed }) => [
               styles.iconBtn,
@@ -240,7 +240,7 @@ export default function ItemsScreen() {
             ]}
             onPress={() => {
               hapticSelection();
-              setCityModalOpen(true);
+              router.push("/map");
             }}
           >
             <Ionicons name="location-outline" size={19} color={colors.textPrimary} />
@@ -354,54 +354,28 @@ export default function ItemsScreen() {
           />
         </Pressable>
 
-        {/* Filter State Pill (Screen 3) */}
-        {activeFiltersCount > 0 ? (
-          <Pressable
-            style={styles.activeFilterPill}
-            onPress={() => {
-              hapticImpact();
-              setFilterModalOpen(true);
-            }}
-          >
-            <Ionicons
-              name="options"
-              size={14}
-              color="#080D0B"
-              style={{ marginRight: 5 }}
-            />
-            <Text style={styles.activeFilterPillText}>
-              Фильтры • {activeFiltersCount}
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={13}
-              color="#080D0B"
-              style={{ marginLeft: 3 }}
-            />
-          </Pressable>
-        ) : (
-          <Pressable
-            style={styles.controlPill}
-            onPress={() => {
-              hapticSelection();
-              setCityModalOpen(true);
-            }}
-          >
-            <Ionicons
-              name="navigate-outline"
-              size={13}
-              color={colors.primary}
-              style={{ marginRight: 4 }}
-            />
-            <Text style={styles.controlPillText}>{currentCity}</Text>
-            <Ionicons
-              name="chevron-down"
-              size={13}
-              color={colors.textSecondary}
-              style={{ marginLeft: 4 }}
-            />
-          </Pressable>
-        )}
+        {/* City Selection Pill */}
+        <Pressable
+          style={styles.controlPill}
+          onPress={() => {
+            hapticSelection();
+            setCityModalOpen(true);
+          }}
+        >
+          <Ionicons
+            name="navigate-outline"
+            size={13}
+            color={colors.primary}
+            style={{ marginRight: 4 }}
+          />
+          <Text style={styles.controlPillText}>{currentCity}</Text>
+          <Ionicons
+            name="chevron-down"
+            size={13}
+            color={colors.textSecondary}
+            style={{ marginLeft: 4 }}
+          />
+        </Pressable>
       </View>
 
       {/* 5. Venue Cards List */}
@@ -456,8 +430,23 @@ export default function ItemsScreen() {
           }
           renderItem={({ item, index }) => {
             const isFav = favorites.includes(item.id);
-            const distances = ["1,8 км", "2,4 км", "3,1 км", "4,5 км"];
+            const distances = ["1.8 км", "2.4 км", "3.1 км", "4.5 км"];
             const itemDistance = distances[index % distances.length];
+
+            // Build characteristics line from real hall data
+            const specsList: string[] = [];
+            if (item.sportType) specsList.push(item.sportType);
+            if (item.capacity) {
+              const shortCap = item.capacity.split("(")[0].trim();
+              if (shortCap) specsList.push(shortCap);
+            }
+            if (item.surfaceType && !specsList.includes(item.surfaceType)) {
+              specsList.push(item.surfaceType);
+            }
+            if (item.equipment?.some((e) => e.toLowerCase().includes("душ"))) {
+              specsList.push("Душ");
+            }
+            const specsText = specsList.length > 0 ? specsList.slice(0, 3).join(" · ") : undefined;
 
             return (
               <VenueCard
@@ -469,6 +458,8 @@ export default function ItemsScreen() {
                 rating={item.rating || 4.8}
                 reviewsCount={item.reviewsCount || 124}
                 pricePerHour={item.pricePerHour}
+                sportType={item.sportType}
+                specs={specsText}
                 isFavorite={isFav}
                 onPress={() => {
                   router.push(`/hall/${item.id}`);

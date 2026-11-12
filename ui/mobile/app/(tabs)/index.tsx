@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Dimensions,
-  FlatList,
   Image,
   Modal,
   Pressable,
@@ -16,9 +15,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { listPublicItems, ItemEntity } from "@/lib/items";
 import { ArenaWithHalls, getArenasWithHalls } from "@/lib/sportRentData";
-import { hapticSelection, hapticSuccess } from "@/lib/haptics";
+import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getSelectedCity, subscribeCityChange } from "@/lib/cities";
 import { CityPickerModal } from "@/components/CityPickerModal";
 import { LiveMatchIsland } from "@/components/LiveMatchIsland";
@@ -27,68 +27,25 @@ import {
   SportFilterState,
   DEFAULT_FILTERS,
 } from "@/components/SportSearchFiltersModal";
+import { VenueCard } from "@/components/VenueCard";
+import { colors, radii, spacing, typography } from "@/constants/theme";
 
 const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - 44) / 2;
+const FAVORITES_STORAGE_KEY = "alango_user_favorites";
 
 type CategoryItem = {
   id: string;
   name: string;
   icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  bgColor: string;
-  borderColor: string;
 };
 
 const CATEGORIES: CategoryItem[] = [
-  {
-    id: "Футбол",
-    name: "Футбол",
-    icon: "football-outline",
-    color: "#22C55E",
-    bgColor: "#14221A",
-    borderColor: "#1E3327",
-  },
-  {
-    id: "Теннис",
-    name: "Теннис",
-    icon: "tennisball-outline",
-    color: "#22C55E",
-    bgColor: "#14221A",
-    borderColor: "#1E3327",
-  },
-  {
-    id: "Баскетбол",
-    name: "Баскетбол",
-    icon: "basketball-outline",
-    color: "#EF4444",
-    bgColor: "#261616",
-    borderColor: "#3D2020",
-  },
-  {
-    id: "Волейбол",
-    name: "Волейбол",
-    icon: "baseball-outline",
-    color: "#FFFFFF",
-    bgColor: "#1A221E",
-    borderColor: "#28342D",
-  },
-  {
-    id: "Сквош и падл",
-    name: "Сквош\nи падл",
-    icon: "fitness-outline",
-    color: "#22C55E",
-    bgColor: "#14221A",
-    borderColor: "#1E3327",
-  },
-  {
-    id: "all",
-    name: "Другое",
-    icon: "grid-outline",
-    color: "#8E9B94",
-    bgColor: "#1A221E",
-    borderColor: "#28342D",
-  },
+  { id: "all", name: "Все", icon: "grid-outline" },
+  { id: "Футбол", name: "Футбол", icon: "football-outline" },
+  { id: "Теннис", name: "Теннис", icon: "tennisball-outline" },
+  { id: "Баскетбол", name: "Баскетбол", icon: "basketball-outline" },
+  { id: "Сквош и падл", name: "Падл", icon: "fitness-outline" },
+  { id: "Волейбол", name: "Волейбол", icon: "baseball-outline" },
 ];
 
 export default function HomeScreen() {
@@ -99,7 +56,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [favorites, setFavorites] = useState<Record<number, boolean>>({});
+  const [favorites, setFavorites] = useState<number[]>([]);
 
   // City & Sport Filters State
   const [currentCity, setCurrentCity] = useState("Астана");
@@ -107,7 +64,7 @@ export default function HomeScreen() {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [sportFilters, setSportFilters] = useState<SportFilterState>(DEFAULT_FILTERS);
 
-  // Booking Modal State
+  // Quick Booking Modal State
   const [selectedHall, setSelectedHall] = useState<ItemEntity | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string>("19:00 - 20:00");
   const [selectedDate, setSelectedDate] = useState<string>("Сегодня");
@@ -117,11 +74,22 @@ export default function HomeScreen() {
     const unsubscribe = subscribeCityChange((city) => {
       setCurrentCity(city);
     });
+    // Load favorites from local storage
+    AsyncStorage.getItem(FAVORITES_STORAGE_KEY).then((data) => {
+      if (data) {
+        try {
+          setFavorites(JSON.parse(data));
+        } catch {}
+      }
+    });
     return unsubscribe;
   }, []);
 
   const activeFiltersCount = useMemo(() => {
-    let count = sportFilters.sports.length + sportFilters.surfaces.length + sportFilters.amenities.length;
+    let count =
+      sportFilters.sports.length +
+      sportFilters.surfaces.length +
+      sportFilters.amenities.length;
     if (sportFilters.priceRange !== "all") count += 1;
     return count;
   }, [sportFilters]);
@@ -154,14 +122,22 @@ export default function HomeScreen() {
   const filteredArenas = useMemo(() => {
     return arenas.filter((arena) => {
       // 1. City filter
-      if (currentCity && arena.city && arena.city.toLowerCase() !== currentCity.toLowerCase()) {
+      if (
+        currentCity &&
+        arena.city &&
+        arena.city.toLowerCase() !== currentCity.toLowerCase()
+      ) {
         return false;
       }
       // 2. Category match (from quick horizontal icons)
       if (selectedCategory !== "all") {
         const matchesCategory =
-          arena.availableSports?.some((s) => s.toLowerCase().includes(selectedCategory.toLowerCase())) ||
-          arena.category?.toLowerCase().includes(selectedCategory.toLowerCase());
+          arena.availableSports?.some((s) =>
+            s.toLowerCase().includes(selectedCategory.toLowerCase())
+          ) ||
+          arena.category
+            ?.toLowerCase()
+            .includes(selectedCategory.toLowerCase());
         if (!matchesCategory) return false;
       }
       // 3. Search query match
@@ -176,15 +152,23 @@ export default function HomeScreen() {
       // 4. SportFilterState: sports
       if (sportFilters.sports.length > 0) {
         const matchesSport = sportFilters.sports.some((sp) =>
-          arena.availableSports?.some((s) => s.toLowerCase().includes(sp.toLowerCase())),
+          arena.availableSports?.some((s) =>
+            s.toLowerCase().includes(sp.toLowerCase())
+          )
         );
         if (!matchesSport) return false;
       }
       // 5. SportFilterState: priceRange
       if (sportFilters.priceRange !== "all") {
-        if (sportFilters.priceRange === "under10" && arena.minPrice > 10000) return false;
-        if (sportFilters.priceRange === "10to20" && (arena.minPrice < 10000 || arena.minPrice > 20000)) return false;
-        if (sportFilters.priceRange === "above20" && arena.minPrice < 20000) return false;
+        if (sportFilters.priceRange === "under10" && arena.minPrice > 10000)
+          return false;
+        if (
+          sportFilters.priceRange === "10to20" &&
+          (arena.minPrice < 10000 || arena.minPrice > 20000)
+        )
+          return false;
+        if (sportFilters.priceRange === "above20" && arena.minPrice < 20000)
+          return false;
       }
       // 6. SportFilterState: amenities
       if (sportFilters.amenities.length > 0) {
@@ -203,34 +187,43 @@ export default function HomeScreen() {
   // Filtered Items (Individual halls)
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      const itemCity = item.metadata?.city || (item.metadata?.location ? String(item.metadata.location) : "");
-      if (currentCity && itemCity && !itemCity.toLowerCase().includes(currentCity.toLowerCase())) {
+      const itemCity =
+        item.metadata?.city ||
+        (item.metadata?.location ? String(item.metadata.location) : "");
+      if (
+        currentCity &&
+        itemCity &&
+        !itemCity.toLowerCase().includes(currentCity.toLowerCase())
+      ) {
         return false;
       }
       if (sportFilters.sports.length > 0) {
         const matchesSport = sportFilters.sports.some((sp) =>
-          item.category?.toLowerCase().includes(sp.toLowerCase()),
+          item.category?.toLowerCase().includes(sp.toLowerCase())
         );
         if (!matchesSport) return false;
       }
       if (sportFilters.priceRange !== "all") {
         const p = item.price || 0;
         if (sportFilters.priceRange === "under10" && p > 10000) return false;
-        if (sportFilters.priceRange === "10to20" && (p < 10000 || p > 20000)) return false;
+        if (
+          sportFilters.priceRange === "10to20" &&
+          (p < 10000 || p > 20000)
+        )
+          return false;
         if (sportFilters.priceRange === "above20" && p < 20000) return false;
       }
       return true;
     });
   }, [items, currentCity, sportFilters]);
 
-  const toggleFavorite = (id: number) => {
+  const toggleFavorite = async (id: number) => {
     hapticSelection();
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const openBooking = (hall: ItemEntity) => {
-    hapticSelection();
-    setSelectedHall(hall);
+    const nextFavs = favorites.includes(id)
+      ? favorites.filter((favId) => favId !== id)
+      : [...favorites, id];
+    setFavorites(nextFavs);
+    await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(nextFavs));
   };
 
   const confirmBooking = () => {
@@ -241,7 +234,7 @@ export default function HomeScreen() {
     Alert.alert(
       "Бронь оформлена! 🎉",
       `Вы успешно забронировали "${hallTitle}" на ${selectedDate} в слот ${selectedSlot}. Ждем вас!`,
-      [{ text: "Отлично" }],
+      [{ text: "Отлично" }]
     );
   };
 
@@ -257,7 +250,7 @@ export default function HomeScreen() {
               setRefreshing(true);
               loadHalls();
             }}
-            tintColor="#22C55E"
+            tintColor={colors.primary}
           />
         }
       >
@@ -270,7 +263,7 @@ export default function HomeScreen() {
               resizeMode="contain"
             />
             <Text style={styles.logoText}>
-              Alan <Text style={styles.logoTextRed}>Go</Text>
+              Alan <Text style={styles.logoTextAccent}>Go</Text>
             </Text>
           </View>
 
@@ -281,9 +274,9 @@ export default function HomeScreen() {
               setCityModalVisible(true);
             }}
           >
-            <Ionicons name="location-sharp" size={15} color="#22C55E" />
+            <Ionicons name="location-sharp" size={14} color={colors.primary} />
             <Text style={styles.locationText}>{currentCity}</Text>
-            <Ionicons name="chevron-down" size={13} color="#8E9B94" />
+            <Ionicons name="chevron-down" size={13} color={colors.textSecondary} />
           </Pressable>
         </View>
 
@@ -296,10 +289,10 @@ export default function HomeScreen() {
             <Text style={styles.heroTitle}>
               Арендуйте{"\n"}
               спортивные{"\n"}
-              <Text style={styles.heroTitleGreen}>залы</Text>
+              <Text style={styles.heroTitlePrimary}>залы</Text>
             </Text>
             <Text style={styles.heroSubtitle}>
-              Футбол, теннис, баскетбол{"\n"}и многое другое
+              Футбол, теннис, баскетбол и многое другое
             </Text>
           </View>
 
@@ -314,45 +307,55 @@ export default function HomeScreen() {
         </View>
 
         {/* --- 2.5 SPECIAL DEALS: Subscriptions & Happy Hours --- */}
-        <View style={styles.promoActionsRow}>
-          <Pressable
-            style={styles.promoActionCard}
-            onPress={() => {
-              hapticSelection();
-              router.push("/subscriptions");
-            }}
-          >
-            <View style={styles.promoActionIconWrap}>
-              <Ionicons name="ticket" size={20} color="#10b981" />
-            </View>
-            <View style={styles.promoActionTextWrap}>
-              <Text style={styles.promoActionTitle}>Абонементы и Пакеты игр</Text>
-              <Text style={styles.promoActionSub}>Экономия до 25% на каждом посещении</Text>
-            </View>
-            <View style={styles.promoBadge}>
-              <Text style={styles.promoBadgeText}>-25%</Text>
-            </View>
-          </Pressable>
-        </View>
+        <Pressable
+          style={styles.promoActionCard}
+          onPress={() => {
+            hapticSelection();
+            router.push("/subscriptions");
+          }}
+        >
+          <View style={styles.promoActionIconWrap}>
+            <Ionicons name="ticket" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.promoActionTextWrap}>
+            <Text style={styles.promoActionTitle}>Абонементы и Пакеты игр</Text>
+            <Text style={styles.promoActionSub}>
+              Экономия до 25% на регулярных посещениях
+            </Text>
+          </View>
+          <View style={styles.promoBadge}>
+            <Text style={styles.promoBadgeText}>-25%</Text>
+          </View>
+        </Pressable>
 
         {/* --- 3. SEARCH BAR + FILTERS + MAP --- */}
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={20} color="#6B7C72" style={styles.searchIcon} />
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color={colors.textSecondary}
+              style={styles.searchIcon}
+            />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Поиск залов..."
-              placeholderTextColor="#6B7C72"
+              placeholder="Поиск залов и площадок..."
+              placeholderTextColor={colors.textSecondary}
               style={styles.searchInput}
               returnKeyType="search"
             />
             {searchQuery.length > 0 && (
               <Pressable onPress={() => setSearchQuery("")} hitSlop={10}>
-                <Ionicons name="close-circle" size={18} color="#6B7C72" />
+                <Ionicons
+                  name="close-circle"
+                  size={18}
+                  color={colors.textSecondary}
+                />
               </Pressable>
             )}
           </View>
+
           <Pressable
             style={styles.mapBtn}
             onPress={() => {
@@ -360,8 +363,9 @@ export default function HomeScreen() {
               router.push("/map");
             }}
           >
-            <Ionicons name="map-outline" size={20} color="#22C55E" />
+            <Ionicons name="map-outline" size={20} color={colors.primary} />
           </Pressable>
+
           <Pressable
             style={[
               styles.filterBtn,
@@ -375,7 +379,7 @@ export default function HomeScreen() {
             <Ionicons
               name={activeFiltersCount > 0 ? "options" : "options-outline"}
               size={20}
-              color={activeFiltersCount > 0 ? "#0B0F0D" : "#22C55E"}
+              color={activeFiltersCount > 0 ? colors.background : colors.primary}
             />
             {activeFiltersCount > 0 && (
               <View style={styles.filterBadge}>
@@ -395,7 +399,7 @@ export default function HomeScreen() {
         >
           <View style={styles.mapBannerLeft}>
             <View style={styles.mapBannerIconWrap}>
-              <Ionicons name="location" size={22} color="#22C55E" />
+              <Ionicons name="location" size={20} color={colors.primary} />
             </View>
             <View style={styles.mapBannerTextWrap}>
               <View style={styles.mapBannerTitleRow}>
@@ -408,7 +412,7 @@ export default function HomeScreen() {
             </View>
           </View>
           <View style={styles.mapBannerArrowBtn}>
-            <Ionicons name="chevron-forward" size={18} color="#22C55E" />
+            <Ionicons name="chevron-forward" size={16} color={colors.primary} />
           </View>
         </Pressable>
 
@@ -427,22 +431,22 @@ export default function HomeScreen() {
               >
                 <View
                   style={[
-                    styles.categoryCircle,
-                    {
-                      backgroundColor: cat.bgColor,
-                      borderColor: isSelected ? cat.color : cat.borderColor,
-                      borderWidth: isSelected ? 2 : 1,
-                    },
+                    styles.categorySquircle,
+                    isSelected && styles.categorySquircleSelected,
                   ]}
                 >
-                  <Ionicons name={cat.icon} size={22} color={cat.color} />
+                  <Ionicons
+                    name={cat.icon}
+                    size={22}
+                    color={isSelected ? colors.primary : colors.textSecondary}
+                  />
                 </View>
                 <Text
                   style={[
                     styles.categoryLabel,
-                    isSelected && { color: "#FFFFFF", fontWeight: "700" },
+                    isSelected && styles.categoryLabelSelected,
                   ]}
-                  numberOfLines={2}
+                  numberOfLines={1}
                 >
                   {cat.name}
                 </Text>
@@ -453,7 +457,7 @@ export default function HomeScreen() {
 
         {/* --- 4.5 SECTION: Спорткомплексы и Арены --- */}
         {filteredArenas.length > 0 ? (
-          <View style={styles.arenasSection}>
+          <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.sectionTitle}>Спорткомплексы и арены</Text>
@@ -470,7 +474,7 @@ export default function HomeScreen() {
                 style={styles.seeAllBtn}
               >
                 <Text style={styles.seeAllText}>Все ({filteredArenas.length})</Text>
-                <Ionicons name="chevron-forward" size={14} color="#22C55E" />
+                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
               </Pressable>
             </View>
 
@@ -482,50 +486,57 @@ export default function HomeScreen() {
               {filteredArenas.map((arena) => (
                 <Pressable
                   key={arena.id}
-                  style={styles.homeArenaCard}
+                  style={styles.arenaCard}
                   onPress={() => {
                     hapticSelection();
                     router.push(`/arena/${arena.id}`);
                   }}
                 >
-                  <View style={styles.homeArenaImageWrap}>
-                    <Image source={{ uri: arena.imageUrl }} style={styles.homeArenaImage} />
-                    <View style={styles.homeArenaBadge}>
-                      <Ionicons name="business" size={11} color="#22C55E" />
-                      <Text style={styles.homeArenaBadgeText}>
+                  <View style={styles.arenaImageWrap}>
+                    <Image
+                      source={{ uri: arena.imageUrl }}
+                      style={styles.arenaImage}
+                    />
+                    <View style={styles.arenaBadge}>
+                      <Ionicons name="business" size={11} color={colors.primary} />
+                      <Text style={styles.arenaBadgeText}>
                         {arena.category || "Спорткомплекс"}
                       </Text>
                     </View>
-                    <View style={styles.homeArenaRating}>
-                      <Ionicons name="star" size={11} color="#22C55E" />
-                      <Text style={styles.homeArenaRatingText}>{arena.rating}</Text>
+                    <View style={styles.arenaRating}>
+                      <Ionicons name="star" size={11} color={colors.primary} />
+                      <Text style={styles.arenaRatingText}>{arena.rating}</Text>
                     </View>
                   </View>
 
-                  <View style={styles.homeArenaBody}>
-                    <Text style={styles.homeArenaTitle} numberOfLines={1}>
+                  <View style={styles.arenaBody}>
+                    <Text style={styles.arenaTitle} numberOfLines={1}>
                       {arena.title}
                     </Text>
-                    <View style={styles.homeArenaLocationRow}>
-                      <Ionicons name="location-sharp" size={12} color="#22C55E" />
-                      <Text style={styles.homeArenaLocationText} numberOfLines={1}>
+                    <View style={styles.arenaLocationRow}>
+                      <Ionicons
+                        name="location-sharp"
+                        size={12}
+                        color={colors.primary}
+                      />
+                      <Text style={styles.arenaLocationText} numberOfLines={1}>
                         {arena.address}
                       </Text>
                     </View>
 
-                    <View style={styles.homeArenaSportsRow}>
+                    <View style={styles.arenaSportsRow}>
                       {arena.availableSports.slice(0, 3).map((sp) => (
-                        <View key={sp} style={styles.homeArenaSportPill}>
-                          <Text style={styles.homeArenaSportText}>{sp}</Text>
+                        <View key={sp} style={styles.arenaSportPill}>
+                          <Text style={styles.arenaSportText}>{sp}</Text>
                         </View>
                       ))}
                     </View>
 
-                    <View style={styles.homeArenaFooter}>
-                      <Text style={styles.homeArenaHallsCount}>
+                    <View style={styles.arenaFooter}>
+                      <Text style={styles.arenaHallsCount}>
                         {arena.hallsCount} {arena.hallsCount === 1 ? "зал" : "зала"}
                       </Text>
-                      <Text style={styles.homeArenaPrice}>
+                      <Text style={styles.arenaPrice}>
                         от {arena.minPrice.toLocaleString("ru-RU")} ₸
                       </Text>
                     </View>
@@ -536,12 +547,14 @@ export default function HomeScreen() {
           </View>
         ) : (
           <View style={styles.emptyFilteredBox}>
-            <Ionicons name="football-outline" size={32} color="#38433D" />
+            <Ionicons name="football-outline" size={32} color={colors.border} />
             <Text style={styles.emptyFilteredTitle}>Площадки не найдены</Text>
             <Text style={styles.emptyFilteredText}>
               В г. {currentCity} нет доступных площадок с выбранными параметрами.
             </Text>
-            {(activeFiltersCount > 0 || selectedCategory !== "all" || searchQuery.length > 0) && (
+            {(activeFiltersCount > 0 ||
+              selectedCategory !== "all" ||
+              searchQuery.length > 0) && (
               <Pressable
                 style={styles.resetFiltersBtn}
                 onPress={() => {
@@ -557,99 +570,63 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* --- 5. SECTION: Популярные залы --- */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Популярные залы</Text>
-          <Pressable
-            onPress={() => {
-              hapticSelection();
-              router.push("/(tabs)/items");
-            }}
-            hitSlop={10}
-            style={styles.seeAllBtn}
-          >
-            <Text style={styles.seeAllText}>Все залы</Text>
-            <Ionicons name="chevron-forward" size={14} color="#22C55E" />
-          </Pressable>
-        </View>
+        {/* --- 5. SECTION: Популярные залы (VenueCards) --- */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>Популярные залы</Text>
+              <Text style={styles.sectionSubtitle}>
+                Топ площадок с проверенными отзывами
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                hapticSelection();
+                router.push("/(tabs)/items");
+              }}
+              hitSlop={10}
+              style={styles.seeAllBtn}
+            >
+              <Text style={styles.seeAllText}>Все залы</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+            </Pressable>
+          </View>
 
-        {/* Grid of Halls */}
-        <View style={styles.hallsGrid}>
-          {filteredItems.map((hall) => {
-            const isFav = !!favorites[hall.id];
-            const rating = hall.metadata?.rating || 4.8;
-            const reviewsCount = hall.metadata?.reviewsCount || 120;
-            const location = hall.metadata?.location || "Астана, ул. Достык 10";
+          <View style={styles.hallsList}>
+            {filteredItems.slice(0, 6).map((hall, index) => {
+              const isFav = favorites.includes(hall.id);
+              const distances = ["1.8 км", "2.4 км", "3.1 км", "4.5 км"];
+              const itemDistance = distances[index % distances.length];
 
-            return (
-              <Pressable
-                key={hall.id}
-                style={styles.hallCard}
-                onPress={() => {
-                  hapticSelection();
-                  router.push(`/hall/${hall.id}`);
-                }}
-              >
-                {/* Image Container with Badges */}
-                <View style={styles.hallImageWrap}>
-                  <Image source={{ uri: hall.image_url }} style={styles.hallImage} />
+              // Characteristics line
+              const specsList: string[] = [];
+              if (hall.category) specsList.push(hall.category);
+              if (hall.metadata?.surfaceType) specsList.push(String(hall.metadata.surfaceType));
+              if (hall.metadata?.hasShower) specsList.push("Душ");
+              const specsText = specsList.length > 0 ? specsList.join(" · ") : undefined;
 
-                  {/* Favorite button */}
-                  <Pressable
-                    style={styles.favBtn}
-                    onPress={() => toggleFavorite(hall.id)}
-                    hitSlop={8}
-                  >
-                    <Ionicons
-                      name={isFav ? "heart" : "heart-outline"}
-                      size={18}
-                      color={isFav ? "#EF4444" : "#FFFFFF"}
-                    />
-                  </Pressable>
-
-                  {/* Rating Badge */}
-                  <View style={styles.ratingBadge}>
-                    <Ionicons name="star" size={12} color="#22C55E" />
-                    <Text style={styles.ratingScore}>{rating}</Text>
-                    <Text style={styles.ratingCount}>({reviewsCount})</Text>
-                  </View>
-                </View>
-
-                {/* Hall Details */}
-                <View style={styles.hallInfo}>
-                  <Text style={styles.hallTitle} numberOfLines={1}>
-                    {hall.title}
-                  </Text>
-                  <View style={styles.locationRow}>
-                    <Ionicons name="location-outline" size={12} color="#8E9B94" />
-                    <Text style={styles.hallLocation} numberOfLines={1}>
-                      {location}
-                    </Text>
-                  </View>
-
-                  {/* Price & Action Button */}
-                  <View style={styles.hallBottomRow}>
-                    <View>
-                      <Text style={styles.pricePrefix}>
-                        от{" "}
-                        <Text style={styles.priceNumber}>
-                          {(hall.price || 15000).toLocaleString("ru-RU")} ₸
-                        </Text>
-                      </Text>
-                      <Text style={styles.priceUnit}>/ час</Text>
-                    </View>
-
-                    <Pressable
-                      style={styles.arrowBtn}
-                      onPress={() => openBooking(hall)}
-                    >
-                      <Ionicons name="arrow-forward" size={16} color="#0B0F0D" />
-                    </Pressable>
-                  </View>
-                </View>
-              </Pressable>
-            );
-          })}
+              return (
+                <VenueCard
+                  key={hall.id}
+                  id={hall.id}
+                  title={hall.title}
+                  imageUrl={hall.image_url}
+                  address={hall.metadata?.location || `${currentCity}, спортивный зал`}
+                  distance={itemDistance}
+                  rating={hall.metadata?.rating || 4.8}
+                  reviewsCount={hall.metadata?.reviewsCount || 120}
+                  pricePerHour={hall.price || 15000}
+                  sportType={hall.category || "Спорт"}
+                  specs={specsText}
+                  isFavorite={isFav}
+                  onPress={() => {
+                    router.push(`/hall/${hall.id}`);
+                  }}
+                  onToggleFavorite={() => toggleFavorite(hall.id)}
+                />
+              );
+            })}
+          </View>
         </View>
 
         {/* --- 6. PROMO BANNER: Спортивные события --- */}
@@ -661,27 +638,23 @@ export default function HomeScreen() {
           }}
         >
           <View style={styles.eventsTrophyWrap}>
-            <Ionicons name="trophy-outline" size={28} color="#FFFFFF" />
+            <Ionicons name="trophy-outline" size={26} color={colors.primary} />
           </View>
 
           <View style={styles.eventsTextWrap}>
             <Text style={styles.eventsTitle}>Спортивные события</Text>
-            <Text style={styles.eventsSubtitle}>Турниры, матчи и многое другое</Text>
+            <Text style={styles.eventsSubtitle}>
+              Турниры, открытые матчи и поиск команды
+            </Text>
           </View>
 
-          <Pressable
-            style={styles.eventsActionBtn}
-            onPress={() => {
-              hapticSelection();
-              router.push("/(tabs)/events");
-            }}
-          >
-            <Text style={styles.eventsActionBtnText}>Узнать больше</Text>
-          </Pressable>
+          <View style={styles.eventsActionBtn}>
+            <Text style={styles.eventsActionBtnText}>Смотреть</Text>
+          </View>
         </Pressable>
       </ScrollView>
 
-      {/* --- BOOKING MODAL --- */}
+      {/* --- QUICK BOOKING MODAL --- */}
       <Modal
         visible={!!selectedHall}
         animationType="slide"
@@ -689,20 +662,25 @@ export default function HomeScreen() {
         onRequestClose={() => setSelectedHall(null)}
       >
         <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setSelectedHall(null)} />
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setSelectedHall(null)}
+          />
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>{selectedHall?.title}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle} numberOfLines={1}>
+                  {selectedHall?.title}
+                </Text>
                 <Text style={styles.modalSubtitle}>
-                  📍 {selectedHall?.metadata?.location || "г. Астана"}
+                  📍 {selectedHall?.metadata?.location || currentCity}
                 </Text>
               </View>
               <Pressable
                 onPress={() => setSelectedHall(null)}
                 style={styles.modalCloseBtn}
               >
-                <Ionicons name="close" size={20} color="#FFFFFF" />
+                <Ionicons name="close" size={18} color={colors.textPrimary} />
               </Pressable>
             </View>
 
@@ -736,7 +714,12 @@ export default function HomeScreen() {
             {/* Time Slot Selection */}
             <Text style={styles.modalSectionLabel}>Свободные слоты</Text>
             <View style={styles.slotRow}>
-              {["17:00 - 18:00", "19:00 - 20:00", "20:00 - 21:00", "21:00 - 22:00"].map((s) => (
+              {[
+                "17:00 - 18:00",
+                "19:00 - 20:00",
+                "20:00 - 21:00",
+                "21:00 - 22:00",
+              ].map((s) => (
                 <Pressable
                   key={s}
                   style={[
@@ -760,37 +743,46 @@ export default function HomeScreen() {
               ))}
             </View>
 
-            {/* Price Summary & Book button */}
+            {/* Modal Footer */}
             <View style={styles.modalFooter}>
               <View>
-                <Text style={styles.modalTotalLabel}>Итого к оплате:</Text>
+                <Text style={styles.modalTotalLabel}>Стоимость брони</Text>
                 <Text style={styles.modalTotalPrice}>
                   {(selectedHall?.price || 15000).toLocaleString("ru-RU")} ₸
                 </Text>
               </View>
-              <Pressable style={styles.modalBookBtn} onPress={confirmBooking}>
-                <Text style={styles.modalBookBtnText}>Забронировать зал</Text>
+              <Pressable
+                style={styles.modalBookBtn}
+                onPress={confirmBooking}
+              >
+                <Text style={styles.modalBookBtnText}>Забронировать</Text>
               </Pressable>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* City Picker Modal */}
+      {/* --- CITY PICKER MODAL --- */}
       <CityPickerModal
         visible={cityModalVisible}
         selectedCity={currentCity}
+        onSelect={(city: string) => {
+          setCurrentCity(city);
+          setCityModalVisible(false);
+        }}
         onClose={() => setCityModalVisible(false)}
-        onSelect={(city) => setCurrentCity(city)}
       />
 
-      {/* Sport Search Filters Modal */}
+      {/* --- SPORT FILTERS MODAL --- */}
       <SportSearchFiltersModal
         visible={filterModalVisible}
         filters={sportFilters}
         matchedCount={filteredArenas.length}
+        onApply={(f: SportFilterState) => {
+          setSportFilters(f);
+          setFilterModalVisible(false);
+        }}
         onClose={() => setFilterModalVisible(false)}
-        onApply={(newFilters) => setSportFilters(newFilters)}
       />
     </SafeAreaView>
   );
@@ -799,11 +791,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: colors.background, // #080D0B
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 110,
+    paddingHorizontal: spacing.screenHorizontal, // 16px
+    paddingBottom: spacing.bottomScrollPadding, // 110px
   },
 
   // Header
@@ -811,13 +803,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
   },
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: spacing.sm,
   },
   logoIcon: {
     width: 32,
@@ -826,167 +818,218 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 22,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
-  logoTextRed: {
-    color: "#EF4444",
+  logoTextAccent: {
+    color: colors.accent, // #F04452
   },
   locationPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    backgroundColor: "transparent",
+    gap: 6,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
     paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
+    borderRadius: radii.smallChip, // 12px
   },
   locationText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: colors.textPrimary,
   },
 
   // Hero Card
   heroCard: {
-    backgroundColor: "#111814",
-    borderRadius: 24,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.card, // 18px
     borderWidth: 1,
-    borderColor: "#1E2B22",
+    borderColor: colors.border,
     flexDirection: "row",
     alignItems: "center",
-    paddingLeft: 20,
-    marginBottom: 16,
+    paddingLeft: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.card,
     overflow: "hidden",
-    minHeight: 145,
+    minHeight: 140,
   },
   heroLeft: {
     flex: 1,
-    paddingVertical: 18,
+    paddingVertical: spacing.lg,
   },
   heroTitle: {
-    fontSize: 28,
-    lineHeight: 33,
+    fontSize: 26,
+    lineHeight: 31,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
-  heroTitleGreen: {
-    color: "#22C55E",
+  heroTitlePrimary: {
+    color: colors.primary, // #00C968
   },
   heroSubtitle: {
     fontSize: 12,
-    lineHeight: 17,
-    color: "#8E9B94",
-    marginTop: 8,
+    lineHeight: 16,
+    color: colors.textSecondary,
+    marginTop: spacing.xs + 2,
   },
   heroRight: {
-    width: 140,
-    height: 145,
+    width: 135,
+    height: 140,
     justifyContent: "center",
     alignItems: "center",
   },
   heroBallImage: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
+    width: 125,
+    height: 125,
+    borderRadius: 62.5,
     transform: [{ rotate: "15deg" }],
+  },
+
+  // Promo Actions Card
+  promoActionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radii.card, // 18px
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.md,
+    marginBottom: spacing.card,
+  },
+  promoActionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.smallChip,
+    backgroundColor: "rgba(0, 201, 104, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  promoActionTextWrap: {
+    flex: 1,
+  },
+  promoActionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  promoActionSub: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  promoBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  promoBadgeText: {
+    color: colors.background,
+    fontSize: 12,
+    fontWeight: "800",
   },
 
   // Search Bar & Filter Row
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginBottom: 20,
+    gap: spacing.sm + 2,
+    marginBottom: spacing.card,
   },
   searchBar: {
     flex: 1,
-    height: 50,
-    backgroundColor: "#141A17",
-    borderRadius: 16,
+    height: 48,
+    backgroundColor: colors.surface,
+    borderRadius: radii.button, // 14px
     borderWidth: 1,
-    borderColor: "#1F2823",
+    borderColor: colors.border,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.md,
   },
   searchIcon: {
-    marginRight: 10,
+    marginRight: spacing.sm,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: "#FFFFFF",
+    color: colors.textPrimary,
+  },
+  mapBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.button, // 14px
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
   },
   filterBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: "#141A17",
+    width: 48,
+    height: 48,
+    borderRadius: radii.button, // 14px
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#1F2823",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
   filterBtnActive: {
-    backgroundColor: "#22C55E",
-    borderColor: "#22C55E",
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   filterBadge: {
     position: "absolute",
     top: -4,
     right: -4,
-    backgroundColor: "#EF4444",
+    backgroundColor: colors.accent,
     width: 18,
     height: 18,
     borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#0B0F0D",
+    borderColor: colors.background,
   },
   filterBadgeText: {
-    color: "#FFFFFF",
+    color: colors.textPrimary,
     fontSize: 10,
     fontWeight: "700",
   },
-  mapBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: "#141A17",
-    borderWidth: 1,
-    borderColor: "#1F2823",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+
+  // Nearby Venues Map Banner
   mapBannerCard: {
-    backgroundColor: "#141A17",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#202B24",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: colors.border,
+    borderRadius: radii.card, // 18px
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: spacing.section, // 20px
   },
   mapBannerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: spacing.md,
     flex: 1,
-    paddingRight: 10,
+    paddingRight: spacing.sm,
   },
   mapBannerIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    width: 38,
+    height: 38,
+    borderRadius: radii.smallChip,
+    backgroundColor: "rgba(0, 201, 104, 0.12)",
     borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.25)",
+    borderColor: "rgba(0, 201, 104, 0.25)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -999,359 +1042,274 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   mapBannerTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: colors.textPrimary,
   },
   livePulseDot: {
     width: 7,
     height: 7,
-    borderRadius: 4,
-    backgroundColor: "#22C55E",
+    borderRadius: 3.5,
+    backgroundColor: colors.primary,
   },
   mapBannerSub: {
-    fontSize: 12,
-    color: "#8E9B94",
+    fontSize: 11,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   mapBannerArrowBtn: {
-    width: 32,
-    height: 32,
+    width: 30,
+    height: 30,
     borderRadius: 10,
-    backgroundColor: "rgba(34, 197, 94, 0.1)",
+    backgroundColor: "rgba(0, 201, 104, 0.1)",
     alignItems: "center",
     justifyContent: "center",
-  },
-  emptyFilteredBox: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#111714",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#1B241F",
-    marginVertical: 14,
-    gap: 8,
-  },
-  emptyFilteredTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  emptyFilteredText: {
-    color: "#8E9B94",
-    fontSize: 13,
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  resetFiltersBtn: {
-    marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
-    borderWidth: 1,
-    borderColor: "#22C55E",
-  },
-  resetFiltersBtnText: {
-    color: "#22C55E",
-    fontSize: 13,
-    fontWeight: "600",
   },
 
-  // Categories
+  // Categories Row
   categoriesRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 24,
+    marginBottom: spacing.section, // 20px
   },
   categoryItem: {
     alignItems: "center",
     width: (width - 32) / 6,
   },
-  categoryCircle: {
+  categorySquircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 6,
   },
+  categorySquircleSelected: {
+    backgroundColor: "rgba(0, 201, 104, 0.15)",
+    borderColor: colors.primary,
+    borderWidth: 1.5,
+  },
   categoryLabel: {
     fontSize: 11,
-    lineHeight: 13,
-    color: "#8E9B94",
+    lineHeight: 14,
+    color: colors.textSecondary,
     textAlign: "center",
     fontWeight: "500",
   },
+  categoryLabelSelected: {
+    color: colors.textPrimary,
+    fontWeight: "700",
+  },
 
-  // Section Header
+  // Section Standard
+  sectionContainer: {
+    marginBottom: spacing.section, // 20px
+  },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: colors.textPrimary,
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: colors.textSecondary,
     marginTop: 2,
   },
   seeAllBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: 3,
   },
   seeAllText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#22C55E",
+    color: colors.primary,
   },
 
-  // Arenas Section
-  arenasSection: {
-    marginBottom: 24,
-  },
+  // Arenas Scroll
   arenasScroll: {
-    gap: 14,
-    paddingRight: 16,
+    gap: spacing.card, // 12px
+    paddingRight: spacing.screenHorizontal,
   },
-  homeArenaCard: {
+  arenaCard: {
     width: 250,
-    backgroundColor: "#131915",
-    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card, // 18px
     borderWidth: 1,
-    borderColor: "#1E2A22",
+    borderColor: colors.border,
     overflow: "hidden",
   },
-  homeArenaImageWrap: {
+  arenaImageWrap: {
     width: "100%",
-    height: 130,
+    height: 128,
     position: "relative",
   },
-  homeArenaImage: {
+  arenaImage: {
     width: "100%",
     height: "100%",
   },
-  homeArenaBadge: {
+  arenaBadge: {
     position: "absolute",
     top: 8,
     left: 8,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(11, 15, 13, 0.85)",
+    backgroundColor: "rgba(8, 13, 11, 0.85)",
     paddingVertical: 3,
     paddingHorizontal: 7,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.3)",
+    borderColor: "rgba(0, 201, 104, 0.3)",
   },
-  homeArenaBadgeText: {
+  arenaBadgeText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#22C55E",
+    color: colors.primary,
   },
-  homeArenaRating: {
+  arenaRating: {
     position: "absolute",
     top: 8,
     right: 8,
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    backgroundColor: "rgba(11, 15, 13, 0.85)",
+    backgroundColor: "rgba(8, 13, 11, 0.85)",
     paddingVertical: 3,
     paddingHorizontal: 7,
     borderRadius: 8,
   },
-  homeArenaRatingText: {
+  arenaRatingText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: colors.textPrimary,
   },
-  homeArenaBody: {
-    padding: 12,
+  arenaBody: {
+    padding: spacing.md,
   },
-  homeArenaTitle: {
-    fontSize: 16,
+  arenaTitle: {
+    fontSize: 15,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: colors.textPrimary,
     marginBottom: 4,
   },
-  homeArenaLocationRow: {
+  arenaLocationRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     marginBottom: 8,
   },
-  homeArenaLocationText: {
+  arenaLocationText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: colors.textSecondary,
+    flex: 1,
   },
-  homeArenaSportsRow: {
+  arenaSportsRow: {
     flexDirection: "row",
     gap: 5,
     marginBottom: 10,
   },
-  homeArenaSportPill: {
-    backgroundColor: "#1A241E",
+  arenaSportPill: {
+    backgroundColor: colors.surfaceElevated,
     paddingVertical: 2,
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     borderRadius: 6,
   },
-  homeArenaSportText: {
+  arenaSportText: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#22C55E",
+    color: colors.primary,
   },
-  homeArenaFooter: {
+  arenaFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "#1B241E",
+    borderTopColor: colors.border,
   },
-  homeArenaHallsCount: {
+  arenaHallsCount: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: colors.textSecondary,
   },
-  homeArenaPrice: {
+  arenaPrice: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#22C55E",
+    color: colors.primary,
   },
 
-  // Halls Grid
-  hallsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 12,
-    marginBottom: 24,
+  // Halls List (VenueCards vertical layout)
+  hallsList: {
+    gap: spacing.card, // 12px
   },
-  hallCard: {
-    width: CARD_WIDTH,
-    backgroundColor: "#141A17",
-    borderRadius: 20,
+
+  // Empty Box
+  emptyFilteredBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: "#1F2823",
-    overflow: "hidden",
+    borderColor: colors.border,
+    marginVertical: spacing.md,
+    gap: spacing.sm,
   },
-  hallImageWrap: {
-    width: "100%",
-    height: 125,
-    position: "relative",
-  },
-  hallImage: {
-    width: "100%",
-    height: "100%",
-  },
-  favBtn: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(11, 15, 13, 0.65)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ratingBadge: {
-    position: "absolute",
-    bottom: 8,
-    left: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    backgroundColor: "rgba(11, 15, 13, 0.8)",
-    paddingVertical: 3,
-    paddingHorizontal: 7,
-    borderRadius: 10,
-    borderWidth: 0.5,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-  },
-  ratingScore: {
-    fontSize: 11,
+  emptyFilteredTitle: {
+    color: colors.textPrimary,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
-  ratingCount: {
-    fontSize: 10,
-    color: "#8E9B94",
+  emptyFilteredText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 18,
   },
-  hallInfo: {
-    padding: 12,
+  resetFiltersBtn: {
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.smallChip,
+    backgroundColor: "rgba(0, 201, 104, 0.15)",
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
-  hallTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 4,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginBottom: 10,
-  },
-  hallLocation: {
-    fontSize: 11,
-    color: "#8E9B94",
-    flex: 1,
-  },
-  hallBottomRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  pricePrefix: {
-    fontSize: 10,
-    color: "#8E9B94",
-  },
-  priceNumber: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-  priceUnit: {
-    fontSize: 10,
-    color: "#6B7C72",
-  },
-  arrowBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: "#22C55E",
-    alignItems: "center",
-    justifyContent: "center",
+  resetFiltersBtnText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "600",
   },
 
   // Events Banner
   eventsBanner: {
-    backgroundColor: "#161A17",
-    borderRadius: 20,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.card, // 18px
     borderWidth: 1,
-    borderColor: "#2D1D20",
+    borderColor: colors.border,
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    gap: 12,
+    padding: spacing.lg,
+    gap: spacing.md,
+    marginTop: spacing.sm,
   },
   eventsTrophyWrap: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: "rgba(0, 201, 104, 0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1361,23 +1319,23 @@ const styles = StyleSheet.create({
   eventsTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: colors.textPrimary,
   },
   eventsSubtitle: {
-    fontSize: 11,
-    color: "#9E8C8E",
+    fontSize: 12,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   eventsActionBtn: {
-    backgroundColor: "#EF4444",
+    backgroundColor: colors.primary,
     paddingVertical: 7,
     paddingHorizontal: 12,
-    borderRadius: 16,
+    borderRadius: radii.button,
   },
   eventsActionBtnText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: colors.background,
   },
 
   // Modal
@@ -1390,145 +1348,99 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.7)",
   },
   modalContent: {
-    backgroundColor: "#131915",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: colors.surfaceElevated,
+    borderTopLeftRadius: radii.modal, // 24px
+    borderTopRightRadius: radii.modal, // 24px
     borderTopWidth: 1,
-    borderTopColor: "#1F2B22",
-    padding: 24,
+    borderTopColor: colors.glassBorder,
+    padding: spacing.xl,
     paddingBottom: 40,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: colors.textPrimary,
   },
   modalSubtitle: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: colors.textSecondary,
     marginTop: 4,
   },
   modalCloseBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#1F2B22",
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   modalSectionLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#8E9B94",
-    marginBottom: 10,
-    marginTop: 8,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
   },
   slotRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
   slotChip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: "#1B241F",
+    borderRadius: radii.smallChip, // 12px
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#28372D",
+    borderColor: colors.border,
   },
   slotChipActive: {
-    backgroundColor: "#142A1D",
-    borderColor: "#22C55E",
+    backgroundColor: "rgba(0, 201, 104, 0.15)",
+    borderColor: colors.primary,
   },
   slotChipText: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: colors.textSecondary,
     fontWeight: "500",
   },
   slotChipTextActive: {
-    color: "#22C55E",
+    color: colors.primary,
     fontWeight: "700",
   },
   modalFooter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "#1F2B22",
+    borderTopColor: colors.border,
   },
   modalTotalLabel: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: colors.textSecondary,
   },
   modalTotalPrice: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: colors.textPrimary,
   },
   modalBookBtn: {
-    backgroundColor: "#22C55E",
+    backgroundColor: colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 14,
+    borderRadius: radii.button, // 14px
   },
   modalBookBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#0B0F0D",
-  },
-  promoActionsRow: {
-    marginHorizontal: 16,
-    marginBottom: 14,
-  },
-  promoActionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#13231a",
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#1e3d2a",
-    gap: 12,
-  },
-  promoActionIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "#064e3b",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  promoActionTextWrap: {
-    flex: 1,
-  },
-  promoActionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#f8fafc",
-  },
-  promoActionSub: {
-    fontSize: 11,
-    color: "#94a3b8",
-    marginTop: 1,
-  },
-  promoBadge: {
-    backgroundColor: "#10b981",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  promoBadgeText: {
-    color: "#052e16",
-    fontSize: 12,
-    fontWeight: "800",
+    color: colors.background,
   },
 });

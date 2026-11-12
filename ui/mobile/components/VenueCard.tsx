@@ -13,32 +13,47 @@ import { hapticImpact, hapticSelection } from "@/lib/haptics";
 export interface VenueCardProps {
   id: number | string;
   title: string;
-  imageUrl: string;
+  imageUrl?: string;
   address: string;
   distance?: string;
   rating: number;
   reviewsCount?: number;
   pricePerHour: number;
+  sportType?: string;
+  specs?: string;
+  availableTimeText?: string;
   isFavorite?: boolean;
   onPress: () => void;
   onToggleFavorite?: () => void;
-  badgeText?: string;
+}
+
+function getSportIcon(sport?: string): keyof typeof Ionicons.glyphMap {
+  if (!sport) return "fitness-outline";
+  const s = sport.toLowerCase();
+  if (s.includes("футбол")) return "football-outline";
+  if (s.includes("теннис")) return "tennisball-outline";
+  if (s.includes("баскетбол")) return "basketball-outline";
+  if (s.includes("волейбол")) return "fitness-outline";
+  if (s.includes("падл") || s.includes("сквош")) return "disc-outline";
+  return "fitness-outline";
 }
 
 export function VenueCard({
   title,
   imageUrl,
   address,
-  distance = "2,4 км",
+  distance,
   rating,
-  reviewsCount = 124,
+  reviewsCount,
   pricePerHour,
+  sportType,
+  specs,
+  availableTimeText,
   isFavorite = false,
   onPress,
   onToggleFavorite,
-  badgeText,
 }: VenueCardProps) {
-  const formattedPrice = pricePerHour.toLocaleString("ru-RU");
+  const formattedPrice = (pricePerHour || 0).toLocaleString("ru-RU");
 
   return (
     <Pressable
@@ -51,86 +66,122 @@ export function VenueCard({
         onPress();
       }}
     >
-      {/* Cover Image Container */}
+      {/* 1. Left: Compact Thumbnail Image */}
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.image}
-          resizeMode="cover"
-        />
-
-        {/* Favorite Button (Top Right) */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.favoriteBtn,
-            pressed && { transform: [{ scale: 0.9 }] },
-          ]}
-          onPress={(e) => {
-            e.stopPropagation();
-            hapticImpact();
-            onToggleFavorite?.();
-          }}
-          hitSlop={8}
-        >
-          <Ionicons
-            name={isFavorite ? "heart" : "heart-outline"}
-            size={18}
-            color={isFavorite ? colors.accent : "#FFFFFF"}
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.image}
+            resizeMode="cover"
           />
-        </Pressable>
-
-        {/* Rating Badge (Bottom Left) */}
-        <View style={styles.ratingBadge}>
-          <Ionicons name="star" size={13} color={colors.primary} />
-          <Text style={styles.ratingText}>
-            {rating.toFixed(1)}{" "}
-            <Text style={styles.reviewsCountText}>({reviewsCount})</Text>
-          </Text>
-        </View>
-
-        {/* Optional Promo/Special Badge */}
-        {badgeText && (
-          <View style={styles.promoBadge}>
-            <Text style={styles.promoBadgeText}>{badgeText}</Text>
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Ionicons
+              name={getSportIcon(sportType)}
+              size={26}
+              color={colors.textSecondary}
+            />
           </View>
+        )}
+
+        {/* Favorite Button (top right of thumbnail) */}
+        {onToggleFavorite && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.favoriteBtn,
+              pressed && { transform: [{ scale: 0.9 }] },
+            ]}
+            onPress={(e) => {
+              e.stopPropagation();
+              hapticImpact();
+              onToggleFavorite();
+            }}
+            hitSlop={6}
+          >
+            <Ionicons
+              name={isFavorite ? "heart" : "heart-outline"}
+              size={13}
+              color={isFavorite ? colors.accent : colors.textPrimary}
+            />
+          </Pressable>
         )}
       </View>
 
-      {/* Content Container */}
+      {/* 2. Right: Information Content */}
       <View style={styles.content}>
-        {/* Venue Title */}
-        <Text style={styles.title} numberOfLines={1}>
+        {/* Title (Up to 2 lines) */}
+        <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
 
-        {/* Address and Distance Row */}
-        <View style={styles.metaRow}>
-          <View style={styles.addressWrap}>
-            <Ionicons
-              name="location-outline"
-              size={13}
-              color={colors.textSecondary}
-              style={{ marginRight: 3 }}
-            />
-            <Text style={styles.addressText} numberOfLines={1}>
-              {address}
-            </Text>
-          </View>
-
-          {distance ? (
-            <View style={styles.distanceWrap}>
-              <Ionicons
-                name="navigate-outline"
-                size={11}
-                color={colors.textSecondary}
-                style={{ marginRight: 2 }}
-              />
-              <Text style={styles.distanceText}>{distance}</Text>
-            </View>
-          ) : null}
+        {/* Rating & Reviews */}
+        <View style={styles.ratingRow}>
+          <Ionicons name="star" size={13} color={colors.primary} />
+          <Text style={styles.ratingValue}>{rating ? rating.toFixed(1) : "5.0"}</Text>
+          {reviewsCount !== undefined && (
+            <Text style={styles.reviewsCount}>({reviewsCount})</Text>
+          )}
         </View>
 
-        {/* Bottom Price and Action Row */}
+        {/* Address and Distance */}
+        {address ? (
+          <View style={styles.metaRow}>
+            <Ionicons
+              name="location-outline"
+              size={12}
+              color={colors.textSecondary}
+              style={styles.metaIcon}
+            />
+            <Text style={styles.metaText} numberOfLines={1}>
+              {address}
+              {distance ? ` · ${distance}` : ""}
+            </Text>
+          </View>
+        ) : distance ? (
+          <View style={styles.metaRow}>
+            <Ionicons
+              name="location-outline"
+              size={12}
+              color={colors.textSecondary}
+              style={styles.metaIcon}
+            />
+            <Text style={styles.metaText} numberOfLines={1}>
+              {distance}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Characteristics (if available) */}
+        {specs ? (
+          <View style={styles.metaRow}>
+            <Ionicons
+              name={getSportIcon(sportType)}
+              size={12}
+              color={colors.textSecondary}
+              style={styles.metaIcon}
+            />
+            <Text style={styles.metaText} numberOfLines={1}>
+              {specs}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Nearest Free Time (if available) */}
+        {availableTimeText ? (
+          <View style={styles.metaRow}>
+            <Ionicons
+              name="calendar-outline"
+              size={12}
+              color={colors.textSecondary}
+              style={styles.metaIcon}
+            />
+            <Text style={styles.metaText} numberOfLines={1}>
+              {availableTimeText}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Price & Action Button */}
         <View style={styles.bottomRow}>
           <View style={styles.priceWrap}>
             <Text style={styles.pricePrefix}>от </Text>
@@ -149,7 +200,7 @@ export function VenueCard({
               onPress();
             }}
           >
-            <Ionicons name="arrow-forward" size={18} color="#080D0B" />
+            <Ionicons name="arrow-forward" size={18} color={colors.background} />
           </Pressable>
         </View>
       </View>
@@ -163,123 +214,104 @@ const styles = StyleSheet.create({
     borderRadius: radii.card,
     borderWidth: 1,
     borderColor: colors.border,
-    overflow: "hidden",
+    padding: spacing.md,
     marginBottom: spacing.card,
+    flexDirection: "row",
+    alignItems: "flex-start",
   },
   cardPressed: {
     opacity: 0.96,
-    borderColor: "rgba(0, 201, 104, 0.35)",
+    borderColor: colors.primary,
   },
   imageContainer: {
-    width: "100%",
-    height: 155,
-    backgroundColor: "#16201B",
+    width: 108,
+    height: 108,
+    borderRadius: 14,
+    backgroundColor: colors.surfaceElevated,
+    overflow: "hidden",
     position: "relative",
+    flexShrink: 0,
   },
   image: {
     width: "100%",
     height: "100%",
   },
+  imagePlaceholder: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceElevated,
+  },
   favoriteBtn: {
     position: "absolute",
-    top: 10,
-    right: 10,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    top: 6,
+    right: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: "rgba(18, 26, 22, 0.72)",
     borderWidth: 1,
     borderColor: colors.glassBorder,
     alignItems: "center",
     justifyContent: "center",
   },
-  ratingBadge: {
-    position: "absolute",
-    bottom: 10,
-    left: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: "rgba(18, 26, 22, 0.82)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  reviewsCountText: {
-    fontWeight: "400",
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  promoBadge: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  promoBadgeText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#080D0B",
-  },
   content: {
-    padding: 14,
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: "space-between",
   },
   title: {
     ...typography.cardTitle,
     color: colors.textPrimary,
-    marginBottom: 6,
+    lineHeight: 20,
+    marginBottom: 2,
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  ratingValue: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  reviewsCount: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: colors.textSecondary,
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
+    marginTop: 4,
   },
-  addressWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    marginRight: 8,
+  metaIcon: {
+    marginRight: 5,
+    flexShrink: 0,
   },
-  addressText: {
+  metaText: {
     ...typography.caption,
     color: colors.textSecondary,
     flex: 1,
-  },
-  distanceWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexShrink: 0,
-  },
-  distanceText: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: colors.textSecondary,
   },
   bottomRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.04)",
-    paddingTop: 10,
+    marginTop: 8,
+    paddingTop: 4,
   },
   priceWrap: {
     flexDirection: "row",
     alignItems: "baseline",
+    flex: 1,
+    marginRight: 8,
   },
   pricePrefix: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textSecondary,
   },
   priceAmount: {
@@ -288,7 +320,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   priceSuffix: {
-    fontSize: 12,
+    ...typography.caption,
     color: colors.textSecondary,
   },
   actionBtn: {
@@ -298,6 +330,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
 });
-
