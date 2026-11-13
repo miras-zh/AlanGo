@@ -11,8 +11,37 @@ const MAX_SIDE = 2048;
 // iPhone photos are often HEIC, which the backend rejects (jpeg/png/webp
 // only), so every upload goes through here instead of the raw asset.
 // Returns null if the user cancelled.
+//
+// `Compatible` asks iOS to hand over a transcoded JPEG instead of the raw
+// original. With the default (`current`) some assets — iCloud-optimized
+// originals, Live Photos, odd formats — fail with "cannot load
+// representation of type public.jpeg" (FailedToReadImageException).
+export class UnreadablePhotoError extends Error {
+  constructor() {
+    super(
+      "Не удалось открыть это фото. Возможно, оно хранится в iCloud и ещё не загружено на устройство — откройте его в приложении «Фото» и попробуйте снова или выберите другое.",
+    );
+    this.name = "UnreadablePhotoError";
+  }
+}
+
+function isUnreadablePhoto(err: unknown): boolean {
+  const text = `${(err as { code?: string })?.code ?? ""} ${(err as Error)?.message ?? String(err)}`;
+  return /FailedToReadImage|Failed to read picked image|public\.(jpeg|heic|image)|representation/i.test(text);
+}
+
 export async function pickImageAsJpeg(namePrefix: string): Promise<PickedPhoto | null> {
-  const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
+  let result: ImagePicker.ImagePickerResult;
+  try {
+    result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 1,
+      preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+    });
+  } catch (err) {
+    if (isUnreadablePhoto(err)) throw new UnreadablePhotoError();
+    throw err;
+  }
   if (result.canceled || !result.assets[0]) return null;
   const asset = result.assets[0];
 
@@ -32,4 +61,9 @@ export async function pickImageAsJpeg(namePrefix: string): Promise<PickedPhoto |
       type: asset.mimeType ?? "image/jpeg",
     };
   }
+}
+
+// Alert title for an error from pickImageAsJpeg.
+export function pickErrorTitle(err: unknown): string {
+  return err instanceof UnreadablePhotoError ? "Фото не открылось" : "Ошибка";
 }

@@ -23,12 +23,13 @@ type Props = {
   source: string;
   onCancel: () => void;
   onSave: (file: PickedPhoto) => void;
+  title?: string;
 };
 
 // Pan-and-zoom circular cropper (ported from Vison). Drag the photo inside
 // the circular viewport, zoom with the slider, then crop exactly what's
 // visible via expo-image-manipulator. Output is a square JPEG for uploadAvatar.
-export function AvatarCropModal({ source, onCancel, onSave }: Props) {
+export function AvatarCropModal({ source, onCancel, onSave, title = "Фото профиля" }: Props) {
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const viewport = Math.min(280, Dimensions.get("window").width - spacing.lg * 2 - 40);
@@ -157,7 +158,7 @@ export function AvatarCropModal({ source, onCancel, onSave }: Props) {
     <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlay}>
         <View style={styles.card}>
-          <Text style={styles.title}>Фото профиля</Text>
+          <Text style={styles.title}>{title}</Text>
           <Text style={styles.hint}>Перетащите фото и настройте масштаб</Text>
           {loadError ? (
             <Text style={styles.loadError}>Не удалось обработать изображение. Выберите другое фото.</Text>

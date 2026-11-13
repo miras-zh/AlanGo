@@ -21,7 +21,7 @@ import { BusinessAccountCard } from "@/components/BusinessAccountCard";
 import { AvatarCropModal } from "@/components/AvatarCropModal";
 import { radii, spacing } from "@/constants/theme";
 import { getErrorMessage } from "@/lib/errorMessage";
-import { pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
+import { pickErrorTitle, pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
 import { clearSession, getSessionUser } from "@/lib/auth";
 import {
   Arena,
@@ -85,7 +85,7 @@ export default function BusinessProfileScreen() {
       const picked = await pickImageAsJpeg("arena-logo");
       if (picked) setCropSource(picked.uri);
     } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err, "Не удалось открыть галерею"));
+      Alert.alert(pickErrorTitle(err), getErrorMessage(err, "Не удалось открыть галерею"));
     }
   };
 
@@ -380,7 +380,7 @@ export default function BusinessProfileScreen() {
                 style={styles.input}
                 value={address}
                 onChangeText={setAddress}
-                placeholder="ул. Нур-Султан 12"
+                placeholder="ул. Кабанбай батыра 10"
                 placeholderTextColor={c.textMuted}
               />
 
@@ -411,6 +411,7 @@ export default function BusinessProfileScreen() {
 
       {cropSource ? (
         <AvatarCropModal
+          title="Логотип арены"
           source={cropSource}
           onCancel={() => setCropSource(null)}
           onSave={handleCroppedLogo}
@@ -633,6 +634,7 @@ const createStyles = (c: Palette) =>
     marginTop: 2,
   },
   logoutBtn: {
+    marginTop: spacing.card,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

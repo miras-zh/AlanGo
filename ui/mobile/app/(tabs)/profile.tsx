@@ -15,7 +15,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { getSessionUser, subscribeAuth, updateSessionUser } from "@/lib/auth";
 import { EMPTY_STATS, fetchMyStats, uploadAvatar, type MyStats } from "@/lib/user";
-import { pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
+import { pickErrorTitle, pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
 import { AvatarCropModal } from "@/components/AvatarCropModal";
 import { BusinessAccountCard } from "@/components/BusinessAccountCard";
 import { ProfilePreferences } from "@/components/ProfilePreferences";
@@ -47,7 +47,7 @@ export default function ProfileScreen() {
       const picked = await pickImageAsJpeg("avatar");
       if (picked) setCropSource(picked.uri);
     } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err, "Не удалось открыть галерею"));
+      Alert.alert(pickErrorTitle(err), getErrorMessage(err, "Не удалось открыть галерею"));
     }
   };
 

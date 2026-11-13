@@ -37,7 +37,7 @@ import {
   capacityLabel,
   sizeLabel,
 } from "@/lib/hallOptions";
-import { pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
+import { pickErrorTitle, pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
@@ -177,7 +177,7 @@ export default function BusinessHallsScreen() {
     try {
       picked = await pickImageAsJpeg("hall");
     } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err, "Не удалось открыть галерею"));
+      Alert.alert(pickErrorTitle(err), getErrorMessage(err, "Не удалось открыть галерею"));
       return;
     }
     if (!picked) return;
