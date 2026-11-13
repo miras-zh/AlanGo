@@ -191,6 +191,8 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/halls/{id:[0-9]+}/schedule", sportHandler.SaveHallSchedule).Methods("PUT")
 	authRouter.HandleFunc("/halls/{id:[0-9]+}/photos", sportHandler.DeleteHallPhoto).Methods("DELETE")
 	authRouter.HandleFunc("/bookings/{id:[0-9]+}/status", sportHandler.UpdateBookingStatus).Methods("PATCH")
+	authRouter.HandleFunc("/bookings/{id:[0-9]+}/client-rating", sportHandler.RateBookingClient).Methods("PUT")
+	authRouter.HandleFunc("/me/stats", sportHandler.GetMyStats).Methods("GET")
 
 	return withSecurityHeaders(withCORS(withRateLimit(withMaxBodySize(r), rdb), cfg.CORSAllowedOrigin))
 }

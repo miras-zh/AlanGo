@@ -23,10 +23,29 @@ func NewHandler(service *Service, auditService *audit.Service) *Handler {
 	}
 }
 
-func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
+// requireBusiness writes 401/403 and returns 0,false unless the caller has a
+// business account. Clients have no subscription.
+func (h *Handler) requireBusiness(w http.ResponseWriter, r *http.Request) (uint, bool) {
 	userID, ok := auth.GetUserID(r)
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return 0, false
+	}
+	isBusiness, err := h.service.IsBusiness(userID)
+	if err != nil {
+		http.Error(w, "failed to check account", http.StatusInternalServerError)
+		return 0, false
+	}
+	if !isBusiness {
+		http.Error(w, ErrNotBusiness.Error(), http.StatusForbidden)
+		return 0, false
+	}
+	return userID, true
+}
+
+func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.requireBusiness(w, r)
+	if !ok {
 		return
 	}
 
@@ -49,9 +68,8 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 
 // RequestChange submits a subscription plan change request for admin approval
 func (h *Handler) RequestChange(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.GetUserID(r)
+	userID, ok := h.requireBusiness(w, r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -85,9 +103,8 @@ func (h *Handler) RequestChange(w http.ResponseWriter, r *http.Request) {
 
 // CancelRequest cancels the user's active pending subscription request
 func (h *Handler) CancelRequest(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.GetUserID(r)
+	userID, ok := h.requireBusiness(w, r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -104,15 +121,21 @@ func (h *Handler) CancelRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Change(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.GetUserID(r)
+	userID, ok := h.requireBusiness(w, r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	var body ChangePlanRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Paid plans go through RequestChange + admin approval; a business can
+	// only switch itself back to the free plan.
+	if body.Plan != PlanStandard {
+		http.Error(w, ErrPaidPlan.Error(), http.StatusForbidden)
 		return
 	}
 

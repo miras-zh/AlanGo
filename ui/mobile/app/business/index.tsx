@@ -276,6 +276,25 @@ export default function BusinessDashboardScreen() {
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
           </Pressable>
+
+          <Pressable
+            style={styles.actionCard}
+            onPress={() => {
+              hapticSelection();
+              router.push("/business/subscription");
+            }}
+          >
+            <View style={styles.actionIconBox}>
+              <Ionicons name="ribbon" size={24} color={c.primary} />
+            </View>
+            <View style={styles.actionInfo}>
+              <Text style={styles.actionTitle}>Подписка</Text>
+              <Text style={styles.actionSubtitle}>
+                Тариф AlanGo для бизнеса: залы, продвижение и поддержка
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+          </Pressable>
         </View>
 
         {/* Quick Management Shortcuts */}

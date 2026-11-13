@@ -93,6 +93,7 @@ type Booking struct {
 	SportType       string    `gorm:"->;column:sport_type" json:"sport_type,omitempty"`
 	ArenaID         uint      `gorm:"column:arena_id;not null;index" json:"arena_id"`
 	ArenaTitle      string    `gorm:"->;column:arena_title" json:"arena_title,omitempty"`
+	ClientRating    *int      `gorm:"->;column:client_rating" json:"client_rating,omitempty"`
 	UserID          *uint     `gorm:"column:user_id;index" json:"user_id,omitempty"`
 	ClientName      string    `gorm:"column:client_name;type:varchar(255);not null" json:"client_name"`
 	ClientPhone     string    `gorm:"column:client_phone;type:varchar(50);not null" json:"client_phone"`

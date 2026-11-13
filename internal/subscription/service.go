@@ -16,26 +16,30 @@ const (
 var (
 	ErrInvalidPlan  = errors.New("invalid plan")
 	ErrUserNotFound = errors.New("user not found")
+	ErrNotBusiness  = errors.New("subscriptions are available to business accounts only")
+	ErrPaidPlan     = errors.New("paid plans are activated by an administrator after a request")
 )
 
+// Subscriptions are for business accounts only (sports complexes listing
+// their halls). Clients book halls for free and have no plan.
 var defaultCatalog = []PlanInfo{
 	{
 		ID:       PlanStandard,
-		Name:     "Standard",
+		Name:     "Старт",
 		Price:    0,
-		Features: []string{"Базовый функционал", "До 10 записей"},
+		Features: []string{"1 спорткомплекс и до 2 залов", "Онлайн-бронирование и график залов", "Базовая статистика"},
 	},
 	{
 		ID:       PlanPro,
-		Name:     "Pro",
-		Price:    2990,
-		Features: []string{"Расширенный доступ", "Безлимитные записи", "Приоритетная поддержка"},
+		Name:     "Бизнес",
+		Price:    9990,
+		Features: []string{"До 10 залов", "Финансы и база клиентов", "Акции и промо-коды", "Приоритетная поддержка"},
 	},
 	{
 		ID:       PlanVIP,
-		Name:     "VIP",
-		Price:    7990,
-		Features: []string{"Полный доступ ко всем функциям", "Персональные уведомления", "VIP статус"},
+		Name:     "Премиум",
+		Price:    19990,
+		Features: []string{"Безлимит залов", "Продвижение в каталоге и на главной", "Сотрудники и роли", "Персональный менеджер"},
 	},
 }
 
@@ -51,6 +55,21 @@ func EffectivePlan(plan string, expiresAt *time.Time) string {
 
 type Service struct {
 	DB *gorm.DB
+}
+
+// IsBusiness reports whether the user currently has a business account
+// (users.role = 'business'). The role is read from the database, not the
+// JWT, so switching the business account on/off takes effect immediately.
+func (s *Service) IsBusiness(userID uint) (bool, error) {
+	var role string
+	err := s.DB.Table("users").Select("role").Where("id = ?", userID).Take(&role).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, ErrUserNotFound
+	}
+	if err != nil {
+		return false, err
+	}
+	return role == "business", nil
 }
 
 func NewService(db *gorm.DB) *Service {
@@ -78,7 +97,7 @@ func (s *Service) CreateRequest(userID uint, plan string) (*SubscriptionRequest,
 		Name  string
 		Plan  string
 	}
-	if err := s.DB.Table("users").Select("email, name, plan").Where("id = ?", userID).Take(&user).Error; err != nil {
+	if err := s.DB.Table("users").Select("email, full_name AS name, plan").Where("id = ?", userID).Take(&user).Error; err != nil {
 		return nil, ErrUserNotFound
 	}
 

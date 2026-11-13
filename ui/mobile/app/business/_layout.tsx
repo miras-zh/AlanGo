@@ -119,6 +119,13 @@ export default function BusinessTabsLayout() {
           title: "Акции и скидки",
         }}
       />
+      <Tabs.Screen
+        name="subscription"
+        options={{
+          href: null,
+          title: "Подписка",
+        }}
+      />
     </Tabs>
   );
 }

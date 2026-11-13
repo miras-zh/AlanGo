@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,17 +11,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { getSessionUser, subscribeAuth, updateSessionUser } from "@/lib/auth";
-import {
-  cancelSubscriptionRequest,
-  changeMySubscriptionPlan,
-  requestSubscriptionPlan,
-  fetchMySubscription,
-  SubscriptionInfo,
-  uploadAvatar,
-} from "@/lib/user";
+import { EMPTY_STATS, fetchMyStats, uploadAvatar, type MyStats } from "@/lib/user";
 import { pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
 import { AvatarCropModal } from "@/components/AvatarCropModal";
 import { BusinessAccountCard } from "@/components/BusinessAccountCard";
@@ -40,7 +33,7 @@ export default function ProfileScreen() {
   const [name, setName] = useState(user?.name || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [city, setCity] = useState(user?.city || "");
-  const [sub, setSub] = useState<SubscriptionInfo | null>(null);
+  const [stats, setStats] = useState<MyStats>(EMPTY_STATS);
   const [cropSource, setCropSource] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -80,80 +73,22 @@ export default function ProfileScreen() {
       setName(u?.name || u?.full_name || "");
       setPhone(u?.phone || "");
       setCity(u?.city || "");
-      if (u) {
-        fetchMySubscription().then(setSub).catch(() => {});
-      } else {
-        setSub(null);
-      }
+      if (!u) setStats(EMPTY_STATS);
     });
   }, []);
 
-  useEffect(() => {
-    if (getSessionUser()) {
-      fetchMySubscription()
-        .then((s) => setSub(s))
+  // Real statistics from the user's bookings; refreshed whenever the tab is
+  // opened. A new account shows 0 games, 0 h and the starting rating 5.0.
+  useFocusEffect(
+    useCallback(() => {
+      if (!getSessionUser()) return;
+      fetchMyStats()
+        .then(setStats)
         .catch(() => {});
-    }
-  }, []);
+    }, [user?.id]),
+  );
 
-  const handlePlanChange = async (newPlan: string) => {
-    if (newPlan === (sub?.plan || "pro")) {
-      Alert.alert("Текущий тариф", "Этот тариф уже активирован в вашем аккаунте.");
-      return;
-    }
-
-    if (
-      sub?.pending_request &&
-      sub.pending_request.status === "pending" &&
-      sub.pending_request.requested_plan === newPlan
-    ) {
-      Alert.alert(
-        "Заявка на рассмотрении ⏳",
-        `Ваша заявка на тариф ${newPlan.toUpperCase()} уже отправлена и находится на рассмотрении у администратора.`
-      );
-      return;
-    }
-
-    hapticSelection();
-    try {
-      const res = await requestSubscriptionPlan(newPlan);
-      const fresh = await fetchMySubscription();
-      setSub(fresh);
-      hapticSuccess();
-      Alert.alert(
-        "Заявка отправлена 🎉",
-        res.message || `Ваша заявка на тариф ${newPlan.toUpperCase()} успешно отправлена. Ожидайте подтверждения от администратора.`
-      );
-    } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err));
-    }
-  };
-
-  const handleCancelPending = () => {
-    hapticImpact();
-    Alert.alert(
-      "Отмена заявки",
-      "Вы действительно хотите отменить отправленную заявку на смену тарифа?",
-      [
-        { text: "Нет", style: "cancel" },
-        {
-          text: "Отменить заявку",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await cancelSubscriptionRequest();
-              const fresh = await fetchMySubscription();
-              setSub(fresh);
-              hapticSuccess();
-              Alert.alert("Заявка отменена", "Заявка на смену тарифа успешно отменена.");
-            } catch (e) {
-              Alert.alert("Ошибка", getErrorMessage(e));
-            }
-          },
-        },
-      ]
-    );
-  };
+  const hoursPlayed = Math.round((stats.minutes_played / 60) * 10) / 10;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.background }]} edges={["top"]}>
@@ -181,7 +116,7 @@ export default function ProfileScreen() {
               </View>
               <Text style={styles.guestTitle}>Войдите в аккаунт</Text>
               <Text style={styles.guestSubtitle}>
-                Авторизуйтесь, чтобы бронировать площадки, сохранять избранное и управлять абонементами.
+                Авторизуйтесь, чтобы бронировать площадки и сохранять избранное.
               </Text>
               <Pressable
                 style={styles.guestLoginBtn}
@@ -195,27 +130,6 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
 
-            {/* Sports Subscriptions Card */}
-            <Pressable
-              style={[styles.card, { borderColor: c.primary, backgroundColor: "#111814" }]}
-              onPress={() => {
-                hapticSelection();
-                router.push("/subscriptions");
-              }}
-            >
-              <View style={styles.cardHeader}>
-                <View style={[styles.cardIconWrap, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
-                  <Ionicons name="ticket" size={20} color={c.primary} />
-                </View>
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={styles.cardTitle}>Спортивные абонементы</Text>
-                  <Text style={styles.cardSubtitle}>
-                    Пакеты игр (8-12 тренировок), экономия до 25% и QR-пропуск
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={c.primary} />
-              </View>
-            </Pressable>
             <ProfilePreferences signedIn={false} />
           </>
         ) : (
@@ -250,12 +164,6 @@ export default function ProfileScreen() {
               <View style={styles.userInfo}>
                 <View style={styles.userNameRow}>
                   <Text style={styles.userName}>{name || user.email?.split("@")[0] || "Пользователь"}</Text>
-                  {sub?.plan && sub.plan !== "standard" && (
-                    <View style={styles.proBadge}>
-                      <Ionicons name="shield-checkmark" size={12} color={c.primary} />
-                      <Text style={styles.proBadgeText}>{sub.plan.toUpperCase()}</Text>
-                    </View>
-                  )}
                 </View>
                 <Text style={styles.userEmail}>{user.email}</Text>
                 {city ? <Text style={styles.userLocation}>📍 {city}</Text> : null}
@@ -265,129 +173,18 @@ export default function ProfileScreen() {
             {/* Stats Grid */}
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
-                <Text style={styles.statNumber}>14</Text>
+                <Text style={styles.statNumber}>{stats.games_played}</Text>
                 <Text style={styles.statLabel}>Игр сыграно</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={styles.statNumber}>28 ч</Text>
+                <Text style={styles.statNumber}>{hoursPlayed} ч</Text>
                 <Text style={styles.statLabel}>На корте</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={styles.statNumber}>★ 4.9</Text>
+                <Text style={styles.statNumber}>★ {stats.rating.toFixed(1)}</Text>
                 <Text style={styles.statLabel}>Рейтинг</Text>
               </View>
             </View>
-
-            {/* Subscription Card */}
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardIconWrap}>
-                  <Ionicons name="flash" size={20} color={c.primary} />
-                </View>
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={styles.cardTitle}>SportRent Club</Text>
-                  <Text style={styles.cardSubtitle}>
-                    Скидка 15% на дневные слоты и приоритетное бронирование
-                  </Text>
-                </View>
-              </View>
-
-              {/* Pending Tariff Application Banner */}
-              {sub?.pending_request && sub.pending_request.status === "pending" && (
-                <View style={styles.pendingRequestBanner}>
-                  <View style={styles.pendingDot} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.pendingRequestTitle}>
-                      Заявка на {sub.pending_request.requested_plan.toUpperCase()}
-                    </Text>
-                    <Text style={styles.pendingRequestSub}>
-                      Ожидает подтверждения от администратора
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={handleCancelPending}
-                    style={styles.cancelRequestBtn}
-                    hitSlop={8}
-                  >
-                    <Text style={styles.cancelRequestBtnText}>Отозвать</Text>
-                  </Pressable>
-                </View>
-              )}
-
-              <View style={styles.planSelector}>
-                {[
-                  { id: "standard", name: "Базовый", price: "0 ₸" },
-                  { id: "pro", name: "PRO Клуб", price: "4 990 ₸ / мес" },
-                  { id: "vip", name: "VIP Безлимит", price: "12 990 ₸ / мес" },
-                ].map((p) => {
-                  const active = (sub?.plan || "standard") === p.id;
-                  const isPending =
-                    sub?.pending_request?.status === "pending" &&
-                    sub.pending_request.requested_plan === p.id;
-
-                  return (
-                    <Pressable
-                      key={p.id}
-                      style={[
-                        styles.planChip,
-                        active && styles.planChipActive,
-                        isPending && styles.planChipPending,
-                      ]}
-                      onPress={() => handlePlanChange(p.id)}
-                    >
-                      <View style={styles.planNameWrap}>
-                        <Text
-                          style={[
-                            styles.planName,
-                            active && styles.planNameActive,
-                            isPending && styles.planNamePending,
-                          ]}
-                        >
-                          {p.name}
-                        </Text>
-                        {isPending && (
-                          <View style={styles.pendingBadgeMini}>
-                            <Ionicons name="time-outline" size={11} color="#F59E0B" />
-                            <Text style={styles.pendingBadgeMiniText}>На рассмотрении</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text
-                        style={[
-                          styles.planPrice,
-                          active && styles.planPriceActive,
-                          isPending && styles.planPricePending,
-                        ]}
-                      >
-                        {p.price}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Sports Subscriptions Card */}
-            <Pressable
-              style={[styles.card, { borderColor: c.primary, backgroundColor: "#111814" }]}
-              onPress={() => {
-                hapticSelection();
-                router.push("/subscriptions");
-              }}
-            >
-              <View style={styles.cardHeader}>
-                <View style={[styles.cardIconWrap, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
-                  <Ionicons name="ticket" size={20} color={c.primary} />
-                </View>
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={styles.cardTitle}>Спортивные абонементы</Text>
-                  <Text style={styles.cardSubtitle}>
-                    Пакеты игр (8-12 тренировок), экономия до 25% и QR-пропуск
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={c.primary} />
-              </View>
-            </Pressable>
 
             {/* Business account: create / open / disable / enable */}
             <BusinessAccountCard />

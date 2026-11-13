@@ -88,6 +88,10 @@ export type Booking = {
   rejectionReason?: string;
   notes?: string;
   createdAt: string;
+  dbId?: number;          // numeric bookings.id on the backend
+  userId?: number | null; // registered client (null for manual/phone bookings)
+  endTime?: string;       // "HH:MM"
+  clientRating?: number | null; // 1-5, set by the business after the game
 };
 
 export type TestAccount = {
@@ -1202,7 +1206,28 @@ function mapApiBooking(b: any): Booking {
     totalPrice: b.total_price,
     status: b.status,
     createdAt: b.created_at || new Date().toISOString(),
+    dbId: typeof b.id === "number" ? b.id : undefined,
+    userId: b.user_id ?? null,
+    endTime: b.end_time,
+    clientRating: b.client_rating ?? null,
   };
+}
+
+// True once the booking's end time has passed (venue time, UTC+5).
+export function isBookingFinished(b: Booking, now = new Date()): boolean {
+  if (b.status === "cancelled" || b.status === "rejected") return false;
+  if (!b.date || !/^\d{4}-\d{2}-\d{2}$/.test(b.date)) return false;
+  const end = (b.endTime || "23:59").replace("24:00", "23:59");
+  const t = Date.parse(`${b.date}T${end}:00+05:00`);
+  return Number.isFinite(t) && t <= now.getTime();
+}
+
+// Business rates the client of a finished booking (PUT /api/bookings/{id}/client-rating).
+export async function rateBookingClient(dbId: number, score: number): Promise<void> {
+  await apiFetch(`/bookings/${dbId}/client-rating`, {
+    method: "PUT",
+    body: JSON.stringify({ score }),
+  });
 }
 
 // Business cabinet: the owner's arena bookings *with* client contacts

@@ -24,8 +24,12 @@ import {
   setBookingGameOutcome,
   updateBookingPayment,
   updateBookingDetails,
+  isBookingFinished,
+  rateBookingClient,
 } from "@/lib/sportRentData";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
+import { getErrorMessage } from "@/lib/errorMessage";
+import { spacing } from "@/constants/theme";
 import { BookingsCalendar } from "@/components/BookingsCalendar";
 import { ManualBookingModal } from "@/components/ManualBookingModal";
 import { RejectBookingModal } from "@/components/RejectBookingModal";
@@ -87,6 +91,22 @@ export default function BusinessBookingsScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Business rates the client after the game; the average becomes the
+  // client's rating in their profile (5.0 until the first score).
+  const handleRateClient = async (booking: Booking, score: number) => {
+    if (!booking.dbId) return;
+    hapticSelection();
+    const prev = booking.clientRating ?? null;
+    setBookings((list) => list.map((b) => (b.id === booking.id ? { ...b, clientRating: score } : b)));
+    try {
+      await rateBookingClient(booking.dbId, score);
+      hapticSuccess();
+    } catch (err) {
+      setBookings((list) => list.map((b) => (b.id === booking.id ? { ...b, clientRating: prev } : b)));
+      Alert.alert("Не удалось сохранить оценку", getErrorMessage(err));
+    }
+  };
 
   const handleSavePayment = async (bookingId: string, paidAmount: number) => {
     await updateBookingPayment(bookingId, paidAmount);
@@ -510,6 +530,29 @@ export default function BusinessBookingsScreen() {
                       )}
                     </View>
                   </View>
+
+                  {item.userId && item.dbId && isBookingFinished(item) ? (
+                    <View style={styles.rateRow}>
+                      <Text style={styles.rateLabel}>
+                        {item.clientRating ? "Оценка клиента" : "Оцените клиента"}
+                      </Text>
+                      <View style={styles.rateStars}>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Pressable
+                            key={n}
+                            hitSlop={6}
+                            onPress={() => handleRateClient(item, n)}
+                          >
+                            <Ionicons
+                              name={(item.clientRating ?? 0) >= n ? "star" : "star-outline"}
+                              size={22}
+                              color={(item.clientRating ?? 0) >= n ? c.primary : c.textSecondary}
+                            />
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+                  ) : null}
                 </View>
               );
             }}
@@ -762,6 +805,24 @@ const createStyles = (c: Palette) =>
   outcomeBadgeText: {
     fontSize: 12,
     fontWeight: "700",
+  },
+  rateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: c.border,
+  },
+  rateLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: c.textSecondary,
+  },
+  rateStars: {
+    flexDirection: "row",
+    gap: spacing.sm,
   },
   cardFooter: {
     flexDirection: "row",

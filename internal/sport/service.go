@@ -216,9 +216,10 @@ func (s *Service) GetBookingByID(ctx context.Context, id uint) (*Booking, error)
 func (s *Service) ListBookings(ctx context.Context, arenaID, hallID uint, date, status string, userID *uint) ([]Booking, error) {
 	tx := s.db.WithContext(ctx).
 		Table("bookings").
-		Select("bookings.*, halls.title as hall_title, halls.sport_type as sport_type, arenas.title as arena_title").
+		Select("bookings.*, halls.title as hall_title, halls.sport_type as sport_type, arenas.title as arena_title, client_ratings.score as client_rating").
 		Joins("JOIN halls ON halls.id = bookings.hall_id").
-		Joins("JOIN arenas ON arenas.id = bookings.arena_id")
+		Joins("JOIN arenas ON arenas.id = bookings.arena_id").
+		Joins("LEFT JOIN client_ratings ON client_ratings.booking_id = bookings.id")
 
 	if arenaID > 0 {
 		tx = tx.Where("bookings.arena_id = ?", arenaID)

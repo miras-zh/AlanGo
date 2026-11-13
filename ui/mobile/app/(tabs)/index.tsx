@@ -650,28 +650,6 @@ export default function HomeScreen() {
           </View>
         </Pressable>
 
-        {/* --- 7. SUBSCRIPTIONS & GAME PACKS (bottom) --- */}
-        <Pressable
-          style={[styles.promoActionCard, { marginTop: spacing.card }]}
-          onPress={() => {
-            hapticSelection();
-            router.push("/subscriptions");
-          }}
-        >
-          <View style={styles.promoActionIconWrap}>
-            <Ionicons name="ticket" size={20} color={c.primary} />
-          </View>
-          <View style={styles.promoActionTextWrap}>
-            <Text style={styles.promoActionTitle}>Абонементы и Пакеты игр</Text>
-            <Text style={styles.promoActionSub}>
-              Экономия до 25% на регулярных посещениях
-            </Text>
-          </View>
-          <View style={styles.promoBadge}>
-            <Text style={styles.promoBadgeText}>-25%</Text>
-          </View>
-        </Pressable>
-
       </ScrollView>
 
       {/* --- QUICK BOOKING MODAL --- */}

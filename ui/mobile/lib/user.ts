@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, UPLOAD_TIMEOUT_MS } from "@/lib/api";
 import { clearRefreshToken, getRefreshToken, updateSessionUser } from "@/lib/auth";
 
@@ -106,136 +105,58 @@ export type PendingSubscriptionRequest = {
   admin_notes?: string;
 };
 
-export type SubscriptionInfo = {
-  plan: string;
-  current?: string;
-  expires_at?: string;
-  status?: string;
-  pending_request?: PendingSubscriptionRequest | null;
-  [key: string]: any;
+export type SubscriptionPlan = {
+  id: string;
+  name: string;
+  price: number;
+  price_on_request?: boolean;
+  features: string[];
 };
 
-const PENDING_SUB_KEY = "alango_pending_subscription_request";
-
-export async function getStoredPendingRequest(): Promise<PendingSubscriptionRequest | null> {
-  try {
-    const raw = await AsyncStorage.getItem(PENDING_SUB_KEY);
-    if (raw) {
-      return JSON.parse(raw) as PendingSubscriptionRequest;
-    }
-  } catch {
-    // ignore
-  }
-  return null;
-}
-
-export async function setStoredPendingRequest(
-  req: PendingSubscriptionRequest | null
-): Promise<void> {
-  try {
-    if (req) {
-      await AsyncStorage.setItem(PENDING_SUB_KEY, JSON.stringify(req));
-    } else {
-      await AsyncStorage.removeItem(PENDING_SUB_KEY);
-    }
-  } catch {
-    // ignore
-  }
-}
-
-export const MOCK_SUBSCRIPTION: SubscriptionInfo = {
-  plan: "pro",
-  status: "active",
-  expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 25).toISOString(),
-  pending_request: null,
+// Business subscription (GET /api/subscription). Only business accounts
+// have one; the backend answers 403 for clients.
+export type SubscriptionInfo = {
+  current: string;
+  expires_at?: string | null;
+  plans: SubscriptionPlan[];
+  pending_request?: PendingSubscriptionRequest | null;
 };
 
 export async function fetchMySubscription(): Promise<SubscriptionInfo> {
-  const localPending = await getStoredPendingRequest();
-  try {
-    const res = await api.get<SubscriptionInfo>("/api/subscription");
-    if (res.data) {
-      if (res.data.current) {
-        res.data.plan = res.data.current;
-      }
-      // If backend explicitly returned pending_request
-      if ("pending_request" in res.data) {
-        if (res.data.pending_request) {
-          await setStoredPendingRequest(res.data.pending_request);
-        } else {
-          // If server says no pending request, clear local storage
-          await setStoredPendingRequest(null);
-        }
-      } else if (localPending && localPending.status === "pending") {
-        // Fallback for older backend without pending_request field
-        res.data.pending_request = localPending;
-      }
-      return res.data;
-    }
-  } catch {
-    // fallback
-  }
-
-  const result = { ...MOCK_SUBSCRIPTION };
-  if (localPending && localPending.status === "pending") {
-    result.pending_request = localPending;
-  }
-  return result;
+  const res = await api.get<SubscriptionInfo>("/api/subscription");
+  return { ...res.data, plans: res.data.plans ?? [] };
 }
 
+// Paid plans are activated by an administrator after this request.
 export async function requestSubscriptionPlan(plan: string): Promise<{
   message: string;
   request?: PendingSubscriptionRequest;
 }> {
-  let pendingReq: PendingSubscriptionRequest = {
-    id: Date.now(),
-    requested_plan: plan,
-    status: "pending",
-    created_at: new Date().toISOString(),
-  };
-
-  try {
-    const res = await api.post<any>("/api/subscription/request", { plan });
-    if (res.data?.request) {
-      pendingReq = res.data.request;
-    }
-    MOCK_SUBSCRIPTION.pending_request = pendingReq;
-    await setStoredPendingRequest(pendingReq);
-    return {
-      message: res.data?.message || "Заявка отправлена. Ожидайте подтверждения от администратора",
-      request: pendingReq,
-    };
-  } catch {
-    // fallback to mock
-  }
-
-  MOCK_SUBSCRIPTION.pending_request = pendingReq;
-  await setStoredPendingRequest(pendingReq);
-  return {
-    message: "Заявка отправлена. Ожидайте подтверждения от администратора",
-    request: pendingReq,
-  };
+  const res = await api.post<{ message: string; request?: PendingSubscriptionRequest }>(
+    "/api/subscription/request",
+    { plan },
+  );
+  return res.data;
 }
 
 export async function cancelSubscriptionRequest(): Promise<void> {
-  MOCK_SUBSCRIPTION.pending_request = null;
-  await setStoredPendingRequest(null);
-  try {
-    await api.post("/api/subscription/cancel-request", {});
-  } catch {
-    // ignore
-  }
+  await api.post("/api/subscription/cancel-request", {});
 }
 
-export async function changeMySubscriptionPlan(plan: string): Promise<SubscriptionInfo> {
-  try {
-    const res = await api.post<SubscriptionInfo>("/api/subscription/change", { plan });
-    if (res.data) return res.data;
-  } catch {
-    // fallback
-  }
-  MOCK_SUBSCRIPTION.plan = plan;
-  return MOCK_SUBSCRIPTION;
+// Profile statistics (GET /api/me/stats): finished bookings, minutes on
+// court and the average rating businesses gave the user (5.0 when unrated).
+export type MyStats = {
+  games_played: number;
+  minutes_played: number;
+  rating: number;
+  ratings_count: number;
+};
+
+export const EMPTY_STATS: MyStats = { games_played: 0, minutes_played: 0, rating: 5, ratings_count: 0 };
+
+export async function fetchMyStats(): Promise<MyStats> {
+  const res = await api.get<MyStats>("/api/me/stats");
+  return res.data;
 }
 
 export async function uploadAvatar(photo: {
