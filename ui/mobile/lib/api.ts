@@ -1,8 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { Platform } from "react-native";
 import {
-  clearRefreshToken,
-  clearToken,
+  clearSession,
   getRefreshToken,
   getToken,
   setRefreshToken,
@@ -109,17 +108,13 @@ api.interceptors.response.use(
         config.headers.Authorization = `Bearer ${token}`;
         return api(config);
       } catch {
-        await clearToken();
-        await clearRefreshToken();
+        await clearSession();
         return Promise.reject(error);
       }
     }
 
-    if (status === 401) {
-      await clearToken();
-      if (config?.url === "/api/auth/refresh") {
-        await clearRefreshToken();
-      }
+    if (status === 401 && (!isAuthEndpoint || config?.url === "/api/auth/refresh")) {
+      await clearSession();
     }
     return Promise.reject(error);
   },

@@ -4,6 +4,7 @@ import {
   ActionSheetIOS,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   ScrollView,
@@ -38,6 +39,44 @@ import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
+type HoursMode = "daily" | "weekdays" | "mon_sat" | "24_7";
+
+const HOURS_MODES: { id: HoursMode; label: string; suffix: string }[] = [
+  { id: "daily", label: "Ежедневно", suffix: "ежедневно" },
+  { id: "weekdays", label: "Пн–Пт", suffix: "пн–пт" },
+  { id: "mon_sat", label: "Пн–Сб", suffix: "пн–сб" },
+  { id: "24_7", label: "24/7", suffix: "круглосуточно" },
+];
+
+function formatMinutes(total: number): string {
+  const clamped = Math.max(0, Math.min(24 * 60, total));
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function buildWorkingHours(openMins: number, closeMins: number, mode: HoursMode): string {
+  if (mode === "24_7") return "Круглосуточно (24/7)";
+  const suffix = HOURS_MODES.find((m) => m.id === mode)?.suffix || "ежедневно";
+  return `${formatMinutes(openMins)} - ${formatMinutes(closeMins)} (${suffix})`;
+}
+
+function parseWorkingHours(raw?: string): { openMins: number; closeMins: number; mode: HoursMode } {
+  const text = (raw || "").toLowerCase();
+  let mode: HoursMode = "daily";
+  if (text.includes("24/7") || text.includes("круглосуточ")) mode = "24_7";
+  else if (text.includes("пн–пт") || text.includes("пн-пт") || text.includes("будн")) mode = "weekdays";
+  else if (text.includes("пн–сб") || text.includes("пн-сб")) mode = "mon_sat";
+
+  const match = text.match(/(\d{1,2}):(\d{2})\s*[-–—]\s*(\d{1,2}):(\d{2})/);
+  if (match) {
+    const openMins = Math.min(23 * 60 + 30, Math.max(0, Number(match[1]) * 60 + Number(match[2])));
+    const closeMins = Math.min(24 * 60, Math.max(30, Number(match[3]) * 60 + Number(match[4])));
+    return { openMins, closeMins, mode };
+  }
+  return { openMins: 8 * 60, closeMins: 23 * 60, mode };
+}
+
 export default function BusinessProfileScreen() {
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
@@ -53,6 +92,14 @@ export default function BusinessProfileScreen() {
   const [city, setCity] = useState("Астана");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Complex Working Hours Modal State (independent from hall schedules)
+  const [hoursModalVisible, setHoursModalVisible] = useState(false);
+  const [openMins, setOpenMins] = useState(8 * 60);
+  const [closeMins, setCloseMins] = useState(23 * 60);
+  const [hoursMode, setHoursMode] = useState<HoursMode>("daily");
+  const [hoursText, setHoursText] = useState("08:00 - 23:00 (ежедневно)");
+  const [savingHours, setSavingHours] = useState(false);
 
   // Business avatar (arena logo)
   const [cropSource, setCropSource] = useState<string | null>(null);
@@ -226,18 +273,18 @@ export default function BusinessProfileScreen() {
   const openEditModal = () => {
     hapticSelection();
     if (!arena) return;
-    setTitle(arena.title);
-    setAddress(arena.address);
-    setPhone(arena.phone);
-    setCity(arena.city);
-    setDescription(arena.description);
+    setTitle(arena.title || "");
+    setAddress(arena.address || "");
+    setPhone(arena.phone || "");
+    setCity(arena.city || "Астана");
+    setDescription(arena.description || "");
     setModalVisible(true);
   };
 
   const handleSaveArena = async () => {
     if (!arena) return;
-    if (!title.trim() || !address.trim()) {
-      Alert.alert("Ошибка", "Заполните название и адрес спорткомплекса");
+    if (!title.trim()) {
+      Alert.alert("Ошибка", "Заполните название спорткомплекса");
       return;
     }
     setSaving(true);
@@ -248,17 +295,74 @@ export default function BusinessProfileScreen() {
         address: address.trim(),
         phone: phone.trim() || arena.phone,
         city: city.trim() || arena.city,
-        description: description.trim() || arena.description,
+        description: description.trim(),
       };
       await saveUpdatedArena(updated);
       setArena(updated);
       hapticSuccess();
       setModalVisible(false);
       Alert.alert("Успешно", "Данные спорткомплекса обновлены!");
-    } catch {
-      Alert.alert("Ошибка", "Не удалось сохранить");
+    } catch (err) {
+      Alert.alert("Ошибка", getErrorMessage(err, "Не удалось сохранить"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openHoursModal = () => {
+    hapticSelection();
+    if (!arena) return;
+    const parsed = parseWorkingHours(arena.workingHours);
+    setOpenMins(parsed.openMins);
+    setCloseMins(parsed.closeMins);
+    setHoursMode(parsed.mode);
+    setHoursText(arena.workingHours?.trim() || buildWorkingHours(parsed.openMins, parsed.closeMins, parsed.mode));
+    setHoursModalVisible(true);
+  };
+
+  const shiftOpenMins = (delta: number) => {
+    hapticSelection();
+    const next = Math.max(0, Math.min(closeMins - 30, openMins + delta));
+    const nextMode = hoursMode === "24_7" ? "daily" : hoursMode;
+    setOpenMins(next);
+    setHoursMode(nextMode);
+    setHoursText(buildWorkingHours(next, closeMins, nextMode));
+  };
+
+  const shiftCloseMins = (delta: number) => {
+    hapticSelection();
+    const next = Math.min(24 * 60, Math.max(openMins + 30, closeMins + delta));
+    const nextMode = hoursMode === "24_7" ? "daily" : hoursMode;
+    setCloseMins(next);
+    setHoursMode(nextMode);
+    setHoursText(buildWorkingHours(openMins, next, nextMode));
+  };
+
+  const selectHoursMode = (mode: HoursMode) => {
+    hapticSelection();
+    setHoursMode(mode);
+    setHoursText(buildWorkingHours(openMins, closeMins, mode));
+  };
+
+  const handleSaveHours = async () => {
+    if (!arena) return;
+    const nextHours = hoursText.trim();
+    if (!nextHours) {
+      Alert.alert("Ошибка", "Укажите часы работы комплекса");
+      return;
+    }
+    setSavingHours(true);
+    try {
+      const updated: Arena = { ...arena, workingHours: nextHours };
+      await saveUpdatedArena(updated);
+      setArena(updated);
+      hapticSuccess();
+      setHoursModalVisible(false);
+      Alert.alert("Успешно", "График работы комплекса обновлён!");
+    } catch (err) {
+      Alert.alert("Ошибка", getErrorMessage(err, "Не удалось сохранить график"));
+    } finally {
+      setSavingHours(false);
     }
   };
 
@@ -363,11 +467,22 @@ export default function BusinessProfileScreen() {
             <Text style={styles.infoTileValue}>{arena?.phone || "+7 (701) 111-22-33"}</Text>
           </View>
 
-          <View style={styles.infoTile}>
-            <Ionicons name="time-outline" size={18} color="#60A5FA" />
-            <Text style={styles.infoTileLabel}>Часы работы</Text>
-            <Text style={styles.infoTileValue}>{arena?.workingHours || "08:00 - 24:00"}</Text>
-          </View>
+          <Pressable
+            style={({ pressed }) => [styles.infoTile, styles.infoTileRow, pressed && { opacity: 0.85 }]}
+            onPress={openHoursModal}
+            accessibilityLabel="Изменить график работы комплекса"
+          >
+            <View style={{ flex: 1 }}>
+              <Ionicons name="time-outline" size={18} color={c.primary} />
+              <Text style={styles.infoTileLabel}>Часы работы комплекса</Text>
+              <Text style={styles.infoTileValue}>
+                {arena?.workingHours || "08:00 - 23:00 (ежедневно)"}
+              </Text>
+            </View>
+            <View style={styles.tileEditBtn}>
+              <Ionicons name="create-outline" size={18} color={c.primary} />
+            </View>
+          </Pressable>
 
           <View style={styles.infoTile}>
             <Ionicons name="mail-outline" size={18} color="#EAB308" />
@@ -424,7 +539,10 @@ export default function BusinessProfileScreen() {
 
       {/* Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Параметры спорткомплекса</Text>
@@ -436,7 +554,7 @@ export default function BusinessProfileScreen() {
               </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalScroll}>
+            <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
               <Text style={styles.inputLabel}>Название комплекса</Text>
               <TextInput
                 style={styles.input}
@@ -466,6 +584,7 @@ export default function BusinessProfileScreen() {
                     onChangeText={setPhone}
                     placeholder="+7 (701) 111-22-33"
                     placeholderTextColor={c.textMuted}
+                    keyboardType="phone-pad"
                   />
                 </View>
               </View>
@@ -501,7 +620,114 @@ export default function BusinessProfileScreen() {
               </Pressable>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Complex Working Hours Modal */}
+      <Modal visible={hoursModalVisible} animationType="slide" transparent>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>График работы комплекса</Text>
+              <Pressable onPress={() => setHoursModalVisible(false)} hitSlop={10}>
+                <Ionicons name="close" size={24} color={c.textPrimary} />
+              </Pressable>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
+              <Text style={styles.hoursHint}>
+                Отображается в карточке комплекса. Графики отдельных залов и полей настраиваются независимо в разделе «Залы».
+              </Text>
+
+              <Text style={styles.inputLabel}>Режим работы</Text>
+              <View style={styles.modeChipsRow}>
+                {HOURS_MODES.map((m) => {
+                  const active = hoursMode === m.id;
+                  return (
+                    <Pressable
+                      key={m.id}
+                      style={[styles.modeChip, active && styles.modeChipActive]}
+                      onPress={() => selectHoursMode(m.id)}
+                    >
+                      <Text style={[styles.modeChipText, active && styles.modeChipTextActive]}>
+                        {m.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {hoursMode !== "24_7" ? (
+                <View style={styles.timeSteppersRow}>
+                  <View style={styles.timeStepperCard}>
+                    <Text style={styles.timeStepperLabel}>Открытие</Text>
+                    <View style={styles.timeStepperControls}>
+                      <Pressable
+                        style={styles.stepBtn}
+                        onPress={() => shiftOpenMins(-30)}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="remove" size={18} color={c.textPrimary} />
+                      </Pressable>
+                      <Text style={styles.timeStepperValue}>{formatMinutes(openMins)}</Text>
+                      <Pressable
+                        style={styles.stepBtn}
+                        onPress={() => shiftOpenMins(30)}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="add" size={18} color={c.textPrimary} />
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  <View style={styles.timeStepperCard}>
+                    <Text style={styles.timeStepperLabel}>Закрытие</Text>
+                    <View style={styles.timeStepperControls}>
+                      <Pressable
+                        style={styles.stepBtn}
+                        onPress={() => shiftCloseMins(-30)}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="remove" size={18} color={c.textPrimary} />
+                      </Pressable>
+                      <Text style={styles.timeStepperValue}>{formatMinutes(closeMins)}</Text>
+                      <Pressable
+                        style={styles.stepBtn}
+                        onPress={() => shiftCloseMins(30)}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="add" size={18} color={c.textPrimary} />
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              ) : null}
+
+              <Text style={styles.inputLabel}>Текст графика (можно отредактировать вручную)</Text>
+              <TextInput
+                style={styles.input}
+                value={hoursText}
+                onChangeText={setHoursText}
+                placeholder="08:00 - 23:00 (ежедневно)"
+                placeholderTextColor={c.textMuted}
+                maxLength={100}
+              />
+
+              <Pressable
+                style={[styles.saveModalBtn, savingHours && { opacity: 0.5 }]}
+                onPress={handleSaveHours}
+                disabled={savingHours}
+              >
+                <Text style={styles.saveModalBtnText}>
+                  {savingHours ? "Сохранение..." : "Сохранить график комплекса"}
+                </Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {cropSource ? (
@@ -693,6 +919,94 @@ const createStyles = (c: Palette) =>
     padding: 12,
     borderWidth: 1,
     borderColor: c.hairline,
+  },
+  infoTileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  tileEditBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.smallChip,
+    backgroundColor: "rgba(34, 197, 94, 0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  hoursHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: c.textSecondary,
+    marginBottom: spacing.md,
+  },
+  modeChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  modeChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radii.smallChip,
+    backgroundColor: c.background,
+    borderWidth: 1,
+    borderColor: c.subtle,
+  },
+  modeChipActive: {
+    backgroundColor: "rgba(34, 197, 94, 0.08)",
+    borderColor: c.primary,
+  },
+  modeChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: c.textSecondary,
+  },
+  modeChipTextActive: {
+    color: c.primary,
+  },
+  timeSteppersRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  timeStepperCard: {
+    flex: 1,
+    backgroundColor: c.background,
+    borderRadius: radii.smallChip,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: c.subtle,
+    alignItems: "center",
+  },
+  timeStepperLabel: {
+    fontSize: 12,
+    color: c.textMuted,
+    marginBottom: spacing.sm,
+  },
+  timeStepperControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  stepBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.subtle,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timeStepperValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: c.textPrimary,
+    minWidth: 48,
+    textAlign: "center",
   },
   infoTileLabel: {
     fontSize: 11,

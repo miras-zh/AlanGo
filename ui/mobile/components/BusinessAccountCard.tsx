@@ -9,6 +9,7 @@ import {
   fetchMyBusiness,
   type BusinessState,
 } from "@/lib/business";
+import { getRefreshToken, getSessionUser, getToken } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
@@ -26,6 +27,12 @@ export function BusinessAccountCard() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
+    const user = getSessionUser();
+    if (!user || user.role === "guest") {
+      setState(null);
+      setLoading(false);
+      return;
+    }
     try {
       setState(await fetchMyBusiness());
     } catch {
@@ -100,8 +107,21 @@ export function BusinessAccountCard() {
     return (
       <Pressable
         style={({ pressed }) => [styles.card, styles.cardAccent, pressed && styles.pressed]}
-        onPress={() => {
+        onPress={async () => {
           hapticSelection();
+          const user = getSessionUser();
+          const [token, refreshToken] = await Promise.all([getToken(), getRefreshToken()]);
+          if (!user || user.role === "guest" || (!token && !refreshToken)) {
+            Alert.alert(
+              "Требуется авторизация",
+              "Чтобы открыть бизнес-аккаунт, войдите или зарегистрируйтесь.",
+              [
+                { text: "Отмена", style: "cancel" },
+                { text: "Войти", onPress: () => router.push("/login") },
+              ],
+            );
+            return;
+          }
           router.push("/business-onboarding");
         }}
       >

@@ -21,6 +21,7 @@ import {
   onboardBusiness,
   type VenueType,
 } from "@/lib/business";
+import { getRefreshToken, getSessionUser, getToken } from "@/lib/auth";
 import { KZ_CITIES, TOP_CITIES, getSelectedCity } from "@/lib/cities";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
@@ -55,7 +56,30 @@ export default function BusinessOnboardingScreen() {
   const [done, setDone] = useState(false);
   const congratsScale = useRef(new Animated.Value(0.6)).current;
 
+  const promptLogin = (onCancel?: () => void) => {
+    Alert.alert(
+      "Требуется авторизация",
+      "Сессия не найдена или истекла. Войдите в аккаунт, чтобы открыть бизнес-аккаунт.",
+      [
+        { text: "Отмена", style: "cancel", onPress: onCancel },
+        { text: "Войти", onPress: () => router.replace("/login") },
+      ],
+    );
+  };
+
+  const hasValidSession = async () => {
+    const user = getSessionUser();
+    if (!user || user.role === "guest") return false;
+    const [token, refreshToken] = await Promise.all([getToken(), getRefreshToken()]);
+    return Boolean(token || refreshToken);
+  };
+
   useEffect(() => {
+    hasValidSession().then((ok) => {
+      if (!ok) {
+        promptLogin(() => router.back());
+      }
+    });
     getSelectedCity()
       .then((c) => setCity((prev) => prev || c))
       .catch(() => {});
@@ -93,6 +117,10 @@ export default function BusinessOnboardingScreen() {
 
   const handleConfirm = async () => {
     if (!venueType) return;
+    if (!(await hasValidSession())) {
+      promptLogin();
+      return;
+    }
     setSubmitting(true);
     try {
       await onboardBusiness({ venue_type: venueType, title: title.trim(), sports, city });
@@ -101,7 +129,11 @@ export default function BusinessOnboardingScreen() {
       Animated.spring(congratsScale, { toValue: 1, useNativeDriver: true, friction: 5 }).start();
       setTimeout(() => router.replace("/business"), 2200);
     } catch (err) {
-      Alert.alert("Не удалось открыть бизнес-аккаунт", getErrorMessage(err));
+      if ((err as any)?.response?.status === 401) {
+        promptLogin();
+      } else {
+        Alert.alert("Не удалось открыть бизнес-аккаунт", getErrorMessage(err));
+      }
     } finally {
       setSubmitting(false);
     }

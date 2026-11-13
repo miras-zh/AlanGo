@@ -1322,6 +1322,24 @@ export async function saveUpdatedHall(hall: Hall): Promise<void> {
 }
 
 export async function saveUpdatedArena(arena: Arena): Promise<void> {
+  await apiFetch(`/arenas/${arena.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      title: arena.title,
+      category: arena.category,
+      district: arena.district,
+      city: arena.city,
+      address: arena.address,
+      phone: arena.phone,
+      description: arena.description,
+      features: arena.features,
+      sports: arena.sports,
+      working_hours: arena.workingHours,
+      latitude: arena.latitude,
+      longitude: arena.longitude,
+    }),
+  });
+
   const arenas = await getStoredArenas();
   const idx = arenas.findIndex((a) => a.id === arena.id);
   if (idx >= 0) {
@@ -1330,13 +1348,6 @@ export async function saveUpdatedArena(arena: Arena): Promise<void> {
     arenas.unshift(arena);
   }
   await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(arenas));
-
-  try {
-    await apiFetch(`/arenas/${arena.id}`, {
-      method: "PATCH",
-      body: JSON.stringify(arena),
-    });
-  } catch {}
 }
 
 export async function updateBookingStatus(
