@@ -32,7 +32,9 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
   const styles = useThemedStyles(createStyles);
   const minPrice = arenaMinPrice(arena);
   const hallsCount = arena.halls.length;
-  const cover = arena.imageUrl || arena.halls.find((h) => h.imageUrl)?.imageUrl || "";
+  // Only the arena's own cover (set in the business profile). Halls' photos
+  // stay in the "inside" strip below — no borrowing the first hall's photo.
+  const cover = arena.imageUrl || "";
   const sports = arena.availableSports.slice(0, 4);
 
   return (

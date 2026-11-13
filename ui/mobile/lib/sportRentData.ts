@@ -1519,6 +1519,36 @@ export async function deleteArenaLogo(arenaId: number): Promise<void> {
   await api.delete(`/api/arenas/${arenaId}/logo`);
 }
 
+// Arena cover (banner) — the wide photo on the sports-complex card,
+// separate from the logo and from the halls' photos.
+export async function uploadArenaCover(
+  arenaId: number,
+  photo: { uri: string; name: string; type: string },
+): Promise<string> {
+  const fd = new FormData();
+  fd.append("photo", { uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob);
+  const res = await api.post<{ image_url: string }>(`/api/arenas/${arenaId}/cover`, fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: UPLOAD_TIMEOUT_MS,
+  });
+  return res.data?.image_url ?? "";
+}
+
+export async function deleteArenaCover(arenaId: number): Promise<void> {
+  await api.delete(`/api/arenas/${arenaId}/cover`);
+}
+
+// Keeps the cached arena list in sync after a cover change.
+export async function cacheArenaCover(arenaId: number, imageUrl: string): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(ARENAS_KEY);
+    if (!raw) return;
+    const arenas: Arena[] = JSON.parse(raw);
+    const next = arenas.map((a) => (a.id === arenaId ? { ...a, imageUrl } : a));
+    await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(next));
+  } catch {}
+}
+
 // Keeps the cached arena list in sync after a logo change.
 export async function cacheArenaLogo(arenaId: number, logoUrl: string): Promise<void> {
   try {

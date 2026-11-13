@@ -30,6 +30,9 @@ import {
   getStoredArenas,
   saveUpdatedArena,
   uploadArenaLogo,
+  uploadArenaCover,
+  deleteArenaCover,
+  cacheArenaCover,
 } from "@/lib/sportRentData";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
@@ -54,6 +57,7 @@ export default function BusinessProfileScreen() {
   // Business avatar (arena logo)
   const [cropSource, setCropSource] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const loadData = useCallback(async () => {
     const currentUser = getSessionUser();
@@ -126,6 +130,79 @@ export default function BusinessProfileScreen() {
       Alert.alert("Логотип арены", undefined, [
         { text: "Выбрать новое фото", onPress: pickLogo },
         { text: "Удалить логотип", style: "destructive", onPress: removeLogo },
+        { text: "Отмена", style: "cancel" },
+      ]);
+    }
+  };
+
+  // Cover (banner) — the wide photo above the logo, shown on the arena card.
+  const coverUrl = arena?.imageUrl || "";
+
+  const applyCover = async (url: string) => {
+    if (!arena) return;
+    setArena({ ...arena, imageUrl: url });
+    await cacheArenaCover(arena.id, url);
+  };
+
+  const pickCover = async () => {
+    if (!arena) return;
+    let picked: PickedPhoto | null = null;
+    try {
+      picked = await pickImageAsJpeg("arena-cover");
+    } catch (err) {
+      Alert.alert(pickErrorTitle(err), getErrorMessage(err, "Не удалось открыть галерею"));
+      return;
+    }
+    if (!picked) return;
+    setUploadingCover(true);
+    try {
+      const url = await uploadArenaCover(arena.id, picked);
+      await applyCover(url);
+      hapticSuccess();
+    } catch (err) {
+      Alert.alert("Не удалось загрузить обложку", getErrorMessage(err));
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const removeCover = async () => {
+    if (!arena) return;
+    setUploadingCover(true);
+    try {
+      await deleteArenaCover(arena.id);
+      await applyCover("");
+      hapticSuccess();
+    } catch (err) {
+      Alert.alert("Не удалось удалить обложку", getErrorMessage(err));
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const handleCoverPress = () => {
+    if (!arena || uploadingCover) return;
+    hapticSelection();
+    if (!coverUrl) {
+      pickCover();
+      return;
+    }
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Заменить обложку", "Удалить обложку", "Отмена"],
+          destructiveButtonIndex: 1,
+          cancelButtonIndex: 2,
+        },
+        (i) => {
+          if (i === 0) pickCover();
+          if (i === 1) removeCover();
+        },
+      );
+    } else {
+      Alert.alert("Обложка комплекса", undefined, [
+        { text: "Заменить обложку", onPress: pickCover },
+        { text: "Удалить обложку", style: "destructive", onPress: removeCover },
         { text: "Отмена", style: "cancel" },
       ]);
     }
@@ -217,10 +294,13 @@ export default function BusinessProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Arena Big Card */}
         <View style={styles.arenaCard}>
-          {arena?.imageUrl ? (
-            <Image source={{ uri: arena.imageUrl }} style={styles.arenaCover} />
+          {coverUrl ? (
+            <Image source={{ uri: coverUrl }} style={styles.arenaCover} />
           ) : null}
-          <View style={[styles.arenaOverlay, !arena?.imageUrl && styles.arenaOverlayPlain]}>
+          <View style={[styles.arenaOverlay, !coverUrl && styles.arenaOverlayPlain]}>
+            {!coverUrl ? (
+              <Text style={styles.coverHint}>Добавьте обложку комплекса — её видят клиенты в каталоге</Text>
+            ) : null}
             <View style={styles.statusBadge}>
               <View style={styles.statusDot} />
               <Text style={styles.statusText}>Арена верифицирована</Text>
@@ -258,6 +338,21 @@ export default function BusinessProfileScreen() {
               </View>
             </View>
           </View>
+          <Pressable
+            style={styles.coverBtn}
+            onPress={handleCoverPress}
+            disabled={!arena || uploadingCover}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Изменить обложку комплекса"
+          >
+            {uploadingCover ? (
+              <ActivityIndicator size="small" color={c.textPrimary} />
+            ) : (
+              <Ionicons name="camera" size={15} color={c.textPrimary} />
+            )}
+            <Text style={styles.coverBtnText}>Обложка</Text>
+          </Pressable>
         </View>
 
         {/* Info Grid */}
@@ -475,12 +570,40 @@ const createStyles = (c: Palette) =>
   },
   arenaOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(11, 15, 13, 0.65)",
+    // Light shade so the cover stays visible while the name stays readable.
+    backgroundColor: "rgba(11, 15, 13, 0.35)",
     padding: 16,
     justifyContent: "flex-end",
   },
   arenaOverlayPlain: {
     backgroundColor: c.surface,
+  },
+  coverHint: {
+    position: "absolute",
+    top: spacing.lg,
+    left: spacing.lg,
+    right: 120,
+    fontSize: 12,
+    color: c.textSecondary,
+  },
+  coverBtn: {
+    position: "absolute",
+    top: spacing.md,
+    right: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    height: 32,
+    borderRadius: radii.smallChip,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    backgroundColor: c.glassBackground,
+  },
+  coverBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: c.textPrimary,
   },
   arenaIdentity: {
     flexDirection: "row",
