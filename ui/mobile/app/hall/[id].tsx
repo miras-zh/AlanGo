@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   TextInput,
   ActivityIndicator,
@@ -35,34 +35,38 @@ import { getSessionUser } from "@/lib/auth";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT, type MessageKey, type TFunction } from "@/lib/i18n";
+import { monthShort, sportLabel, weekdayShort } from "@/lib/dataLabels";
 
 const { width } = Dimensions.get("window");
 
-const WEEKDAYS_SHORT = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-const MONTHS_SHORT = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 
 // Next 7 calendar days with real ISO dates (the API needs YYYY-MM-DD).
-function buildDays() {
+function buildDays(t: TFunction) {
   const today = new Date();
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
     const label =
-      i === 0 ? "Сегодня" : i === 1 ? "Завтра" : `${WEEKDAYS_SHORT[d.getDay()]}, ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+      i === 0
+        ? t("date.today")
+        : i === 1
+          ? t("date.tomorrow")
+          : t("date.dayShort", { weekday: weekdayShort(d.getDay(), t), day: d.getDate(), month: monthShort(d.getMonth(), t) });
     return { id: isoDate(d), label };
   });
 }
 
-const SLOT_STATUS_LABEL: Record<string, string> = {
-  booked: "Занято",
-  closed: "Не по графику",
-  past: "Прошло",
+const SLOT_STATUS_LABEL: Record<string, MessageKey> = {
+  booked: "slot.booked",
+  closed: "slot.closed",
+  past: "slot.past",
 };
 
 const AMENITIES_LIST = [
-  { key: "parking", label: "Парковка", icon: "car-outline" },
-  { key: "locker", label: "Раздевалка", icon: "shirt-outline" },
-  { key: "shower", label: "Душ", icon: "water-outline" },
-  { key: "wifi", label: "Wi-Fi", icon: "wifi-outline" },
+  { key: "parking", label: "amenity.parkingShort" as MessageKey | null, icon: "car-outline" },
+  { key: "locker", label: "amenity.lockerShort" as MessageKey | null, icon: "shirt-outline" },
+  { key: "shower", label: "amenity.showerShort" as MessageKey | null, icon: "water-outline" },
+  { key: "wifi", label: null as MessageKey | null, icon: "wifi-outline" },
 ];
 
 const REVIEWS_MOCK = [
@@ -70,22 +74,22 @@ const REVIEWS_MOCK = [
     id: 1,
     name: "Азамат К.",
     rating: 5,
-    date: "Вчера",
-    text: "Отличный газон, освещение топ! Душевые чистые, администратор встретил вовремя.",
+    date: "review.yesterday" as MessageKey,
+    text: "review.text1" as MessageKey,
   },
   {
     id: 2,
     name: "Данияр М.",
     rating: 5,
-    date: "3 дня назад",
-    text: "Играем тут каждую среду. Удобная парковка прямо перед входом.",
+    date: "review.daysAgo3" as MessageKey,
+    text: "review.text2" as MessageKey,
   },
   {
     id: 3,
     name: "Ерлан С.",
     rating: 4.8,
-    date: "Неделю назад",
-    text: "Хороший крытый манеж, температура комфортная даже вечером.",
+    date: "review.weekAgo" as MessageKey,
+    text: "review.text3" as MessageKey,
   },
 ];
 
@@ -94,6 +98,7 @@ const FAVORITES_STORAGE_KEY = "alango_favorite_halls";
 const HERO_HEIGHT = 270;
 
 export default function HallDetailScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const { id } = useLocalSearchParams();
@@ -104,7 +109,7 @@ export default function HallDetailScreen() {
   const [isFav, setIsFav] = useState(false);
 
   // Booking State
-  const [days] = useState(buildDays);
+  const days = useMemo(() => buildDays(t), [t]);
   const [selectedDate, setSelectedDate] = useState(() => isoDate(new Date()));
   const [duration, setDuration] = useState<number | null>(null);
   const [availability, setAvailability] = useState<HallAvailability | null>(null);
@@ -154,7 +159,7 @@ export default function HallDetailScreen() {
       );
     } catch (err) {
       setAvailability(null);
-      setSlotsError(getErrorMessage(err, "Не удалось загрузить свободное время"));
+      setSlotsError(getErrorMessage(err, t("hall.slotsError")));
     } finally {
       setSlotsLoading(false);
     }
@@ -196,7 +201,7 @@ export default function HallDetailScreen() {
     try {
       await Share.share({
         title: hall.title,
-        message: `Забронируй спортивную площадку "${hall.title}" в Alan Go! Цена от ${hall.pricePerHour} ₸/час: ${hall.arenaAddress}`,
+        message: t("hall.shareMessage", { hall: hall.title, price: formatNumber(hall.pricePerHour), address: hall.arenaAddress }),
       });
     } catch {}
   };
@@ -206,11 +211,11 @@ export default function HallDetailScreen() {
     if (!selectedSlot || !availability) return;
     const phoneDigits = clientPhone.replace(/\D/g, "");
     if (!clientName.trim()) {
-      Alert.alert("Укажите имя", "Как к вам обращаться администратору?");
+      Alert.alert(t("account.nameRequiredTitle"), t("hall.nameRequired"));
       return;
     }
     if (phoneDigits.length < 10) {
-      Alert.alert("Укажите телефон", "Администратор свяжется с вами по этому номеру.");
+      Alert.alert(t("hall.phoneRequiredTitle"), t("hall.phoneRequiredText"));
       return;
     }
     hapticSelection();
@@ -229,11 +234,11 @@ export default function HallDetailScreen() {
       setSelectedSlot(null);
       loadSlots();
       Alert.alert(
-        "Бронирование подтверждено! 🎉",
-        `«${hall.title}»\n\nДата: ${dayLabel}\nВремя: ${booking.timeSlot}\nСумма: ${booking.totalPrice.toLocaleString("ru-RU")} ₸\nКод брони: ${booking.id}`,
+        t("hall.bookedTitle"),
+        t("hall.bookedText", { hall: hall.title, date: dayLabel, time: booking.timeSlot, price: formatNumber(booking.totalPrice), code: booking.id }),
       );
     } catch (err) {
-      Alert.alert("Не удалось забронировать", getErrorMessage(err));
+      Alert.alert(t("hall.bookingFailed"), getErrorMessage(err));
       loadSlots();
     } finally {
       setBookingLoading(false);
@@ -296,7 +301,7 @@ export default function HallDetailScreen() {
             <Text style={styles.ratingText}>
               {hall.rating.toFixed(1)}{" "}
               <Text style={styles.reviewCountText}>
-                ({hall.reviewsCount} отзыва)
+                {t("hall.reviewsCount", { count: hall.reviewsCount })}
               </Text>
             </Text>
           </View>
@@ -305,13 +310,13 @@ export default function HallDetailScreen() {
           <View style={styles.tagsRow}>
             <View style={styles.attributeChip}>
               <Ionicons name="football-outline" size={13} color={c.primary} />
-              <Text style={styles.attributeChipText}>{hall.sportType}</Text>
+              <Text style={styles.attributeChipText}>{sportLabel(hall.sportType, t)}</Text>
             </View>
 
             <View style={styles.attributeChip}>
               <Ionicons name="people-outline" size={13} color={c.textSecondary} />
               <Text style={styles.attributeChipText}>
-                {capacityLabel(hall.maxPeople ?? 0) || hall.capacity || "Вместимость не указана"}
+                {capacityLabel(hall.maxPeople ?? 0) || hall.capacity || t("hall.capacityUnknown")}
               </Text>
             </View>
 
@@ -344,7 +349,7 @@ export default function HallDetailScreen() {
                 {hall.arenaAddress || "Астана, ул. Нур-Султан 12"}
               </Text>
             </View>
-            <Text style={styles.distanceText}>2,4 км</Text>
+            <Text style={styles.distanceText}>{t("common.km", { n: "2,4" })}</Text>
           </View>
 
           {/* 3. Segmented Tabs: [О зале] [Расписание] [Отзывы] */}
@@ -365,7 +370,7 @@ export default function HallDetailScreen() {
                   activeTab === "about" && styles.segmentTabTextActive,
                 ]}
               >
-                О зале
+                {t("hall.tabAbout")}
               </Text>
             </Pressable>
 
@@ -385,7 +390,7 @@ export default function HallDetailScreen() {
                   activeTab === "schedule" && styles.segmentTabTextActive,
                 ]}
               >
-                Расписание
+                {t("hall.tabSchedule")}
               </Text>
             </Pressable>
 
@@ -405,7 +410,7 @@ export default function HallDetailScreen() {
                   activeTab === "reviews" && styles.segmentTabTextActive,
                 ]}
               >
-                Отзывы
+                {t("hall.tabReviews")}
               </Text>
             </Pressable>
           </View>
@@ -416,11 +421,11 @@ export default function HallDetailScreen() {
               {/* Description */}
               <Text style={styles.aboutDescription}>
                 {hall.description ||
-                  "Искусственный газон 60 мм (FIFA Quality Pro). Профессиональный крытый манеж с освещением, раздевалками и душевыми."}
+                  t("hall.descriptionFallback")}
               </Text>
 
               {/* Amenities Section (Screen 4) */}
-              <Text style={styles.amenitiesHeader}>Удобства</Text>
+              <Text style={styles.amenitiesHeader}>{t("hall.amenities")}</Text>
               <View style={styles.amenitiesGrid}>
                 {AMENITIES_LIST.map((item) => (
                   <View key={item.key} style={styles.amenityCard}>
@@ -429,7 +434,7 @@ export default function HallDetailScreen() {
                       size={24}
                       color={c.textSecondary}
                     />
-                    <Text style={styles.amenityCardLabel}>{item.label}</Text>
+                    <Text style={styles.amenityCardLabel}>{item.label ? t(item.label) : "Wi-Fi"}</Text>
                   </View>
                 ))}
               </View>
@@ -448,7 +453,7 @@ export default function HallDetailScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.arenaBannerTitle}>{hall.arenaTitle}</Text>
                   <Text style={styles.arenaBannerSub}>
-                    Посмотреть все залы спорткомплекса →
+                    {t("hall.allHallsLink")}
                   </Text>
                 </View>
               </Pressable>
@@ -502,7 +507,7 @@ export default function HallDetailScreen() {
                         }}
                       >
                         <Text style={[styles.durationText, active && styles.durationTextActive]}>
-                          {m % 60 === 0 ? `${m / 60} ч` : `${Math.floor(m / 60)} ч ${m % 60} мин`}
+                          {m % 60 === 0 ? t("duration.hours", { h: m / 60 }) : t("duration.hoursMinutes", { h: Math.floor(m / 60), m: m % 60 })}
                         </Text>
                       </Pressable>
                     );
@@ -521,17 +526,17 @@ export default function HallDetailScreen() {
               ) : availability?.isClosed ? (
                 <View style={styles.closedCard}>
                   <Ionicons name="time-outline" size={24} color={c.accent} />
-                  <Text style={styles.closedText}>Зал не работает в выбранный день</Text>
+                  <Text style={styles.closedText}>{t("hall.closedDay")}</Text>
                 </View>
               ) : availability && availability.slots.length === 0 ? (
                 <View style={styles.closedCard}>
                   <Ionicons name="time-outline" size={24} color={c.accent} />
-                  <Text style={styles.closedText}>На этот день нет слотов</Text>
+                  <Text style={styles.closedText}>{t("hall.noSlots")}</Text>
                 </View>
               ) : availability ? (
                 <>
                   <Text style={styles.slotsHint}>
-                    Работает {availability.startTime}–{availability.endTime}
+                    {t("hall.workingHours", { start: availability.startTime, end: availability.endTime })}
                   </Text>
                   <View style={styles.slotsGrid}>
                     {availability.slots.map((slot) => {
@@ -561,7 +566,7 @@ export default function HallDetailScreen() {
                             {slot.label}
                           </Text>
                           {!free ? (
-                            <Text style={styles.slotStatusText}>{SLOT_STATUS_LABEL[slot.status]}</Text>
+                            <Text style={styles.slotStatusText}>{SLOT_STATUS_LABEL[slot.status] ? t(SLOT_STATUS_LABEL[slot.status]) : ""}</Text>
                           ) : null}
                         </Pressable>
                       );
@@ -583,8 +588,8 @@ export default function HallDetailScreen() {
                       <Text style={styles.reviewScore}>{rev.rating}</Text>
                     </View>
                   </View>
-                  <Text style={styles.reviewDate}>{rev.date}</Text>
-                  <Text style={styles.reviewBody}>{rev.text}</Text>
+                  <Text style={styles.reviewDate}>{t(rev.date)}</Text>
+                  <Text style={styles.reviewBody}>{t(rev.text)}</Text>
                 </View>
               ))}
             </View>
@@ -595,11 +600,11 @@ export default function HallDetailScreen() {
       {/* 5. Sticky Bottom Action Bar (Screen 4) */}
       <View style={styles.stickyFooter}>
         <View style={styles.footerPriceWrap}>
-          <Text style={styles.footerPriceLabel}>от </Text>
+          <Text style={styles.footerPriceLabel}>{t("venueCard.from")}</Text>
           <Text style={styles.footerPriceValue}>
-            {hall.pricePerHour.toLocaleString("ru-RU")} ₸
+            {formatNumber(hall.pricePerHour)} ₸
           </Text>
-          <Text style={styles.footerPriceSuffix}> / час</Text>
+          <Text style={styles.footerPriceSuffix}> {t("common.perHour")}</Text>
         </View>
 
         <Pressable
@@ -611,14 +616,14 @@ export default function HallDetailScreen() {
             hapticImpact();
             if (!selectedSlot) {
               setActiveTab("schedule");
-              Alert.alert("Выберите время", "Во вкладке «Расписание» нажмите на свободный слот.");
+              Alert.alert(t("hall.chooseTimeTitle"), t("hall.chooseTimeText"));
               return;
             }
             setBookingModalOpen(true);
           }}
         >
           <Text style={styles.bookButtonText}>
-            {selectedSlot ? `Забронировать ${selectedSlot.start}` : "Забронировать"}
+            {selectedSlot ? t("hall.bookAt", { time: selectedSlot.start }) : t("common.book")}
           </Text>
         </Pressable>
       </View>
@@ -637,7 +642,7 @@ export default function HallDetailScreen() {
           />
           <View style={styles.bookingSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Подтверждение брони</Text>
+              <Text style={styles.modalTitle}>{t("hall.confirmTitle")}</Text>
               <Pressable
                 onPress={() => setBookingModalOpen(false)}
                 hitSlop={10}
@@ -651,32 +656,32 @@ export default function HallDetailScreen() {
               <Text style={styles.summarySub}>{hall.arenaTitle}</Text>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Дата игры:</Text>
+                <Text style={styles.summaryLabel}>{t("hall.gameDate")}</Text>
                 <Text style={styles.summaryValue}>{dayLabel}</Text>
               </View>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Время слота:</Text>
+                <Text style={styles.summaryLabel}>{t("hall.slotTime")}</Text>
                 <Text style={styles.summaryValue}>{selectedSlot?.label ?? ""}</Text>
               </View>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Итого к оплате:</Text>
+                <Text style={styles.summaryLabel}>{t("hall.totalToPay")}</Text>
                 <Text style={styles.summaryTotal}>
-                  {(availability?.price ?? hall.pricePerHour).toLocaleString("ru-RU")} ₸
+                  {formatNumber((availability?.price ?? hall.pricePerHour))} ₸
                 </Text>
               </View>
             </View>
 
-            <Text style={styles.contactLabel}>Имя</Text>
+            <Text style={styles.contactLabel}>{t("hall.name")}</Text>
             <TextInput
               value={clientName}
               onChangeText={setClientName}
-              placeholder="Ваше имя"
+              placeholder={t("account.namePlaceholder")}
               placeholderTextColor={c.textSecondary}
               style={styles.contactInput}
             />
-            <Text style={styles.contactLabel}>Телефон</Text>
+            <Text style={styles.contactLabel}>{t("account.phone")}</Text>
             <TextInput
               value={clientPhone}
               onChangeText={setClientPhone}
@@ -698,7 +703,7 @@ export default function HallDetailScreen() {
                 <ActivityIndicator color={c.background} />
               ) : (
                 <Text style={styles.confirmBookingBtnText}>
-                  Подтвердить бронь
+                  {t("hall.confirmBooking")}
                 </Text>
               )}
             </Pressable>
@@ -1012,6 +1017,7 @@ const createStyles = (c: Palette) =>
   },
   durationRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
     marginBottom: spacing.md,
   },

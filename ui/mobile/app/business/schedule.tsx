@@ -27,16 +27,18 @@ import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
+import { weekdayName } from "@/lib/dataLabels";
 
 const TIME_PRESETS = [
   { label: "08:00 - 23:00", start: "08:00", end: "23:00" },
   { label: "08:00 - 24:00", start: "08:00", end: "24:00" },
   { label: "07:00 - 23:00", start: "07:00", end: "23:00" },
   { label: "09:00 - 22:00", start: "09:00", end: "22:00" },
-  { label: "24 часа", start: "00:00", end: "24:00" },
+  { label: "24h", start: "00:00", end: "24:00" },
 ];
 
-const DURATION_OPTIONS = [60, 90, 120];
+const DURATION_OPTIONS = [60, 90, 120, 150, 180, 240, 300];
 
 function formatTime(val: string): string {
   const cleaned = val.replace(/[^0-9:]/g, "").slice(0, 5);
@@ -48,6 +50,7 @@ function formatTime(val: string): string {
 
 export default function BusinessScheduleScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [schedule, setSchedule] = useState<ScheduleDay[]>(DEFAULT_WEEK_SCHEDULE);
   // Opened from a hall card: "/business/schedule?hallId=12".
@@ -92,7 +95,7 @@ export default function BusinessScheduleScreen() {
     if (!hallId) return;
     getHallSchedule(hallId)
       .then(setSchedule)
-      .catch((err) => Alert.alert("Ошибка", getErrorMessage(err, "Не удалось загрузить график зала")));
+      .catch((err) => Alert.alert(t("common.error"), getErrorMessage(err, t("sched.loadError"))));
   }, [hallId]);
 
   const toggleDayClosed = (index: number) => {
@@ -121,7 +124,7 @@ export default function BusinessScheduleScreen() {
       let updated: number[];
       if (current.includes(duration)) {
         if (current.length === 1) {
-          Alert.alert("Внимание", "Должен быть выбран хотя бы один интервал слота");
+          Alert.alert(t("sched.attention"), t("sched.oneDurationRequired"));
           return prev;
         }
         updated = current.filter((d) => d !== duration);
@@ -163,12 +166,17 @@ export default function BusinessScheduleScreen() {
     hapticImpact();
     const monday = schedule[0];
     Alert.alert(
-      "Синхронизация графика",
-      `Применить настройки понедельника (${monday.startTime} - ${monday.endTime}, слоты ${monday.slotDurations.join(", ")} мин, каскад: ${monday.cascadeEnabled ? "Вкл" : "Выкл"}) ко всем дням недели?`,
+      t("sched.syncTitle"),
+      t("sched.syncText", {
+        start: monday.startTime,
+        end: monday.endTime,
+        durations: monday.slotDurations.join(", "),
+        cascade: monday.cascadeEnabled ? t("common.on") : t("common.off"),
+      }),
       [
-        { text: "Отмена", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Применить ко всем",
+          text: t("sched.applyAll"),
           onPress: () => {
             setSchedule((prev) =>
               prev.map((d) => ({
@@ -200,9 +208,9 @@ export default function BusinessScheduleScreen() {
     try {
       setSchedule(await saveHallSchedule(hallId, schedule));
       hapticSuccess();
-      Alert.alert("Сохранено", `График зала «${currentHall?.title ?? ""}» обновлён.`);
+      Alert.alert(t("account.savedTitle"), t("sched.savedText", { hall: currentHall?.title ?? "" }));
     } catch (err) {
-      Alert.alert("Не удалось сохранить график", getErrorMessage(err));
+      Alert.alert(t("sched.saveError"), getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -212,12 +220,12 @@ export default function BusinessScheduleScreen() {
     if (!hallId || halls.length < 2) return;
     hapticImpact();
     Alert.alert(
-      "Скопировать на все залы?",
-      `График зала «${currentHall?.title ?? ""}» заменит графики остальных залов (${halls.length - 1}).`,
+      t("sched.copyTitle"),
+      t("sched.copyText", { hall: currentHall?.title ?? "", n: halls.length - 1 }),
       [
-        { text: "Отмена", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Скопировать",
+          text: t("sched.copy"),
           onPress: async () => {
             setSaving(true);
             try {
@@ -225,9 +233,9 @@ export default function BusinessScheduleScreen() {
                 await saveHallSchedule(h.id, schedule);
               }
               hapticSuccess();
-              Alert.alert("Готово", "График применён ко всем залам.");
+              Alert.alert(t("common.done"), t("sched.copied"));
             } catch (err) {
-              Alert.alert("Не удалось скопировать график", getErrorMessage(err));
+              Alert.alert(t("sched.copyError"), getErrorMessage(err));
             } finally {
               setSaving(false);
             }
@@ -243,10 +251,10 @@ export default function BusinessScheduleScreen() {
       <View style={styles.header}>
         <View style={{ flex: 1, flexShrink: 1, marginRight: 12 }}>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            График работы
+            {t("sched.title")}
           </Text>
           <Text style={styles.headerSubtitle} numberOfLines={1}>
-            У каждого зала свои часы и слоты брони
+            {t("sched.subtitle")}
           </Text>
         </View>
         <Pressable
@@ -255,22 +263,22 @@ export default function BusinessScheduleScreen() {
           disabled={saving || !hallId}
         >
           <Ionicons name="checkmark-done" size={16} color={c.background} />
-          <Text style={styles.saveTopBtnText}>Сохранить</Text>
+          <Text style={styles.saveTopBtnText}>{t("common.save")}</Text>
         </Pressable>
       </View>
 
       {loaded && halls.length === 0 ? (
         <View style={styles.noHalls}>
           <Ionicons name="layers-outline" size={44} color={c.border} />
-          <Text style={styles.noHallsTitle}>Сначала добавьте зал</Text>
+          <Text style={styles.noHallsTitle}>{t("sched.noHalls")}</Text>
           <Text style={styles.noHallsSub}>
-            График настраивается для каждого зала отдельно — добавьте первый зал во вкладке «Залы».
+            {t("sched.noHallsText")}
           </Text>
         </View>
       ) : (
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Hall picker */}
-        <Text style={styles.sectionHeader}>Зал</Text>
+        <Text style={styles.sectionHeader}>{t("sched.hall")}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hallChips}>
           {halls.map((h) => {
             const active = h.id === hallId;
@@ -294,7 +302,7 @@ export default function BusinessScheduleScreen() {
         {halls.length > 1 ? (
           <Pressable style={styles.copyAllBtn} onPress={copyToAllHalls} disabled={saving}>
             <Ionicons name="git-network-outline" size={15} color={c.primary} />
-            <Text style={styles.copyAllText}>Скопировать этот график на все залы</Text>
+            <Text style={styles.copyAllText}>{t("sched.copyAll")}</Text>
           </Pressable>
         ) : null}
 
@@ -303,39 +311,39 @@ export default function BusinessScheduleScreen() {
           <View style={styles.bannerLeft}>
             <Ionicons name="time" size={24} color={c.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.bannerTitle}>Быстрая настройка</Text>
+              <Text style={styles.bannerTitle}>{t("sched.quick")}</Text>
               <Text style={styles.bannerSub}>
-                Сгенерируйте слоты 60/90 мин по шаблону
+                {t("sched.quickText")}
               </Text>
             </View>
           </View>
           <Pressable style={styles.syncBtn} onPress={applyMondayToAll}>
             <Ionicons name="copy-outline" size={14} color={c.primary} />
-            <Text style={styles.syncBtnText}>Ко всем дням</Text>
+            <Text style={styles.syncBtnText}>{t("sched.toAllDays")}</Text>
           </Pressable>
         </View>
 
         {/* Days List */}
-        <Text style={styles.sectionHeader}>Дни недели</Text>
+        <Text style={styles.sectionHeader}>{t("sched.weekdays")}</Text>
 
         {schedule.map((day, idx) => (
           <View key={`${day.dayOfWeek ?? idx}-${idx}`} style={styles.dayCard}>
             <View style={styles.dayTopRow}>
               <View style={styles.dayTitleWrap}>
-                <Text style={styles.dayName}>{day.dayName}</Text>
+                <Text style={styles.dayName}>{weekdayName(day.dayOfWeek, t)}</Text>
                 <Text
                   style={[
                     styles.dayStatusText,
                     day.isClosed ? styles.statusClosed : styles.statusOpen,
                   ]}
                 >
-                  {day.isClosed ? "Выходной" : `${day.startTime} — ${day.endTime}`}
+                  {day.isClosed ? t("common.dayOff") : `${day.startTime} — ${day.endTime}`}
                 </Text>
               </View>
 
               <View style={styles.switchRow}>
                 <Text style={styles.switchLabel}>
-                  {day.isClosed ? "Закрыто" : "Открыто"}
+                  {day.isClosed ? t("sched.closed") : t("sched.open")}
                 </Text>
                 <Switch
                   value={!day.isClosed}
@@ -349,7 +357,7 @@ export default function BusinessScheduleScreen() {
             {!day.isClosed && (
               <View style={styles.daySettings}>
                 {/* Presets Chips */}
-                <Text style={styles.subLabel}>Шаблоны часов:</Text>
+                <Text style={styles.subLabel}>{t("sched.templates")}</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -373,7 +381,7 @@ export default function BusinessScheduleScreen() {
                             active && styles.presetTextActive,
                           ]}
                         >
-                          {p.label}
+                          {p.label === "24h" ? t("sched.allDay") : p.label}
                         </Text>
                       </Pressable>
                     );
@@ -383,7 +391,7 @@ export default function BusinessScheduleScreen() {
                 {/* Custom Time Range Inputs */}
                 <View style={styles.timeInputsRow}>
                   <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text style={styles.timeLabel}>Открытие</Text>
+                    <Text style={styles.timeLabel}>{t("sched.opening")}</Text>
                     <TextInput
                       style={styles.timeInput}
                       value={day.startTime}
@@ -401,7 +409,7 @@ export default function BusinessScheduleScreen() {
                   </View>
 
                   <View style={{ flex: 1, marginLeft: 8 }}>
-                    <Text style={styles.timeLabel}>Закрытие</Text>
+                    <Text style={styles.timeLabel}>{t("sched.closing")}</Text>
                     <TextInput
                       style={styles.timeInput}
                       value={day.endTime}
@@ -421,7 +429,7 @@ export default function BusinessScheduleScreen() {
 
                 {/* Slot durations selector (Vison feature) */}
                 <Text style={styles.subLabel}>
-                  Доступная длительность слотов брони:
+                  {t("sched.durations")}
                 </Text>
                 <View style={styles.durationsRow}>
                   {DURATION_OPTIONS.map((dur) => {
@@ -446,7 +454,9 @@ export default function BusinessScheduleScreen() {
                             active && styles.durationTextActive,
                           ]}
                         >
-                          {dur} мин
+                          {dur % 60 === 0
+                            ? t("duration.hours", { h: dur / 60 })
+                            : t("duration.hoursMinutes", { h: Math.floor(dur / 60), m: dur % 60 })}
                         </Text>
                       </Pressable>
                     );
@@ -458,7 +468,7 @@ export default function BusinessScheduleScreen() {
                   <View style={styles.cascadeHeader}>
                     <View style={styles.cascadeHeaderLeft}>
                       <Ionicons name="git-merge-outline" size={18} color={c.primary} />
-                      <Text style={styles.cascadeTitle}>Каскадный график</Text>
+                      <Text style={styles.cascadeTitle}>{t("sched.cascade")}</Text>
                     </View>
                     <Switch
                       value={!!day.cascadeEnabled}
@@ -468,13 +478,13 @@ export default function BusinessScheduleScreen() {
                     />
                   </View>
                   <Text style={styles.cascadeHelp}>
-                    Слоты открываются последовательно: новые часы становятся доступны только после заполнения предыдущих окон. Исключает простои и «дыры» в расписании.
+                    {t("sched.cascadeHelp")}
                   </Text>
 
                   {day.cascadeEnabled && (
                     <View style={styles.cascadeBody}>
                       {/* Шаг каскада */}
-                      <Text style={styles.cascadeLabel}>Шаг раскрытия слотов:</Text>
+                      <Text style={styles.cascadeLabel}>{t("sched.cascadeStep")}</Text>
                       <View style={styles.cascadeStepsRow}>
                         {[1, 2, 3, 4].map((step) => {
                           const active = (day.cascadeStepHours || 2) === step;
@@ -485,7 +495,7 @@ export default function BusinessScheduleScreen() {
                               onPress={() => setCascadeStep(idx, step)}
                             >
                               <Text style={[styles.stepChipText, active && styles.stepChipTextActive]}>
-                                +{step} {step === 1 ? "час" : step < 5 ? "часа" : "часов"}
+                                {t("sched.stepHours", { count: step })}
                               </Text>
                             </Pressable>
                           );
@@ -495,7 +505,7 @@ export default function BusinessScheduleScreen() {
                       {/* Границы каскада */}
                       <View style={styles.cascadeBoundariesRow}>
                         <View style={{ flex: 1, marginRight: 5 }}>
-                          <Text style={styles.cascadeFieldLabel}>Верхняя граница</Text>
+                          <Text style={styles.cascadeFieldLabel}>{t("sched.upper")}</Text>
                           <TextInput
                             style={styles.cascadeInput}
                             value={day.cascadeInitialEndTime || "14:00"}
@@ -513,7 +523,7 @@ export default function BusinessScheduleScreen() {
                         </View>
 
                         <View style={{ flex: 1, marginHorizontal: 5 }}>
-                          <Text style={styles.cascadeFieldLabel}>Нижняя граница</Text>
+                          <Text style={styles.cascadeFieldLabel}>{t("sched.lower")}</Text>
                           <TextInput
                             style={styles.cascadeInput}
                             value={day.cascadeSecondBoundaryTime || "18:00"}
@@ -531,7 +541,7 @@ export default function BusinessScheduleScreen() {
                         </View>
 
                         <View style={{ flex: 1, marginLeft: 5 }}>
-                          <Text style={styles.cascadeFieldLabel}>Потолок приёма</Text>
+                          <Text style={styles.cascadeFieldLabel}>{t("sched.cutoff")}</Text>
                           <TextInput
                             style={styles.cascadeInput}
                             value={day.cascadeCutoffTime || "22:00"}
@@ -562,7 +572,7 @@ export default function BusinessScheduleScreen() {
           disabled={saving}
         >
           <Text style={styles.bigSaveBtnText}>
-            {saving ? "Сохранение..." : "Сохранить график работы"}
+            {saving ? t("common.saving") : t("sched.save")}
           </Text>
         </Pressable>
 
@@ -822,6 +832,7 @@ const createStyles = (c: Palette) =>
   },
   durationsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   durationChip: {

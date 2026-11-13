@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Modal,
   View,
@@ -25,6 +25,8 @@ import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT, type TFunction } from "@/lib/i18n";
+import { weekdayShort } from "@/lib/dataLabels";
 
 interface ManualBookingModalProps {
   visible: boolean;
@@ -35,13 +37,17 @@ interface ManualBookingModalProps {
   onCreated: (booking: Booking) => void;
 }
 
-const WEEKDAYS_SHORT = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
-function nextDays(count: number) {
+function nextDays(count: number, t: TFunction) {
   const today = new Date();
   return Array.from({ length: count }, (_, i) => {
     const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
-    const label = i === 0 ? "Сегодня" : i === 1 ? "Завтра" : `${WEEKDAYS_SHORT[d.getDay()]}, ${d.getDate()}`;
+    const label =
+      i === 0
+        ? t("date.today")
+        : i === 1
+          ? t("date.tomorrow")
+          : t("date.dayNum", { weekday: weekdayShort(d.getDay(), t), day: d.getDate() });
     return { id: isoDate(d), label };
   });
 }
@@ -55,11 +61,12 @@ export function ManualBookingModal({
   onCreated,
 }: ManualBookingModalProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [selectedHallId, setSelectedHallId] = useState<number | null>(null);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("+7 ");
-  const [days] = useState(() => nextDays(7));
+  const days = useMemo(() => nextDays(7, t), [t]);
   const [selectedDate, setSelectedDate] = useState(() => isoDate(new Date()));
   const [duration, setDuration] = useState<number | null>(null);
   const [availability, setAvailability] = useState<HallAvailability | null>(null);
@@ -100,15 +107,15 @@ export function ManualBookingModal({
 
   const handleSave = async () => {
     if (!selectedHall || !slotStart || !availability) {
-      Alert.alert("Ошибка", "Выберите свободное время");
+      Alert.alert(t("common.error"), t("manual.chooseTime"));
       return;
     }
     if (!clientName.trim()) {
-      Alert.alert("Ошибка", "Укажите имя клиента");
+      Alert.alert(t("common.error"), t("manual.nameRequired"));
       return;
     }
     if (clientPhone.replace(/\D/g, "").length < 10) {
-      Alert.alert("Ошибка", "Укажите корректный номер телефона");
+      Alert.alert(t("common.error"), t("manual.phoneInvalid"));
       return;
     }
     setSaving(true);
@@ -130,7 +137,7 @@ export function ManualBookingModal({
       setNotes("");
       setSlotStart(null);
     } catch (err) {
-      Alert.alert("Не удалось записать", getErrorMessage(err));
+      Alert.alert(t("manual.error"), getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -147,8 +154,8 @@ export function ManualBookingModal({
                 <Ionicons name="call" size={16} color={c.primary} />
               </View>
               <View>
-                <Text style={styles.headerTitle}>Быстрая запись</Text>
-                <Text style={styles.headerSub}>Запись клиента по звонку / ресепшн</Text>
+                <Text style={styles.headerTitle}>{t("manual.title")}</Text>
+                <Text style={styles.headerSub}>{t("manual.subtitle")}</Text>
               </View>
             </View>
             <Pressable
@@ -165,7 +172,7 @@ export function ManualBookingModal({
 
           <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
             {/* 1. Выбор зала */}
-            <Text style={styles.sectionLabel}>Спортивный зал / корт</Text>
+            <Text style={styles.sectionLabel}>{t("manual.hall")}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -193,7 +200,7 @@ export function ManualBookingModal({
             </ScrollView>
 
             {/* 2. Дата */}
-            <Text style={styles.sectionLabel}>День записи</Text>
+            <Text style={styles.sectionLabel}>{t("manual.day")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
               {days.map((d) => {
                 const active = selectedDate === d.id;
@@ -216,7 +223,7 @@ export function ManualBookingModal({
 
             {/* 3. Длительность и слот (занятые — тусклые) */}
             {availability && availability.slotDurations.length > 1 ? (
-              <View style={[styles.chipsRow, { marginBottom: 8 }]}>
+              <View style={[styles.chipsRow, { flexWrap: "wrap", marginBottom: 8 }]}>
                 {availability.slotDurations.map((m) => {
                   const active = (duration ?? availability.durationMinutes) === m;
                   return (
@@ -229,18 +236,20 @@ export function ManualBookingModal({
                       }}
                     >
                       <Text style={[styles.dateChipText, active && styles.dateChipTextActive]}>
-                        {m} мин
+                        {m % 60 === 0
+                          ? t("duration.hours", { h: m / 60 })
+                          : t("duration.hoursMinutes", { h: Math.floor(m / 60), m: m % 60 })}
                       </Text>
                     </Pressable>
                   );
                 })}
               </View>
             ) : null}
-            <Text style={styles.sectionLabel}>Слот времени</Text>
+            <Text style={styles.sectionLabel}>{t("manual.slot")}</Text>
             {!availability ? (
               <ActivityIndicator color={c.primary} style={{ marginVertical: 12 }} />
             ) : availability.isClosed || availability.slots.length === 0 ? (
-              <Text style={styles.closedNote}>Зал не работает в этот день</Text>
+              <Text style={styles.closedNote}>{t("manual.closed")}</Text>
             ) : (
               <View style={styles.slotsWrap}>
                 {availability.slots.map((slot) => {
@@ -266,7 +275,7 @@ export function ManualBookingModal({
             )}
 
             {/* 4. Контактные данные */}
-            <Text style={styles.sectionLabel}>Данные клиента</Text>
+            <Text style={styles.sectionLabel}>{t("edit.client")}</Text>
             <View style={styles.inputGroup}>
               <View style={styles.inputWrap}>
                 <Ionicons name="person-outline" size={18} color={c.textMuted} style={styles.inputIcon} />
@@ -274,7 +283,7 @@ export function ManualBookingModal({
                   style={styles.textInput}
                   value={clientName}
                   onChangeText={setClientName}
-                  placeholder="Имя клиента (например, Азамат)"
+                  placeholder={t("manual.namePlaceholder")}
                   placeholderTextColor={c.textMuted}
                 />
               </View>
@@ -293,17 +302,17 @@ export function ManualBookingModal({
             </View>
 
             {/* 5. Комментарий и сумма (сумму считает сервер по цене зала) */}
-            <Text style={styles.sectionLabel}>Заметка (инвентарь / мячи)</Text>
+            <Text style={styles.sectionLabel}>{t("manual.note")}</Text>
             <TextInput
               style={styles.notesInput}
               value={notes}
               onChangeText={setNotes}
-              placeholder="Например, нужен комплект манишек"
+              placeholder={t("manual.notePlaceholder")}
               placeholderTextColor={c.textMuted}
             />
             {availability ? (
               <Text style={styles.priceNote}>
-                Стоимость: {availability.price.toLocaleString("ru-RU")} ₸ ({availability.durationMinutes} мин по тарифу зала)
+                {t("manual.price", { price: formatNumber(availability.price), n: availability.durationMinutes })}
               </Text>
             ) : null}
           </ScrollView>
@@ -320,7 +329,7 @@ export function ManualBookingModal({
               ) : (
                 <>
                   <Ionicons name="checkmark-done" size={20} color={c.background} />
-                  <Text style={styles.submitBtnText}>Зафиксировать бронь</Text>
+                  <Text style={styles.submitBtnText}>{t("manual.submit")}</Text>
                 </>
               )}
             </Pressable>
