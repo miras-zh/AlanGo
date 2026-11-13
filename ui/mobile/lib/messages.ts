@@ -1,14 +1,18 @@
-export type Locale = "ru" | "en";
+export type Locale = "kk" | "ru" | "en";
 
-export const LOCALES: Locale[] = ["ru", "en"];
+export const LOCALES: Locale[] = ["kk", "ru", "en"];
 export const DEFAULT_LOCALE: Locale = "ru";
 
 export const LOCALE_BCP47: Record<Locale, string> = {
+  kk: "kk-KZ",
   ru: "ru-RU",
   en: "en-US",
 };
 
+// Kazakh translations are not written yet: missing keys fall back to Russian
+// (see translate() in lib/i18n.tsx).
 export const messages: Record<Locale, Record<string, string>> = {
+  kk: {},
   ru: {
     "common.loading": "Загрузка...",
     "common.save": "Сохранить",

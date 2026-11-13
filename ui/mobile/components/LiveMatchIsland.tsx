@@ -11,7 +11,12 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
+import { getAccessToken } from "@/lib/auth";
+import { getMyActiveBooking, type ActiveBooking } from "@/lib/sportRentData";
 
 const { width } = Dimensions.get("window");
 
@@ -24,25 +29,78 @@ export interface LiveMatchData {
   minutesLeft: number;
   qrCode: string;
   address: string;
+  started?: boolean;
 }
 
-export const CURRENT_LIVE_MATCH: LiveMatchData = {
-  id: "live-001",
-  arenaName: "Nomad Pro Complex",
-  hallName: "Nomad Turf (Футбольный манеж)",
-  sport: "football",
-  timeSlot: "Сегодня, 19:00 — 20:00",
-  minutesLeft: 42,
-  qrCode: "ALAN-MATCH-7712",
-  address: "Астана, пр. Туран 54",
-};
 
 interface Props {
-  match?: LiveMatchData;
+  match: LiveMatchData;
   onPressQr?: () => void;
+  onClose?: () => void;
 }
 
-export function LiveMatchIsland({ match = CURRENT_LIVE_MATCH, onPressQr }: Props) {
+const DISMISSED_KEY = "alango_live_match_dismissed";
+
+function toMatch(b: ActiveBooking): LiveMatchData {
+  return {
+    id: b.code,
+    arenaName: b.arenaTitle || b.hallTitle,
+    hallName: b.hallTitle,
+    sport: b.sportType,
+    timeSlot: `Сегодня, ${b.startTime} — ${b.endTime}`,
+    minutesLeft: b.startsInMinutes > 0 ? b.startsInMinutes : b.endsInMinutes,
+    started: b.startsInMinutes <= 0,
+    qrCode: b.code,
+    address: "",
+  };
+}
+
+// Home banner for the user's real booking today (ongoing or starting within
+// 3 h). Hidden when there is none; the × hides it for that booking only.
+export function LiveMatchIsland() {
+  const [match, setMatch] = useState<LiveMatchData | null>(null);
+  const [dismissed, setDismissed] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!getAccessToken()) {
+      setMatch(null);
+      return;
+    }
+    try {
+      const [booking, stored] = await Promise.all([
+        getMyActiveBooking(),
+        AsyncStorage.getItem(DISMISSED_KEY).catch(() => null),
+      ]);
+      setDismissed(stored);
+      setMatch(booking ? toMatch(booking) : null);
+    } catch {
+      setMatch(null);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+      const timer = setInterval(load, 60_000);
+      return () => clearInterval(timer);
+    }, [load]),
+  );
+
+  if (!match || dismissed === match.id) return null;
+
+  return (
+    <LiveMatchIslandView
+      match={match}
+      onClose={() => {
+        hapticSelection();
+        setDismissed(match.id);
+        AsyncStorage.setItem(DISMISSED_KEY, match.id).catch(() => {});
+      }}
+    />
+  );
+}
+
+function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [pulse, setPulse] = useState(false);
@@ -61,7 +119,7 @@ export function LiveMatchIsland({ match = CURRENT_LIVE_MATCH, onPressQr }: Props
 
   const handleOpenMaps = () => {
     hapticSelection();
-    const query = encodeURIComponent(`${match.arenaName} ${match.address}`);
+    const query = encodeURIComponent(`${match.arenaName} ${match.address}`.trim());
     const url = Platform.select({
       ios: `maps:0,0?q=${query}`,
       android: `geo:0,0?q=${query}`,
@@ -111,13 +169,25 @@ export function LiveMatchIsland({ match = CURRENT_LIVE_MATCH, onPressQr }: Props
           <View style={styles.islandRight}>
             <View style={styles.countdownBadge}>
               <Ionicons name="timer-outline" size={12} color="#10b981" />
-              <Text style={styles.countdownText}>{match.minutesLeft} мин</Text>
+              <Text style={styles.countdownText}>
+                {match.started ? `ещё ${match.minutesLeft} мин` : `через ${match.minutesLeft} мин`}
+              </Text>
             </View>
-            <Ionicons
-              name={expanded ? "chevron-up" : "chevron-down"}
-              size={16}
-              color="#64748b"
-            />
+            {onClose ? (
+              <Pressable
+                hitSlop={10}
+                accessibilityLabel="Скрыть"
+                style={styles.closeBtn}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+              >
+                <Ionicons name="close" size={16} color="#94a3b8" />
+              </Pressable>
+            ) : (
+              <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={16} color="#64748b" />
+            )}
           </View>
         </View>
 
@@ -132,9 +202,9 @@ export function LiveMatchIsland({ match = CURRENT_LIVE_MATCH, onPressQr }: Props
                 <Text style={styles.detailValue}>{match.timeSlot}</Text>
               </View>
               <View style={styles.detailColRight}>
-                <Text style={styles.detailLabel}>АДРЕС</Text>
+                <Text style={styles.detailLabel}>КОД БРОНИ</Text>
                 <Text style={styles.detailValue} numberOfLines={1}>
-                  {match.address}
+                  {match.qrCode}
                 </Text>
               </View>
             </View>
@@ -198,6 +268,14 @@ export function LiveMatchIsland({ match = CURRENT_LIVE_MATCH, onPressQr }: Props
 }
 
 const styles = StyleSheet.create({
+  closeBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(148,163,184,0.12)",
+  },
   wrapper: {
     paddingHorizontal: 16,
     marginVertical: 10,

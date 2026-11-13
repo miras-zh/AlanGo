@@ -14,19 +14,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { getSessionUser, subscribeAuth, updateSessionUser } from "@/lib/auth";
-import { deleteAccountApi, logoutCurrentSession } from "@/lib/registration";
 import {
   cancelSubscriptionRequest,
   changeMySubscriptionPlan,
   requestSubscriptionPlan,
   fetchMySubscription,
   SubscriptionInfo,
-  updateMyProfile,
   uploadAvatar,
 } from "@/lib/user";
 import { pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
 import { AvatarCropModal } from "@/components/AvatarCropModal";
 import { BusinessAccountCard } from "@/components/BusinessAccountCard";
+import { ProfilePreferences } from "@/components/ProfilePreferences";
 import { colors } from "@/constants/theme";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getErrorMessage } from "@/lib/errorMessage";
@@ -37,7 +36,6 @@ export default function ProfileScreen() {
   const [name, setName] = useState(user?.name || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [city, setCity] = useState(user?.city || "");
-  const [saving, setSaving] = useState(false);
   const [sub, setSub] = useState<SubscriptionInfo | null>(null);
   const [cropSource, setCropSource] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -94,19 +92,6 @@ export default function ProfileScreen() {
     }
   }, []);
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await updateMyProfile({ name: name.trim(), phone: phone.trim(), city: city.trim() });
-      hapticSuccess();
-      Alert.alert("Успешно", "Данные профиля обновлены!");
-    } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err));
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handlePlanChange = async (newPlan: string) => {
     if (newPlan === (sub?.plan || "pro")) {
       Alert.alert("Текущий тариф", "Этот тариф уже активирован в вашем аккаунте.");
@@ -157,53 +142,6 @@ export default function ProfileScreen() {
               setSub(fresh);
               hapticSuccess();
               Alert.alert("Заявка отменена", "Заявка на смену тарифа успешно отменена.");
-            } catch (e) {
-              Alert.alert("Ошибка", getErrorMessage(e));
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleLogout = () => {
-    hapticImpact();
-    Alert.alert(
-      "Выход из аккаунта",
-      "Вы действительно хотите выйти из своего аккаунта?",
-      [
-        { text: "Отмена", style: "cancel" },
-        {
-          text: "Выйти",
-          style: "destructive",
-          onPress: async () => {
-            await logoutCurrentSession();
-            router.replace("/login");
-          },
-        },
-      ]
-    );
-  };
-
-  const handleDeleteAccount = () => {
-    hapticImpact();
-    Alert.alert(
-      "Удаление аккаунта",
-      "Вы действительно хотите удалить свой аккаунт? Все ваши бронирования, история и персональные данные будут безвозвратно стёрты в соответствии с требованиями Apple.",
-      [
-        { text: "Отмена", style: "cancel" },
-        {
-          text: "Удалить навсегда",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteAccountApi();
-              hapticSuccess();
-              Alert.alert(
-                "Аккаунт удален",
-                "Ваш аккаунт и данные были успешно удалены."
-              );
-              router.replace("/login");
             } catch (e) {
               Alert.alert("Ошибка", getErrorMessage(e));
             }
@@ -274,6 +212,7 @@ export default function ProfileScreen() {
                 <Ionicons name="chevron-forward" size={18} color="#10b981" />
               </View>
             </Pressable>
+            <ProfilePreferences signedIn={false} />
           </>
         ) : (
           /* Authenticated User State */
@@ -449,55 +388,8 @@ export default function ProfileScreen() {
             {/* Business account: create / open / disable / enable */}
             <BusinessAccountCard />
 
-            {/* Edit Profile Form */}
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Персональные данные</Text>
-
-              <Text style={styles.label}>ФИО</Text>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                style={styles.input}
-                placeholder="Ваше имя"
-                placeholderTextColor="#6B7C72"
-              />
-
-              <Text style={styles.label}>Телефон</Text>
-              <TextInput
-                value={phone}
-                onChangeText={setPhone}
-                style={styles.input}
-                placeholder="+7 (___) ___-__-__"
-                placeholderTextColor="#6B7C72"
-                keyboardType="phone-pad"
-              />
-
-              <Text style={styles.label}>Город</Text>
-              <TextInput
-                value={city}
-                onChangeText={setCity}
-                style={styles.input}
-                placeholder="Город"
-                placeholderTextColor="#6B7C72"
-              />
-
-              <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-                <Text style={styles.saveBtnText}>{saving ? "Сохраняем..." : "Сохранить изменения"}</Text>
-              </Pressable>
-            </View>
-
-            {/* Account Safety Actions (Apple Guideline 5.1.1) */}
-            <View style={styles.accountActionsCard}>
-              <Pressable style={styles.logoutBtn} onPress={handleLogout}>
-                <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
-                <Text style={styles.logoutBtnText}>Выйти из аккаунта</Text>
-              </Pressable>
-
-              <Pressable style={styles.deleteAccountBtn} onPress={handleDeleteAccount}>
-                <Ionicons name="trash-outline" size={17} color="#EF4444" />
-                <Text style={styles.deleteAccountBtnText}>Удалить аккаунт</Text>
-              </Pressable>
-            </View>
+            {/* Theme, language, invite, account settings (personal data) */}
+            <ProfilePreferences signedIn />
           </>
         )}
       </ScrollView>

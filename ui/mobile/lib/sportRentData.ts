@@ -1637,3 +1637,46 @@ export function isoDate(d: Date): string {
   const day = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${m}-${day}`;
 }
+
+// The signed-in user's nearest booking today: ongoing, or starting within
+// the next 3 hours. Used by the home "live match" banner.
+export type ActiveBooking = {
+  code: string;
+  arenaTitle: string;
+  hallTitle: string;
+  sportType: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  startsInMinutes: number; // <= 0 when already started
+  endsInMinutes: number;
+};
+
+export async function getMyActiveBooking(): Promise<ActiveBooking | null> {
+  const res = await apiFetch<{ bookings: any[] }>("/bookings?my=true");
+  const now = new Date();
+  const today = isoDate(now);
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const toMin = (t: string) => {
+    const [h, m] = String(t || "").split(":").map(Number);
+    return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : NaN;
+  };
+  const candidates = (res?.bookings ?? [])
+    .filter((b) => b.booking_date === today && b.status !== "cancelled")
+    .map((b) => ({ b, start: toMin(b.start_time), end: toMin(b.end_time) }))
+    .filter((x) => Number.isFinite(x.start) && Number.isFinite(x.end) && x.end > nowMin && x.start - nowMin <= 180)
+    .sort((x, y) => x.start - y.start);
+  const next = candidates[0];
+  if (!next) return null;
+  return {
+    code: next.b.booking_code || String(next.b.id),
+    arenaTitle: next.b.arena_title || "",
+    hallTitle: next.b.hall_title || "",
+    sportType: next.b.sport_type || "",
+    date: next.b.booking_date,
+    startTime: next.b.start_time,
+    endTime: next.b.end_time,
+    startsInMinutes: next.start - nowMin,
+    endsInMinutes: next.end - nowMin,
+  };
+}

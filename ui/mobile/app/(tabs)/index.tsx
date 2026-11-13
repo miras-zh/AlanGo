@@ -27,7 +27,6 @@ import {
   SportFilterState,
   DEFAULT_FILTERS,
 } from "@/components/SportSearchFiltersModal";
-import { VenueCard } from "@/components/VenueCard";
 import { colors, radii, spacing, typography } from "@/constants/theme";
 
 const { width } = Dimensions.get("window");
@@ -306,28 +305,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* --- 2.5 SPECIAL DEALS: Subscriptions & Happy Hours --- */}
-        <Pressable
-          style={styles.promoActionCard}
-          onPress={() => {
-            hapticSelection();
-            router.push("/subscriptions");
-          }}
-        >
-          <View style={styles.promoActionIconWrap}>
-            <Ionicons name="ticket" size={20} color={colors.primary} />
-          </View>
-          <View style={styles.promoActionTextWrap}>
-            <Text style={styles.promoActionTitle}>Абонементы и Пакеты игр</Text>
-            <Text style={styles.promoActionSub}>
-              Экономия до 25% на регулярных посещениях
-            </Text>
-          </View>
-          <View style={styles.promoBadge}>
-            <Text style={styles.promoBadgeText}>-25%</Text>
-          </View>
-        </Pressable>
-
         {/* --- 3. SEARCH BAR + FILTERS + MAP --- */}
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
@@ -592,38 +569,54 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.hallsList}>
-            {filteredItems.slice(0, 6).map((hall, index) => {
+          <View style={styles.popularGrid}>
+            {filteredItems.slice(0, 4).map((hall) => {
               const isFav = favorites.includes(hall.id);
-              const distances = ["1.8 км", "2.4 км", "3.1 км", "4.5 км"];
-              const itemDistance = distances[index % distances.length];
-
-              // Characteristics line
-              const specsList: string[] = [];
-              if (hall.category) specsList.push(hall.category);
-              if (hall.metadata?.surfaceType) specsList.push(String(hall.metadata.surfaceType));
-              if (hall.metadata?.hasShower) specsList.push("Душ");
-              const specsText = specsList.length > 0 ? specsList.join(" · ") : undefined;
-
               return (
-                <VenueCard
+                <Pressable
                   key={hall.id}
-                  id={hall.id}
-                  title={hall.title}
-                  imageUrl={hall.image_url}
-                  address={hall.metadata?.location || `${currentCity}, спортивный зал`}
-                  distance={itemDistance}
-                  rating={hall.metadata?.rating || 4.8}
-                  reviewsCount={hall.metadata?.reviewsCount || 120}
-                  pricePerHour={hall.price || 15000}
-                  sportType={hall.category || "Спорт"}
-                  specs={specsText}
-                  isFavorite={isFav}
+                  style={({ pressed }) => [styles.popularTile, pressed && { opacity: 0.85 }]}
                   onPress={() => {
+                    hapticSelection();
                     router.push(`/hall/${hall.id}`);
                   }}
-                  onToggleFavorite={() => toggleFavorite(hall.id)}
-                />
+                >
+                  {hall.image_url ? (
+                    <Image source={{ uri: hall.image_url }} style={styles.popularImage} />
+                  ) : (
+                    <View style={[styles.popularImage, styles.popularImageEmpty]}>
+                      <Ionicons name="layers-outline" size={22} color={colors.textSecondary} />
+                    </View>
+                  )}
+                  <Pressable
+                    style={styles.popularFav}
+                    hitSlop={8}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      hapticImpact();
+                      toggleFavorite(hall.id);
+                    }}
+                  >
+                    <Ionicons
+                      name={isFav ? "heart" : "heart-outline"}
+                      size={14}
+                      color={isFav ? colors.accent : colors.textPrimary}
+                    />
+                  </Pressable>
+                  <View style={styles.popularBody}>
+                    <Text style={styles.popularTitle} numberOfLines={1}>
+                      {hall.title}
+                    </Text>
+                    <Text style={styles.popularMeta} numberOfLines={1}>
+                      {hall.category || "Спорт"}
+                    </Text>
+                    {hall.price ? (
+                      <Text style={styles.popularPrice}>
+                        {Number(hall.price).toLocaleString("ru-RU")} ₸<Text style={styles.popularMeta}> / час</Text>
+                      </Text>
+                    ) : null}
+                  </View>
+                </Pressable>
               );
             })}
           </View>
@@ -652,6 +645,29 @@ export default function HomeScreen() {
             <Text style={styles.eventsActionBtnText}>Смотреть</Text>
           </View>
         </Pressable>
+
+        {/* --- 7. SUBSCRIPTIONS & GAME PACKS (bottom) --- */}
+        <Pressable
+          style={[styles.promoActionCard, { marginTop: spacing.card }]}
+          onPress={() => {
+            hapticSelection();
+            router.push("/subscriptions");
+          }}
+        >
+          <View style={styles.promoActionIconWrap}>
+            <Ionicons name="ticket" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.promoActionTextWrap}>
+            <Text style={styles.promoActionTitle}>Абонементы и Пакеты игр</Text>
+            <Text style={styles.promoActionSub}>
+              Экономия до 25% на регулярных посещениях
+            </Text>
+          </View>
+          <View style={styles.promoBadge}>
+            <Text style={styles.promoBadgeText}>-25%</Text>
+          </View>
+        </Pressable>
+
       </ScrollView>
 
       {/* --- QUICK BOOKING MODAL --- */}
@@ -789,6 +805,59 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  popularGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: spacing.card,
+  },
+  popularTile: {
+    width: "48.3%",
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    overflow: "hidden",
+  },
+  popularImage: {
+    width: "100%",
+    height: 96,
+  },
+  popularImageEmpty: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceElevated,
+  },
+  popularFav: {
+    position: "absolute",
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  popularBody: {
+    padding: spacing.sm + 2,
+    gap: 2,
+  },
+  popularTitle: {
+    ...typography.body,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  popularMeta: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  popularPrice: {
+    ...typography.body,
+    fontWeight: "800",
+    color: colors.primary,
+    marginTop: 2,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background, // #080D0B
