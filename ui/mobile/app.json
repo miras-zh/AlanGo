@@ -14,7 +14,7 @@
     },
     "ios": {
       "bundleIdentifier": "kz.alango.app",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {

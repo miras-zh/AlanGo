@@ -247,7 +247,7 @@ export function VenueCard({
         <View style={styles.slotsSection}>
           <View style={styles.slotsHeader}>
             <View style={styles.slotsTitleRow}>
-              <Ionicons name="time-outline" size={13} color={c.primary} />
+              <Ionicons name="time-outline" size={11} color={c.primary} />
               <Text style={styles.slotsLabel}>{t("venue.nearestSlots")}</Text>
             </View>
             <Text style={styles.slotsDay}>
@@ -452,8 +452,8 @@ const createStyles = (c: Palette) =>
     flexShrink: 0,
   },
   slotsSection: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
+    marginTop: 6,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: c.hairline,
   },
@@ -461,15 +461,15 @@ const createStyles = (c: Palette) =>
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: spacing.xs + 2,
+    marginBottom: 4,
   },
   slotsTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 4,
   },
   slotsLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
     color: c.textSecondary,
   },
@@ -481,12 +481,11 @@ const createStyles = (c: Palette) =>
   slotsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: 6,
   },
   slotChip: {
-    flex: 1,
-    paddingVertical: 6,
-    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
     borderRadius: radii.smallChip,
     backgroundColor: c.surfaceElevated,
     borderWidth: 1,
@@ -498,8 +497,8 @@ const createStyles = (c: Palette) =>
     borderColor: c.primary,
   },
   slotChipText: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "600",
     color: c.textPrimary,
   },
   slotChipTextNearest: {
