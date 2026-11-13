@@ -15,7 +15,7 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { resolveMyArenaId } from "@/lib/business";
 import { Ionicons } from "@expo/vector-icons";
 import { BusinessAccountCard } from "@/components/BusinessAccountCard";
@@ -123,9 +123,12 @@ export default function BusinessProfileScreen() {
     setArena(all.find((a) => a.id === arenaId) ?? null);
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // Reload on focus so changes made on sub-screens (e.g. map location) show up.
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData]),
+  );
 
   const logoUrl = arena?.logoUrl || "";
   const logoLetter = (arena?.title || "?").trim().charAt(0).toUpperCase() || "?";
@@ -482,6 +485,27 @@ export default function BusinessProfileScreen() {
               <Text style={styles.infoTileLabel}>{t("bizProfile.hours")}</Text>
               <Text style={styles.infoTileValue}>
                 {workingHoursLabel(arena?.workingHours || "08:00 - 23:00 (ежедневно)", t)}
+              </Text>
+            </View>
+            <View style={styles.tileEditBtn}>
+              <Ionicons name="create-outline" size={18} color={c.primary} />
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.infoTile, styles.infoTileRow, pressed && { opacity: 0.85 }]}
+            onPress={() => {
+              hapticSelection();
+              router.push("/business/location");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t("bizLocation.title")}
+          >
+            <View style={{ flex: 1 }}>
+              <Ionicons name="map-outline" size={18} color={c.primary} />
+              <Text style={styles.infoTileLabel}>{t("bizLocation.title")}</Text>
+              <Text style={[styles.infoTileValue, arena?.latitude == null && { color: c.accent }]}>
+                {arena?.latitude != null ? t("bizLocation.set") : t("bizLocation.notSet")}
               </Text>
             </View>
             <View style={styles.tileEditBtn}>

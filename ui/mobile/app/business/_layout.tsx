@@ -94,6 +94,13 @@ export default function BusinessTabsLayout() {
       />
       {/* Hidden CRM Screens */}
       <Tabs.Screen
+        name="location"
+        options={{
+          href: null,
+          title: t("bizLocation.title"),
+        }}
+      />
+      <Tabs.Screen
         name="income"
         options={{
           href: null,

@@ -27,9 +27,12 @@ type Arena struct {
 	MinPricePerHour int            `gorm:"column:min_price_per_hour;not null;default:12000" json:"min_price_per_hour"`
 	Sports          pq.StringArray `gorm:"column:sports;type:text[];not null;default:'{}'" json:"sports"`
 	VenueType       string         `gorm:"column:venue_type;type:varchar(32);not null;default:'complex'" json:"venue_type"`
-	Hidden          bool           `gorm:"column:hidden;not null;default:false" json:"hidden"`
-	CreatedAt       time.Time      `gorm:"column:created_at;default:now()" json:"created_at"`
-	UpdatedAt       time.Time      `gorm:"column:updated_at;default:now()" json:"updated_at"`
+	// Map location set by the owner; nil until the owner picks it on the map.
+	Latitude  *float64  `gorm:"column:latitude;type:double precision" json:"latitude"`
+	Longitude *float64  `gorm:"column:longitude;type:double precision" json:"longitude"`
+	Hidden    bool      `gorm:"column:hidden;not null;default:false" json:"hidden"`
+	CreatedAt time.Time `gorm:"column:created_at;default:now()" json:"created_at"`
+	UpdatedAt time.Time `gorm:"column:updated_at;default:now()" json:"updated_at"`
 
 	Halls []Hall `gorm:"foreignKey:ArenaID" json:"halls,omitempty"`
 }

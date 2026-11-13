@@ -1,0 +1,2 @@
+ALTER TABLE arenas DROP COLUMN IF EXISTS longitude;
+ALTER TABLE arenas DROP COLUMN IF EXISTS latitude;

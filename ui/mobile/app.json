@@ -72,6 +72,12 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.944908121160-1bi2a5l9i76evjh6gl1m57clp62gvav8"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "AlanGo использует геолокацию для поиска ближайших спортивных комплексов и расчета расстояния до залов."
+        }
       ]
     ],
     "experiments": {

@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -15,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { WebView } from "react-native-webview";
 import { ArenaWithHalls, getArenasWithHalls } from "@/lib/sportRentData";
 import { getSelectedCity } from "@/lib/cities";
+import { distanceKm, formatDistance, getCurrentLocation, type LatLng } from "@/lib/location";
 import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
@@ -56,8 +59,11 @@ export default function MapScreen() {
   const [currentCity, setCurrentCity] = useState("Алматы");
   const [selectedArena, setSelectedArena] = useState<ArenaWithHalls | null>(null);
   const [loading, setLoading] = useState(true);
+  // User position: resolved before the map renders so it opens centred on the user.
+  const [userLoc, setUserLoc] = useState<LatLng | null>(null);
+  const [locStatus, setLocStatus] = useState<"pending" | "granted" | "denied" | "unavailable">("pending");
 
-  // Load city and venues
+  // Load city, venues and the user's location
   useEffect(() => {
     getSelectedCity().then((city) => {
       if (city) setCurrentCity(city);
@@ -67,19 +73,37 @@ export default function MapScreen() {
       setArenas(data);
       setLoading(false);
     });
+
+    getCurrentLocation().then((res) => {
+      setLocStatus(res.status);
+      if (res.status === "granted") setUserLoc(res.coords);
+    });
   }, []);
 
-  // Filter venues by city and selected sport
+  // "Locate me" button inside the map → ask the app, then move the map.
+  const locateMe = useCallback(async () => {
+    const res = await getCurrentLocation();
+    setLocStatus(res.status);
+    if (res.status === "granted") {
+      setUserLoc(res.coords);
+      webViewRef.current?.injectJavaScript(`window.showUser(${res.coords.lat}, ${res.coords.lng}, true); true;`);
+    }
+  }, []);
+
+  // Only venues with a real location go on the map. Near the user: any city;
+  // without location: the selected city.
   const filteredArenas = useMemo(() => {
     return arenas.filter((arena) => {
-      const matchCity = !currentCity || arena.city.toLowerCase() === currentCity.toLowerCase();
+      if (arena.latitude == null || arena.longitude == null) return false;
+      const matchCity =
+        !!userLoc || !currentCity || arena.city.toLowerCase() === currentCity.toLowerCase();
       const matchSport =
         selectedSport === "all" ||
         arena.availableSports?.includes(selectedSport as any) ||
         arena.sports?.includes(selectedSport as any);
       return matchCity && matchSport;
     });
-  }, [arenas, currentCity, selectedSport]);
+  }, [arenas, currentCity, selectedSport, userLoc]);
 
   const cityCoords = CITY_COORDINATES[currentCity] || CITY_COORDINATES["Алматы"];
 
@@ -87,7 +111,10 @@ export default function MapScreen() {
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === "SELECT_ARENA") {
+      if (data.type === "LOCATE") {
+        hapticSelection();
+        locateMe();
+      } else if (data.type === "SELECT_ARENA") {
         const found = arenas.find((a) => a.id === data.id);
         if (found) {
           hapticSelection();
@@ -110,8 +137,8 @@ export default function MapScreen() {
         price: a.minPrice || a.minPricePerHour || 8000,
         address: a.address,
         sports: a.availableSports || a.sports || [],
-        lat: a.latitude || cityCoords.lat,
-        lng: a.longitude || cityCoords.lng,
+        lat: a.latitude,
+        lng: a.longitude,
       }))
     );
 
@@ -121,9 +148,9 @@ export default function MapScreen() {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" integrity="sha256-YU3qCpj/P06tdPBJGPax0bm6Q1wltfwjsho5TR4+TYc=" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" integrity="sha256-YSWCMtmNZNwqex4CEw1nQhvFub2lmU7vcCKP+XVwwXA=" crossorigin="anonymous" />
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body, #map { width: 100%; height: 100%; margin: 0; padding: 0; background: #e5e3df; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
@@ -260,12 +287,13 @@ export default function MapScreen() {
     <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
   </button>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha256-Hk4dIpcqOSb0hZjgyvFOP+cEmDXUKKNE/tT542ZbNQg=" crossorigin="anonymous"></script>
   <script>
-    var centerLat = ${cityCoords.lat};
-    var centerLng = ${cityCoords.lng};
-    var zoomLevel = ${cityCoords.zoom};
+    var userLoc = ${JSON.stringify(userLoc)};
+    var centerLat = userLoc ? userLoc.lat : ${cityCoords.lat};
+    var centerLng = userLoc ? userLoc.lng : ${cityCoords.lng};
+    var zoomLevel = userLoc ? 14 : ${cityCoords.zoom};
     var venues = ${venuesJson};
 
     // Initialize Map with free OpenStreetMap tiles (no API key required)
@@ -333,28 +361,34 @@ export default function MapScreen() {
       }
     });
 
-    // Locate Me Handler
+    // User position comes from the app (expo-location), not the web view.
     var userMarker = null;
-    document.getElementById('locateBtn').addEventListener('click', function() {
-      map.locate({ setView: true, maxZoom: 15 });
-    });
-
-    map.on('locationfound', function(e) {
+    window.showUser = function(lat, lng, move) {
       if (userMarker) map.removeLayer(userMarker);
-      userMarker = L.circleMarker(e.latlng, {
+      userMarker = L.circleMarker([lat, lng], {
         radius: 8,
-        fillColor: '#1976D2',
-        color: c.textPrimary,
+        fillColor: ${JSON.stringify(c.primary)},
+        color: ${JSON.stringify(c.onImage)},
         weight: 3,
         opacity: 1,
         fillOpacity: 1
       }).addTo(map);
+      if (move) map.setView([lat, lng], 14);
+    };
+    if (userLoc) window.showUser(userLoc.lat, userLoc.lng, false);
+
+    document.getElementById('locateBtn').addEventListener('click', function() {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'LOCATE' }));
+      }
     });
   </script>
 </body>
 </html>
     `;
-  }, [filteredArenas, cityCoords, t, localeTag]);
+    // userLoc is read once at render; later moves go through injectJavaScript.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredArenas, cityCoords, t, localeTag, c, locStatus === "pending"]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -375,7 +409,7 @@ export default function MapScreen() {
           <Text style={styles.titleText}>{t("map.title")}</Text>
           <View style={styles.cityPill}>
             <Ionicons name="location-sharp" size={12} color={c.primary} />
-            <Text style={styles.cityName}>{cityLabel(currentCity, t)}</Text>
+            <Text style={styles.cityName}>{userLoc ? t("map.nearYou") : cityLabel(currentCity, t)}</Text>
             <Text style={styles.venueCount}>{t("map.venueCount", { count: filteredArenas.length })}</Text>
           </View>
         </View>
@@ -427,6 +461,12 @@ export default function MapScreen() {
 
       {/* --- MAP WEBVIEW --- */}
       <View style={styles.mapContainer}>
+        {locStatus === "pending" ? (
+          <View style={styles.locating}>
+            <ActivityIndicator color={c.primary} />
+            <Text style={styles.locatingText}>{t("map.locating")}</Text>
+          </View>
+        ) : (
         <WebViewComponent
           ref={webViewRef}
           originWhitelist={["*"]}
@@ -437,6 +477,13 @@ export default function MapScreen() {
           domStorageEnabled={true}
           scrollEnabled={false}
         />
+        )}
+        {locStatus === "denied" ? (
+          <Pressable style={styles.locHint} onPress={() => Linking.openSettings()} accessibilityRole="button">
+            <Ionicons name="navigate-outline" size={16} color={c.primary} />
+            <Text style={styles.locHintText}>{t("map.enableLocation")}</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {/* --- FLOATING VENUE PREVIEW SHEET --- */}
@@ -468,6 +515,12 @@ export default function MapScreen() {
 
               <Text style={styles.previewAddress} numberOfLines={1}>
                 <Ionicons name="location-outline" size={13} color={c.textMuted} /> {selectedArena.address}
+                {userLoc && selectedArena.latitude != null && selectedArena.longitude != null
+                  ? ` · ${formatDistance(
+                      distanceKm(userLoc, { lat: selectedArena.latitude, lng: selectedArena.longitude }),
+                      t,
+                    )}`
+                  : ""}
               </Text>
 
               <View style={styles.previewMetaRow}>
@@ -599,6 +652,38 @@ const createStyles = (c: Palette) =>
   mapContainer: {
     flex: 1,
     position: "relative",
+  },
+  locating: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    backgroundColor: c.background,
+  },
+  locatingText: {
+    fontSize: 13,
+    color: c.textSecondary,
+  },
+  locHint: {
+    position: "absolute",
+    top: spacing.md,
+    left: spacing.screenHorizontal,
+    right: spacing.screenHorizontal,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.button,
+    backgroundColor: c.glassBackground,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+  },
+  locHintText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    color: c.textPrimary,
   },
   webView: {
     flex: 1,

@@ -99,6 +99,10 @@ func (h *Handler) UpdateArena(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
 		return
 	}
+	if msg := validateLocation(req.Latitude, req.Longitude); msg != "" {
+		http.Error(w, `{"error":"`+msg+`"}`, http.StatusBadRequest)
+		return
+	}
 	if req.Features == nil {
 		req.Features = protected.Features
 	}
@@ -438,4 +442,19 @@ func (h *Handler) ListOwnBookings(w http.ResponseWriter, r *http.Request) {
 		"bookings": bookings,
 		"total":    len(bookings),
 	})
+}
+
+// validateLocation checks an arena map location: both coordinates or none,
+// within valid latitude/longitude ranges.
+func validateLocation(lat, lng *float64) string {
+	if (lat == nil) != (lng == nil) {
+		return "latitude and longitude must be set together"
+	}
+	if lat == nil {
+		return ""
+	}
+	if *lat < -90 || *lat > 90 || *lng < -180 || *lng > 180 {
+		return "invalid coordinates"
+	}
+	return ""
 }
