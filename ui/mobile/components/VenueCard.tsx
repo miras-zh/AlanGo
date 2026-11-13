@@ -39,6 +39,7 @@ function getSportIcon(sport?: string): keyof typeof Ionicons.glyphMap {
   if (s.includes("баскетбол")) return "basketball-outline";
   if (s.includes("волейбол")) return "fitness-outline";
   if (s.includes("падл") || s.includes("сквош")) return "disc-outline";
+  if (s.includes("хоккей")) return "snow-outline";
   return "fitness-outline";
 }
 

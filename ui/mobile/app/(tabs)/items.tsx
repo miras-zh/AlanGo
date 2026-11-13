@@ -39,6 +39,7 @@ const SPORT_CHIPS = [
   { key: "Баскетбол", label: "sport.basketball" as MessageKey, icon: "basketball-outline" },
   { key: "Волейбол", label: "sport.volleyball" as MessageKey, icon: "fitness-outline" },
   { key: "Сквош и падл", label: "sport.squashShort" as MessageKey, icon: "disc-outline" },
+  { key: "Хоккей", label: "sport.hockey" as MessageKey, icon: "snow-outline" },
 ];
 
 const SORT_OPTIONS = [

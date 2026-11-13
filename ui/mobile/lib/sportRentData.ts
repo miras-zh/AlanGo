@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, apiFetch, UPLOAD_TIMEOUT_MS } from "@/lib/api";
 
-export type SportType = "Футбол" | "Баскетбол" | "Теннис" | "Волейбол" | "Сквош и падл" | "Другое";
+export type SportType = "Футбол" | "Баскетбол" | "Теннис" | "Волейбол" | "Сквош и падл" | "Хоккей" | "Другое";
 
 export type Hall = {
   id: number;

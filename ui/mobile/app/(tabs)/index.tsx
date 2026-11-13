@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Animated,
   Dimensions,
   Image,
   Modal,
@@ -11,6 +12,9 @@ import {
   Text,
   TextInput,
   View,
+  type ImageSourcePropType,
+  type ImageStyle,
+  type StyleProp,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -40,17 +44,45 @@ const FAVORITES_STORAGE_KEY = "alango_user_favorites";
 type CategoryItem = {
   id: string;
   name: MessageKey;
-  icon: keyof typeof Ionicons.glyphMap;
+  // Sport picture (assets/sports); "all" draws a grid icon instead.
+  image: ImageSourcePropType | null;
+  // Grayscale copy shown while another sport is selected.
+  gray: ImageSourcePropType | null;
 };
 
 const CATEGORIES: CategoryItem[] = [
-  { id: "all", name: "sport.all", icon: "grid-outline" },
-  { id: "Футбол", name: "sport.football", icon: "football-outline" },
-  { id: "Теннис", name: "sport.tennis", icon: "tennisball-outline" },
-  { id: "Баскетбол", name: "sport.basketball", icon: "basketball-outline" },
-  { id: "Сквош и падл", name: "sport.padel", icon: "fitness-outline" },
-  { id: "Волейбол", name: "sport.volleyball", icon: "baseball-outline" },
+  { id: "all", name: "sport.all", image: null, gray: null },
+  { id: "Футбол", name: "sport.football", image: require("@/assets/sports/football.jpg"), gray: require("@/assets/sports/football_gray.jpg") },
+  { id: "Теннис", name: "sport.tennis", image: require("@/assets/sports/tennis.jpg"), gray: require("@/assets/sports/tennis_gray.jpg") },
+  { id: "Баскетбол", name: "sport.basketball", image: require("@/assets/sports/basketball.jpg"), gray: require("@/assets/sports/basketball_gray.jpg") },
+  { id: "Сквош и падл", name: "sport.padel", image: require("@/assets/sports/padel.jpg"), gray: require("@/assets/sports/padel_gray.jpg") },
+  { id: "Волейбол", name: "sport.volleyball", image: require("@/assets/sports/volleyball.jpg"), gray: require("@/assets/sports/volleyball_gray.jpg") },
+  { id: "Хоккей", name: "sport.hockey", image: require("@/assets/sports/hockey.jpg"), gray: require("@/assets/sports/hockey_gray.jpg") },
 ];
+
+// Color picture over its grayscale copy; the color layer fades in/out.
+function SportTileImage({
+  color,
+  gray,
+  colored,
+  style,
+}: {
+  color: ImageSourcePropType;
+  gray: ImageSourcePropType;
+  colored: boolean;
+  style: StyleProp<ImageStyle>;
+}) {
+  const opacity = useRef(new Animated.Value(colored ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(opacity, { toValue: colored ? 1 : 0, duration: 200, useNativeDriver: true }).start();
+  }, [colored, opacity]);
+  return (
+    <>
+      <Image source={gray} style={style} resizeMode="cover" />
+      <Animated.Image source={color} style={[style, { opacity }]} resizeMode="cover" />
+    </>
+  );
+}
 
 export default function HomeScreen() {
   const t = useT();
@@ -391,9 +423,16 @@ export default function HomeScreen() {
         </Pressable>
 
         {/* --- 4. CATEGORIES ROW --- */}
-        <View style={styles.categoriesRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesScroll}
+          contentContainerStyle={styles.categoriesRow}
+        >
           {CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat.id;
+            // "All" keeps every tile in color; a picked sport dims the rest to gray.
+            const colored = selectedCategory === "all" || isSelected;
             return (
               <Pressable
                 key={cat.id}
@@ -402,32 +441,38 @@ export default function HomeScreen() {
                   setSelectedCategory(isSelected ? "all" : cat.id);
                 }}
                 style={styles.categoryItem}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
               >
-                <View
-                  style={[
-                    styles.categorySquircle,
-                    isSelected && styles.categorySquircleSelected,
-                  ]}
-                >
-                  <Ionicons
-                    name={cat.icon}
-                    size={22}
-                    color={isSelected ? c.primary : c.textSecondary}
-                  />
+                <View style={[styles.categoryTile, isSelected && styles.categoryTileSelected]}>
+                  {cat.image ? (
+                    <SportTileImage
+                      color={cat.image}
+                      gray={cat.gray ?? cat.image}
+                      colored={colored}
+                      style={styles.categoryImage}
+                    />
+                  ) : (
+                    <View style={styles.categoryAllIcon}>
+                      <Ionicons name="grid-outline" size={30} color={colored ? c.primary : c.textMuted} />
+                    </View>
+                  )}
+                  <Text
+                    style={[
+                      styles.categoryLabel,
+                      !colored && styles.categoryLabelDimmed,
+                      isSelected && styles.categoryLabelSelected,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {t(cat.name)}
+                  </Text>
                 </View>
-                <Text
-                  style={[
-                    styles.categoryLabel,
-                    isSelected && styles.categoryLabelSelected,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {t(cat.name)}
-                </Text>
+                <View style={[styles.categoryIndicator, isSelected && styles.categoryIndicatorActive]} />
               </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
 
         {/* --- 4.5 SECTION: Спорткомплексы и Арены --- */}
         {filteredArenas.length > 0 ? (
@@ -1066,42 +1111,75 @@ const createStyles = (c: Palette) =>
   },
 
   // Categories Row
+  categoriesScroll: {
+    marginHorizontal: -spacing.screenHorizontal,
+    marginBottom: spacing.section,
+  },
   categoriesRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: spacing.section, // 20px
+    paddingHorizontal: spacing.screenHorizontal,
+    gap: spacing.sm,
   },
   categoryItem: {
     alignItems: "center",
-    width: (width - 32) / 6,
   },
-  categorySquircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+  categoryTile: {
+    width: 76,
+    height: 92,
+    borderRadius: radii.card,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.border,
+    overflow: "hidden",
+    justifyContent: "flex-end",
+  },
+  categoryTileSelected: {
+    borderWidth: 2,
+    borderColor: c.primary,
+    shadowColor: c.primary,
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  categoryImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: 68,
+  },
+  categoryAllIcon: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 68,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 6,
-  },
-  categorySquircleSelected: {
-    backgroundColor: "rgba(0, 201, 104, 0.15)",
-    borderColor: c.primary,
-    borderWidth: 1.5,
   },
   categoryLabel: {
     fontSize: 11,
-    lineHeight: 14,
-    color: c.textSecondary,
+    lineHeight: 16,
+    fontWeight: "700",
+    color: c.textPrimary,
     textAlign: "center",
-    fontWeight: "500",
+    paddingHorizontal: spacing.xs,
+    paddingBottom: spacing.xs,
   },
   categoryLabelSelected: {
-    color: c.textPrimary,
-    fontWeight: "700",
+    color: c.primary,
+  },
+  categoryLabelDimmed: {
+    color: c.textMuted,
+  },
+  categoryIndicator: {
+    width: 20,
+    height: 4,
+    borderRadius: 2,
+    marginTop: spacing.sm,
+    backgroundColor: "transparent",
+  },
+  categoryIndicatorActive: {
+    backgroundColor: c.primary,
   },
 
   // Section Standard
