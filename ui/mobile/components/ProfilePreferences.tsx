@@ -58,12 +58,12 @@ function Segmented<T extends string>({
   );
 }
 
-// Profile block (as in Vison): theme, language, invite a friend and the
-// entry to account settings (personal data, logout, delete account).
-export function ProfilePreferences({ signedIn }: { signedIn: boolean }) {
-  const c = usePalette();
+/**
+ * Theme + app language card. Shared by the client profile and the business
+ * profile, so the language can be changed without leaving business mode.
+ */
+export function AppearanceSettings() {
   const styles = useThemedStyles(createStyles);
-  const router = useRouter();
   const { mode, setMode } = useAppTheme();
   // Root-context updates (theme / language) from inside an iOS native tab are
   // only mounted on the next touch; a local state bump right after forces the
@@ -72,6 +72,31 @@ export function ProfilePreferences({ signedIn }: { signedIn: boolean }) {
   const flush = () => requestAnimationFrame(() => setTick((t) => t + 1));
   const { locale, setLocale, t } = useI18n();
   const themeOptions = THEMES.map((o) => ({ id: o.id, label: t(o.labelKey) }));
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.label}>{t("prefs.theme")}</Text>
+      <Segmented options={themeOptions} value={mode} onChange={(m) => {
+          setMode(m);
+          flush();
+        }}
+      />
+      <Text style={[styles.label, { marginTop: spacing.lg }]}>{t("prefs.language")}</Text>
+      <Segmented options={LANGUAGES} value={locale} onChange={(l) => {
+          setLocale(l);
+          flush();
+        }}
+      />
+    </View>
+  );
+}
+
+// Profile block (as in Vison): theme, language, invite a friend and the
+// entry to account settings (personal data, logout, delete account).
+export function ProfilePreferences({ signedIn }: { signedIn: boolean }) {
+  const styles = useThemedStyles(createStyles);
+  const router = useRouter();
+  const { t } = useI18n();
 
   const invite = async () => {
     hapticSelection();
@@ -86,20 +111,7 @@ export function ProfilePreferences({ signedIn }: { signedIn: boolean }) {
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.card}>
-        <Text style={styles.label}>{t("prefs.theme")}</Text>
-        <Segmented options={themeOptions} value={mode} onChange={(m) => {
-            setMode(m);
-            flush();
-          }}
-        />
-        <Text style={[styles.label, { marginTop: spacing.lg }]}>{t("prefs.language")}</Text>
-        <Segmented options={LANGUAGES} value={locale} onChange={(l) => {
-            setLocale(l);
-            flush();
-          }}
-        />
-      </View>
+      <AppearanceSettings />
 
       <View style={styles.card}>
         {signedIn ? (

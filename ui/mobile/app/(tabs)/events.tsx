@@ -1,478 +1,533 @@
-import React, { useState, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { radii, spacing } from "@/constants/theme";
+import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
+import { useT, type MessageKey } from "@/lib/i18n";
+import { cityLabel, dayMonth } from "@/lib/dataLabels";
+import { getSelectedCity, subscribeCityChange } from "@/lib/cities";
 import {
+  activeFilterCount,
+  cancelEventRegistration,
   DEFAULT_EVENT_FILTERS,
-  EventFilterState,
-  INITIAL_EVENTS,
-  SportCategoryId,
-  SPORT_CATEGORIES,
-  SportEvent,
+  EVENT_SPORT_LABEL,
+  eventPrice,
+  eventTimeRange,
   filterEvents,
-  eventCategory,
-  eventDate,
-  eventDetails,
+  getEvents,
+  registerForEvent,
+  toggleEventFavorite,
+  useEventUserState,
+  type DateFilter,
+  type EventFilterState,
+  type SportEvent,
 } from "@/lib/eventsData";
 import { EventCard } from "@/components/EventCard";
 import { EventsFilterModal } from "@/components/EventsFilterModal";
-import { EventCalendarModal } from "@/components/EventCalendarModal";
-import { GlassSurface } from "@/components/GlassSurface";
-import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
-
+import { DATE_FILTERS, EventCalendarModal } from "@/components/EventCalendarModal";
+import { CityPickerModal } from "@/components/CityPickerModal";
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
-import { useT } from "@/lib/i18n";
 
-function AllDotsIcon({ color }: { color: string }) {
-  const c = usePalette();
-  const styles = useThemedStyles(createStyles);
-  return (
-    <View style={styles.allDotsWrap}>
-      <View style={[styles.dotCircle, { borderColor: color }]} />
-      <View style={[styles.dotCircle, { borderColor: color }]} />
-      <View style={[styles.dotCircle, { borderColor: color }]} />
-      <View style={[styles.dotCircle, { borderColor: color }]} />
-    </View>
-  );
-}
+type ListTab = "upcoming" | "popular" | "mine";
 
-function getCategoryIcon(id: SportCategoryId, color: string) {
-  switch (id) {
-    case "all":
-      return <AllDotsIcon color={color} />;
-    case "football":
-      return <Ionicons name="football-outline" size={20} color={color} />;
-    case "tennis":
-      return <Ionicons name="tennisball-outline" size={20} color={color} />;
-    case "basketball":
-      return <Ionicons name="basketball-outline" size={20} color={color} />;
-    case "padel":
-      return <Ionicons name="disc-outline" size={20} color={color} />;
-    case "other":
-    default:
-      return <Ionicons name="ellipsis-horizontal" size={20} color={color} />;
-  }
-}
+const LIST_TABS: { id: ListTab; label: MessageKey }[] = [
+  { id: "upcoming", label: "events.tabUpcoming" },
+  { id: "popular", label: "events.tabPopular" },
+  { id: "mine", label: "events.tabMine" },
+];
 
 export default function EventsScreen() {
-  const t = useT();
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
-  const router = useRouter();
-  const [events, setEvents] = useState<SportEvent[]>(INITIAL_EVENTS);
-  const [filters, setFilters] = useState<EventFilterState>(DEFAULT_EVENT_FILTERS);
+
+  const [events, setEvents] = useState<SportEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [calendarModalVisible, setCalendarModalVisible] = useState(false);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 500);
+  const [query, setQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("upcoming");
+  const [city, setCity] = useState("");
+  const [filters, setFilters] = useState<EventFilterState>(DEFAULT_EVENT_FILTERS);
+  const [tab, setTab] = useState<ListTab>("upcoming");
+
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
+  const [registering, setRegistering] = useState<string | null>(null);
+
+  const { favorites, registered } = useEventUserState();
+
+  const load = useCallback(async () => {
+    try {
+      setEvents(await getEvents());
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    getSelectedCity().then(setCity).catch(() => {});
+    return subscribeCityChange(setCity);
+  }, [load]);
+
+  const countFor = useCallback(
+    (f: EventFilterState) => filterEvents(events, { filters: f, date: dateFilter, city, query, t }).length,
+    [events, dateFilter, city, query, t],
+  );
+
+  const visible = useMemo(() => {
+    if (tab === "popular") return [];
+    const list = filterEvents(events, { filters, date: dateFilter, city, query, t });
+    return tab === "mine" ? list.filter((e) => registered.includes(e.id)) : list;
+  }, [tab, events, filters, dateFilter, city, query, t, registered]);
+
+  const filtersActive = activeFilterCount(filters) > 0;
+  const dateLabel = t(DATE_FILTERS.find((d) => d.id === dateFilter)?.label ?? "events.dateUpcoming");
+
+  const handleRegister = (ev: SportEvent) => {
+    if (registered.includes(ev.id)) {
+      Alert.alert(t("events.cancelRegTitle"), t("events.cancelRegText", { title: ev.title }), [
+        { text: t("common.no"), style: "cancel" },
+        {
+          text: t("events.cancelReg"),
+          style: "destructive",
+          onPress: () => {
+            hapticImpact();
+            cancelEventRegistration(ev.id);
+          },
+        },
+      ]);
+      return;
+    }
+    hapticImpact();
+    setRegistering(ev.id);
+    // Local registration (no events API yet); short delay keeps the busy state visible.
+    setTimeout(() => {
+      registerForEvent(ev.id);
+      setRegistering(null);
+      hapticSuccess();
+      Alert.alert(
+        t("events.registerTitle"),
+        t("events.registeredText", {
+          title: ev.title,
+          date: dayMonth(ev.startsAt, t),
+          time: eventTimeRange(ev),
+          location: ev.venue,
+        }),
+        [{ text: t("home.great") }],
+      );
+    }, 400);
   };
 
-  const handleToggleFavorite = (eventId: string) => {
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === eventId ? { ...e, isFavorite: !e.isFavorite } : e
-      )
-    );
-  };
-
-  const handleRegister = (event: SportEvent) => {
+  const openDetails = (ev: SportEvent) => {
+    const price = eventPrice(ev, t);
     Alert.alert(
-      t("events.registerTitle"),
-      t("events.registeredText", { title: event.title, date: eventDate(event, t), time: event.time, location: event.location }),
-      [{ text: t("home.great") }]
+      ev.title,
+      t("events.details", {
+        category: t(EVENT_SPORT_LABEL[ev.sport]),
+        date: dayMonth(ev.startsAt, t),
+        time: eventTimeRange(ev),
+        location: `${ev.venue}, ${cityLabel(ev.city, t)}`,
+        price: `${price.amount}${price.unit ? ` ${price.unit}` : ""}`,
+      }),
     );
   };
 
-  // Filtered upcoming events list
-  const filteredEvents = useMemo(() => {
-    return filterEvents(events, filters);
-  }, [events, filters]);
-
-  const hasAdvancedFilters =
-    filters.eventType !== "all" ||
-    filters.priceRange !== "all" ||
-    filters.onlyWithSpots;
+  const empty = (() => {
+    if (loadError) return { icon: "cloud-offline-outline" as const, title: t("catalog.errorTitle"), text: t("catalog.errorText") };
+    if (tab === "popular") return { icon: "flame-outline" as const, title: t("events.popularSoon"), text: t("events.popularSoonText") };
+    if (tab === "mine") return { icon: "ticket-outline" as const, title: t("events.mineEmpty"), text: t("events.mineEmptyText") };
+    return { icon: "trophy-outline" as const, title: t("events.notFound"), text: t("events.notFoundText") };
+  })();
+  const canReset = !loadError && tab !== "popular" && (filtersActive || query.length > 0 || dateFilter !== "upcoming");
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* 1. Top Header */}
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerTitles}>
+        <View style={styles.headerText}>
           <Text style={styles.title}>{t("events.title")}</Text>
-          <Text style={styles.subtitle}>
-            {t("events.subtitle")}
-          </Text>
+          <Text style={styles.subtitle}>{t("events.subtitle")}</Text>
         </View>
-
-        {/* Floating Glass Buttons (Calendar & Filters) */}
         <View style={styles.headerActions}>
           <Pressable
-            style={styles.glassCircleBtn}
+            style={({ pressed }) => [styles.roundBtn, pressed && { opacity: 0.8 }]}
             onPress={() => {
               hapticSelection();
-              setCalendarModalVisible(true);
+              setDateOpen(true);
             }}
+            accessibilityRole="button"
+            accessibilityLabel={t("calendar.title")}
           >
-            <GlassSurface
-              borderRadius={22}
-              style={styles.glassBtnInner}
-            >
-              <Ionicons
-                name="calendar-outline"
-                size={20}
-                color={c.textPrimary}
-              />
-            </GlassSurface>
+            <Ionicons name="calendar-outline" size={22} color={c.primary} />
           </Pressable>
-
           <Pressable
-            style={styles.glassCircleBtn}
+            style={({ pressed }) => [styles.roundBtn, filtersActive && styles.roundBtnActive, pressed && { opacity: 0.8 }]}
             onPress={() => {
               hapticSelection();
-              setFilterModalVisible(true);
+              setFilterOpen(true);
             }}
+            accessibilityRole="button"
+            accessibilityLabel={t("events.filtersTitle")}
           >
-            <GlassSurface
-              borderRadius={22}
-              style={[
-                styles.glassBtnInner,
-                hasAdvancedFilters && styles.glassBtnInnerActive,
-              ]}
-            >
-              <Ionicons
-                name="options-outline"
-                size={20}
-                color={c.textPrimary}
-              />
-              {/* Notification Red Indicator Badge */}
-              <View style={styles.redDot} />
-            </GlassSurface>
+            <Ionicons name="options-outline" size={22} color={c.primary} />
+            {filtersActive ? <View style={styles.filterDot} /> : null}
           </Pressable>
         </View>
       </View>
 
-      {/* 2. Sport Category Squircle Buttons */}
-      <View style={styles.categoriesSection}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContent}
-        >
-          {SPORT_CATEGORIES.map((cat) => {
-            const isSelected = filters.sportCategory === cat.id;
-            const iconColor = isSelected ? c.primary : c.textSecondary;
-
-            return (
-              <Pressable
-                key={cat.id}
-                style={styles.categoryItemPressable}
-                onPress={() => {
-                  hapticSelection();
-                  setFilters((prev) => ({
-                    ...prev,
-                    sportCategory: cat.id,
-                  }));
-                }}
-              >
-                <GlassSurface
-                  borderRadius={18}
-                  variant={isSelected ? "selected" : "default"}
-                  glow={isSelected}
-                  style={[
-                    styles.categoryCard,
-                    isSelected && styles.categoryCardSelected,
-                  ]}
-                >
-                  <View style={styles.categoryIconWrap}>
-                    {getCategoryIcon(cat.id, iconColor)}
-                  </View>
-                  <Text
-                    style={[
-                      styles.categoryLabel,
-                      isSelected && styles.categoryLabelSelected,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {t(cat.label)}
-                  </Text>
-                </GlassSurface>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+      {/* Search */}
+      <View style={styles.searchBar}>
+        <Ionicons name="search-outline" size={20} color={c.textSecondary} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t("events.searchShort")}
+          placeholderTextColor={c.textSecondary}
+          style={styles.searchInput}
+          returnKeyType="search"
+        />
+        {query.length > 0 ? (
+          <Pressable onPress={() => setQuery("")} hitSlop={8}>
+            <Ionicons name="close-circle" size={16} color={c.textSecondary} />
+          </Pressable>
+        ) : null}
       </View>
 
-      {/* 3. Section Title & "Все события >" Navigation */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{t("events.upcoming")}</Text>
+      {/* Date + city */}
+      <View style={styles.dropdowns}>
         <Pressable
-          style={styles.allEventsLink}
+          style={styles.dropdown}
           onPress={() => {
             hapticSelection();
-            router.push("/events/all");
+            setDateOpen(true);
           }}
-          hitSlop={8}
+          accessibilityRole="button"
         >
-          <Text style={styles.allEventsText}>{t("events.all")}</Text>
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={c.primary}
-            style={{ marginLeft: 2 }}
-          />
+          <Ionicons name="calendar-outline" size={18} color={c.primary} />
+          <Text style={styles.dropdownText} numberOfLines={1}>
+            {dateLabel}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={c.textSecondary} />
+        </Pressable>
+        <Pressable
+          style={styles.dropdown}
+          onPress={() => {
+            hapticSelection();
+            setCityOpen(true);
+          }}
+          accessibilityRole="button"
+        >
+          <Ionicons name="location-outline" size={18} color={c.primary} />
+          <Text style={styles.dropdownText} numberOfLines={1}>
+            {city ? cityLabel(city, t) : t("cities.title")}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={c.textSecondary} />
         </Pressable>
       </View>
 
-      {/* 4. Compact Event Cards List */}
-      <FlatList
-        data={filteredEvents}
-        keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={c.primary}
-          />
-        }
-        contentContainerStyle={styles.eventsListContent}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <EventCard
-            event={item}
-            onPress={() => {
-              Alert.alert(
-                item.title,
-                eventDetails(item, t)
-              );
-            }}
-            onRegister={() => handleRegister(item)}
-            onToggleFavorite={() => handleToggleFavorite(item.id)}
-          />
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <Ionicons
-              name="calendar-clear-outline"
-              size={48}
-              color={c.textSecondary}
-            />
-            <Text style={styles.emptyTitle}>{t("events.emptyCategory")}</Text>
-            <Text style={styles.emptySubtitle}>
-              {t("events.emptyCategoryText")}
-            </Text>
+      {/* List tabs */}
+      <View style={styles.tabs} accessibilityRole="tablist">
+        {LIST_TABS.map((lt) => {
+          const active = lt.id === tab;
+          return (
             <Pressable
-              style={styles.resetBtn}
+              key={lt.id}
               onPress={() => {
-                hapticImpact();
-                setFilters(DEFAULT_EVENT_FILTERS);
+                if (active) return;
+                hapticSelection();
+                setTab(lt.id);
               }}
+              style={styles.tab}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              hitSlop={6}
             >
-              <Text style={styles.resetBtnText}>{t("events.resetCategory")}</Text>
+              <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>
+                {t(lt.label)}
+              </Text>
+              <View style={[styles.tabUnderline, active && styles.tabUnderlineActive]} />
             </Pressable>
-          </View>
-        }
-      />
+          );
+        })}
+      </View>
 
-      {/* Modals */}
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator color={c.primary} size="large" />
+        </View>
+      ) : (
+        <FlatList
+          data={visible}
+          keyExtractor={(e) => e.id}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                load();
+              }}
+              tintColor={c.primary}
+            />
+          }
+          renderItem={({ item }) => (
+            <EventCard
+              event={item}
+              isFavorite={favorites.includes(item.id)}
+              isRegistered={registered.includes(item.id)}
+              registering={registering === item.id}
+              onPress={() => openDetails(item)}
+              onRegister={() => handleRegister(item)}
+              onToggleFavorite={() => toggleEventFavorite(item.id)}
+            />
+          )}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name={empty.icon} size={44} color={c.textSecondary} />
+              <Text style={styles.emptyTitle}>{empty.title}</Text>
+              <Text style={styles.emptyText}>{empty.text}</Text>
+              {loadError ? (
+                <Pressable
+                  style={styles.emptyBtn}
+                  onPress={() => {
+                    setLoading(true);
+                    load();
+                  }}
+                >
+                  <Text style={styles.emptyBtnText}>{t("common.retry")}</Text>
+                </Pressable>
+              ) : canReset ? (
+                <Pressable
+                  style={styles.emptyBtn}
+                  onPress={() => {
+                    hapticSelection();
+                    setQuery("");
+                    setDateFilter("upcoming");
+                    setFilters(DEFAULT_EVENT_FILTERS);
+                  }}
+                >
+                  <Text style={styles.emptyBtnText}>{t("common.resetFilters")}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          }
+        />
+      )}
+
       <EventsFilterModal
-        visible={filterModalVisible}
+        visible={filterOpen}
         filters={filters}
-        matchedCount={filteredEvents.length}
-        onClose={() => setFilterModalVisible(false)}
-        onApply={(newFilters) => setFilters(newFilters)}
-        onReset={() => setFilters(DEFAULT_EVENT_FILTERS)}
+        countFor={countFor}
+        onClose={() => setFilterOpen(false)}
+        onApply={setFilters}
       />
-
       <EventCalendarModal
-        visible={calendarModalVisible}
-        selectedDate={filters.dateFilter}
-        onClose={() => setCalendarModalVisible(false)}
-        onSelectDate={(dateKey) =>
-          setFilters((prev) => ({ ...prev, dateFilter: dateKey }))
-        }
+        visible={dateOpen}
+        selected={dateFilter}
+        onClose={() => setDateOpen(false)}
+        onSelect={setDateFilter}
+      />
+      <CityPickerModal
+        visible={cityOpen}
+        selectedCity={city}
+        onClose={() => setCityOpen(false)}
+        onSelect={(next) => {
+          setCity(next);
+          setCityOpen(false);
+        }}
       />
     </SafeAreaView>
   );
 }
 
-const createStyles = (c: Palette) =>
-  StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: c.background,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.screenHorizontal,
-    paddingTop: 10,
-    paddingBottom: 14,
-  },
-  headerTitles: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  title: {
-    fontSize: 25,
-    fontWeight: "800",
-    color: c.textPrimary,
-    letterSpacing: -0.4,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: c.textSecondary,
-    marginTop: 4,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  glassCircleBtn: {
-    width: 44,
-    height: 44,
-  },
-  glassBtnInner: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  glassBtnInnerActive: {
-    borderColor: c.primary,
-  },
-  redDot: {
-    position: "absolute",
-    top: 9,
-    right: 9,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: c.accent,
-  },
-  allDotsWrap: {
-    width: 18,
-    height: 18,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    alignContent: "space-between",
-  },
-  dotCircle: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    borderWidth: 1.5,
-    backgroundColor: "transparent",
-  },
-  categoriesSection: {
-    marginBottom: 18,
-  },
-  categoriesContent: {
-    paddingHorizontal: spacing.screenHorizontal,
-    gap: 9,
-  },
-  categoryItemPressable: {
-    width: 58,
-    height: 68,
-  },
-  categoryCard: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 8,
-  },
-  categoryCardSelected: {
-    backgroundColor: "rgba(0, 201, 104, 0.18)",
-    borderColor: c.primary,
-  },
-  categoryIconWrap: {
-    height: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
-  categoryLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: c.textSecondary,
-    textAlign: "center",
-  },
-  categoryLabelSelected: {
-    color: c.primary,
-    fontWeight: "700",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.screenHorizontal,
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: c.textPrimary,
-  },
-  allEventsLink: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  allEventsText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: c.primary,
-  },
-  eventsListContent: {
-    paddingHorizontal: spacing.screenHorizontal,
-    paddingBottom: spacing.bottomScrollPadding, // 110px padding under floating pill
-  },
-  emptyWrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 50,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: c.textPrimary,
-    marginTop: 12,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: c.textSecondary,
-    marginTop: 4,
-    textAlign: "center",
-    paddingHorizontal: 20,
-  },
-  resetBtn: {
-    marginTop: 16,
-    backgroundColor: "rgba(0, 201, 104, 0.15)",
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderRadius: radii.smallChip,
-    borderWidth: 1,
-    borderColor: c.primary,
-  },
-  resetBtnText: {
-    color: c.primary,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-});
+function createStyles(c: Palette) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: c.background,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      paddingHorizontal: spacing.screenHorizontal,
+      paddingTop: spacing.sm,
+    },
+    headerText: {
+      flex: 1,
+      marginRight: spacing.md,
+    },
+    title: {
+      fontSize: 30,
+      lineHeight: 34,
+      fontWeight: "900",
+      letterSpacing: -0.5,
+      color: c.textPrimary,
+    },
+    subtitle: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: c.textSecondary,
+      marginTop: spacing.xs,
+    },
+    headerActions: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    roundBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.glassBackground,
+      borderWidth: 1,
+      borderColor: c.glassBorder,
+    },
+    roundBtnActive: {
+      borderColor: c.primary,
+    },
+    filterDot: {
+      position: "absolute",
+      top: 10,
+      right: 10,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: c.accent,
+    },
+    searchBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      height: 48,
+      marginHorizontal: spacing.screenHorizontal,
+      marginTop: spacing.lg,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radii.card,
+      backgroundColor: c.glassBackground,
+      borderWidth: 1,
+      borderColor: c.glassBorder,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 15,
+      color: c.textPrimary,
+    },
+    dropdowns: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginHorizontal: spacing.screenHorizontal,
+      marginTop: spacing.md,
+    },
+    dropdown: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      height: 44,
+      paddingHorizontal: spacing.md,
+      borderRadius: radii.button,
+      backgroundColor: c.glassBackground,
+      borderWidth: 1,
+      borderColor: c.glassBorder,
+    },
+    dropdownText: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: "600",
+      color: c.textPrimary,
+    },
+    tabs: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: spacing.xl,
+      marginHorizontal: spacing.screenHorizontal,
+      marginTop: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    tab: {
+      flexShrink: 1,
+    },
+    tabText: {
+      fontSize: 15,
+      fontWeight: "500",
+      color: c.textSecondary,
+    },
+    tabTextActive: {
+      fontSize: 17,
+      fontWeight: "800",
+      color: c.textPrimary,
+    },
+    tabUnderline: {
+      height: 3,
+      width: 40,
+      borderRadius: 2,
+      marginTop: spacing.xs,
+      backgroundColor: "transparent",
+    },
+    tabUnderlineActive: {
+      backgroundColor: c.primary,
+    },
+    list: {
+      paddingHorizontal: spacing.screenHorizontal,
+      paddingBottom: spacing.bottomScrollPadding,
+    },
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    empty: {
+      alignItems: "center",
+      paddingVertical: spacing.xxl * 2,
+      paddingHorizontal: spacing.xxl,
+    },
+    emptyTitle: {
+      fontSize: 16,
+      fontWeight: "800",
+      color: c.textPrimary,
+      marginTop: spacing.md,
+      textAlign: "center",
+    },
+    emptyText: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: c.textSecondary,
+      marginTop: spacing.xs,
+      textAlign: "center",
+    },
+    emptyBtn: {
+      marginTop: spacing.lg,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: radii.button,
+      borderWidth: 1,
+      borderColor: c.glassBorder,
+    },
+    emptyBtnText: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: c.primary,
+    },
+  });
+}

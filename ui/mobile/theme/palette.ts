@@ -11,6 +11,7 @@ export type Palette = {
   surfaceElevated: string;
   primary: string;
   primaryGlow: string;
+  primarySoft: string; // translucent primary fill for selected chips/tiles
   accent: string;
   textPrimary: string;
   textSecondary: string;
@@ -33,6 +34,7 @@ export const darkPalette: Palette = {
   surfaceElevated: "#1C2722",
   primary: "#00C968",
   primaryGlow: "#12F27B",
+  primarySoft: "rgba(0,201,104,0.15)",
   accent: "#F04452",
   textPrimary: "#F7FAF8",
   textSecondary: "#87978F",
@@ -55,6 +57,7 @@ export const lightPalette: Palette = {
   surfaceElevated: "#EAF0EC",
   primary: "#00A65A",
   primaryGlow: "#00C968",
+  primarySoft: "rgba(0,166,90,0.12)",
   accent: "#E5384A",
   textPrimary: "#0F1F17",
   textSecondary: "#5A7065",

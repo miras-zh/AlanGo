@@ -19,6 +19,7 @@ import { useRouter } from "expo-router";
 import { resolveMyArenaId } from "@/lib/business";
 import { Ionicons } from "@expo/vector-icons";
 import { BusinessAccountCard } from "@/components/BusinessAccountCard";
+import { AppearanceSettings } from "@/components/ProfilePreferences";
 import { AvatarCropModal } from "@/components/AvatarCropModal";
 import { radii, spacing } from "@/constants/theme";
 import { getErrorMessage } from "@/lib/errorMessage";
@@ -39,7 +40,7 @@ import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 import { useT, type MessageKey } from "@/lib/i18n";
-import { workingHoursLabel } from "@/lib/dataLabels";
+import { cityLabel, workingHoursLabel } from "@/lib/dataLabels";
 
 type HoursMode = "daily" | "weekdays" | "mon_sat" | "24_7";
 
@@ -441,7 +442,7 @@ export default function BusinessProfileScreen() {
                   {arena?.title}
                 </Text>
                 <Text style={styles.arenaAddress} numberOfLines={1}>
-                  {[arena?.city, arena?.address].filter(Boolean).join(", ")}
+                  {[arena?.city ? cityLabel(arena.city, t) : "", arena?.address].filter(Boolean).join(", ")}
                 </Text>
               </View>
             </View>
@@ -513,6 +514,10 @@ export default function BusinessProfileScreen() {
             </View>
           ))}
         </View>
+
+        {/* Theme + language, so owners don't have to switch to client mode */}
+        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t("bizProfile.appSettings")}</Text>
+        <AppearanceSettings />
 
         {/* Business account management (real accounts) */}
         <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t("bizProfile.account")}</Text>

@@ -12,6 +12,8 @@ import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 import { formatNumber, useT } from "@/lib/i18n";
+import { sportLabel } from "@/lib/dataLabels";
+import { sportImage } from "@/components/SportCategoryTiles";
 
 export interface VenueCardProps {
   id: number | string;
@@ -20,7 +22,8 @@ export interface VenueCardProps {
   imageUrl?: string;
   address: string;
   distance?: string;
-  rating: number;
+  // Shown only when the backend has a rating (no invented values).
+  rating?: number;
   reviewsCount?: number;
   pricePerHour: number;
   sportType?: string;
@@ -63,6 +66,7 @@ export function VenueCard({
   const t = useT();
   const styles = useThemedStyles(createStyles);
   const formattedPrice = formatNumber((pricePerHour || 0));
+  const sportPic = sportImage(sportType);
 
   return (
     <Pressable
@@ -114,6 +118,16 @@ export function VenueCard({
             />
           </Pressable>
         )}
+
+        {/* Sport badge (bottom-left of thumbnail) */}
+        {sportType ? (
+          <View style={styles.sportBadge}>
+            {sportPic ? <Image source={sportPic} style={styles.sportBadgeIcon} /> : null}
+            <Text style={styles.sportBadgeText} numberOfLines={1}>
+              {sportLabel(sportType, t)}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       {/* 2. Right: Information Content */}
@@ -134,13 +148,13 @@ export function VenueCard({
         </View>
 
         {/* Rating & Reviews */}
-        <View style={styles.ratingRow}>
-          <Ionicons name="star" size={13} color={c.primary} />
-          <Text style={styles.ratingValue}>{rating ? rating.toFixed(1) : "5.0"}</Text>
-          {reviewsCount !== undefined && (
-            <Text style={styles.reviewsCount}>({reviewsCount})</Text>
-          )}
-        </View>
+        {rating && rating > 0 ? (
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={13} color={c.primary} />
+            <Text style={styles.ratingValue}>{rating.toFixed(1)}</Text>
+            {reviewsCount ? <Text style={styles.reviewsCount}>({reviewsCount})</Text> : null}
+          </View>
+        ) : null}
 
         {/* Address and Distance */}
         {address ? (
@@ -174,12 +188,12 @@ export function VenueCard({
         {specs ? (
           <View style={styles.metaRow}>
             <Ionicons
-              name={getSportIcon(sportType)}
+              name="layers-outline"
               size={12}
               color={c.textSecondary}
               style={styles.metaIcon}
             />
-            <Text style={styles.metaText} numberOfLines={1}>
+            <Text style={styles.metaText} numberOfLines={2}>
               {specs}
             </Text>
           </View>
@@ -203,7 +217,6 @@ export function VenueCard({
         {/* Price & Action Button */}
         <View style={styles.bottomRow}>
           <View style={styles.priceWrap}>
-            <Text style={styles.pricePrefix}>{t("venueCard.from")}</Text>
             <Text style={styles.priceAmount}>{formattedPrice} ₸</Text>
             <Text style={styles.priceSuffix}> {t("common.perHour")}</Text>
           </View>
@@ -219,7 +232,7 @@ export function VenueCard({
               onPress();
             }}
           >
-            <Ionicons name="arrow-forward" size={18} color={c.background} />
+            <Ionicons name="arrow-forward" size={18} color={c.onPrimary} />
           </Pressable>
         </View>
       </View>
@@ -230,11 +243,11 @@ export function VenueCard({
 const createStyles = (c: Palette) =>
   StyleSheet.create({
   card: {
-    backgroundColor: c.surface,
+    backgroundColor: c.glassBackground,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: c.border,
-    padding: spacing.md,
+    borderColor: c.glassBorder,
+    padding: spacing.sm,
     marginBottom: spacing.card,
     flexDirection: "row",
     alignItems: "flex-start",
@@ -244,8 +257,8 @@ const createStyles = (c: Palette) =>
     borderColor: c.primary,
   },
   imageContainer: {
-    width: 108,
-    height: 108,
+    width: 120,
+    height: 128,
     borderRadius: 14,
     backgroundColor: c.surfaceElevated,
     overflow: "hidden",
@@ -263,6 +276,31 @@ const createStyles = (c: Palette) =>
     justifyContent: "center",
     backgroundColor: c.surfaceElevated,
   },
+  sportBadge: {
+    position: "absolute",
+    left: spacing.xs + 2,
+    bottom: spacing.xs + 2,
+    maxWidth: "88%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingLeft: spacing.xs,
+    paddingRight: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.smallChip,
+    backgroundColor: c.overlay,
+  },
+  sportBadgeIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  sportBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: c.onImage,
+    flexShrink: 1,
+  },
   favoriteBtn: {
     position: "absolute",
     top: 6,
@@ -278,7 +316,8 @@ const createStyles = (c: Palette) =>
   },
   content: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: spacing.md,
+    paddingVertical: spacing.xs,
     justifyContent: "space-between",
   },
   titleRow: {
@@ -290,6 +329,7 @@ const createStyles = (c: Palette) =>
   },
   title: {
     ...typography.cardTitle,
+    fontSize: 15,
     color: c.textPrimary,
     lineHeight: 20,
   },
@@ -297,7 +337,7 @@ const createStyles = (c: Palette) =>
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    maxWidth: "46%",
+    maxWidth: "40%",
     backgroundColor: c.surfaceElevated,
     borderWidth: 1,
     borderColor: c.border,
@@ -360,7 +400,7 @@ const createStyles = (c: Palette) =>
     color: c.textSecondary,
   },
   priceAmount: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "800",
     color: c.textPrimary,
   },
