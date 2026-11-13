@@ -9,6 +9,10 @@
 
 ## [Unreleased]
 
+### 📱 Исправление ошибки App Store Connect ITMS-90683 (`NSMotionUsageDescription`, билд 11)
+- **`ui/mobile/ios/AlanGo/Info.plist` и `ui/mobile/app.json`**: добавлен обязательный ключ `NSMotionUsageDescription` (потребовался после добавления `expo-location` / `CoreMotion`).
+- **Номер сборки 10 → 11** (`ui/mobile/app.json`, `ui/mobile/ios/AlanGo/Info.plist`, `ui/mobile/ios/AlanGo.xcodeproj/project.pbxproj`).
+
 ### 📱 Подготовка сборки iOS для TestFlight (билд 10)
 - **Номер сборки 9 → 10** (версия 1.0.0): `app.json`, `ios/AlanGo/Info.plist` (`CFBundleVersion`), `project.pbxproj` (`CURRENT_PROJECT_VERSION`, Debug и Release).
 - Новая нативная зависимость `expo-location`, поды установлены. Release-сборка для симулятора собирается и запускается, релизный JS-бандл экспортируется, `tsc` без ошибок.
