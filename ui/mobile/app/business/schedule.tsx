@@ -23,8 +23,10 @@ import {
   ScheduleDay,
 } from "@/lib/sportRentData";
 import { getErrorMessage } from "@/lib/errorMessage";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const TIME_PRESETS = [
   { label: "08:00 - 23:00", start: "08:00", end: "23:00" },
@@ -45,6 +47,8 @@ function formatTime(val: string): string {
 }
 
 export default function BusinessScheduleScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [schedule, setSchedule] = useState<ScheduleDay[]>(DEFAULT_WEEK_SCHEDULE);
   // Opened from a hall card: "/business/schedule?hallId=12".
   const { hallId: hallIdParam } = useLocalSearchParams<{ hallId?: string }>();
@@ -250,14 +254,14 @@ export default function BusinessScheduleScreen() {
           onPress={handleSave}
           disabled={saving || !hallId}
         >
-          <Ionicons name="checkmark-done" size={16} color="#0B0F0D" />
+          <Ionicons name="checkmark-done" size={16} color={c.background} />
           <Text style={styles.saveTopBtnText}>Сохранить</Text>
         </Pressable>
       </View>
 
       {loaded && halls.length === 0 ? (
         <View style={styles.noHalls}>
-          <Ionicons name="layers-outline" size={44} color={colors.border} />
+          <Ionicons name="layers-outline" size={44} color={c.border} />
           <Text style={styles.noHallsTitle}>Сначала добавьте зал</Text>
           <Text style={styles.noHallsSub}>
             График настраивается для каждого зала отдельно — добавьте первый зал во вкладке «Залы».
@@ -289,7 +293,7 @@ export default function BusinessScheduleScreen() {
         </ScrollView>
         {halls.length > 1 ? (
           <Pressable style={styles.copyAllBtn} onPress={copyToAllHalls} disabled={saving}>
-            <Ionicons name="git-network-outline" size={15} color={colors.primary} />
+            <Ionicons name="git-network-outline" size={15} color={c.primary} />
             <Text style={styles.copyAllText}>Скопировать этот график на все залы</Text>
           </Pressable>
         ) : null}
@@ -297,7 +301,7 @@ export default function BusinessScheduleScreen() {
         {/* Banner with sync button */}
         <View style={styles.banner}>
           <View style={styles.bannerLeft}>
-            <Ionicons name="time" size={24} color="#22C55E" />
+            <Ionicons name="time" size={24} color={c.primary} />
             <View style={{ flex: 1 }}>
               <Text style={styles.bannerTitle}>Быстрая настройка</Text>
               <Text style={styles.bannerSub}>
@@ -306,7 +310,7 @@ export default function BusinessScheduleScreen() {
             </View>
           </View>
           <Pressable style={styles.syncBtn} onPress={applyMondayToAll}>
-            <Ionicons name="copy-outline" size={14} color="#22C55E" />
+            <Ionicons name="copy-outline" size={14} color={c.primary} />
             <Text style={styles.syncBtnText}>Ко всем дням</Text>
           </Pressable>
         </View>
@@ -336,8 +340,8 @@ export default function BusinessScheduleScreen() {
                 <Switch
                   value={!day.isClosed}
                   onValueChange={() => toggleDayClosed(idx)}
-                  trackColor={{ false: "#2A352E", true: "#22C55E" }}
-                  thumbColor="#FFFFFF"
+                  trackColor={{ false: c.border, true: c.primary }}
+                  thumbColor={c.textPrimary}
                 />
               </View>
             </View>
@@ -384,7 +388,7 @@ export default function BusinessScheduleScreen() {
                       style={styles.timeInput}
                       value={day.startTime}
                       placeholder="08:00"
-                      placeholderTextColor="#6B7C72"
+                      placeholderTextColor={c.textMuted}
                       keyboardType="numbers-and-punctuation"
                       maxLength={5}
                       returnKeyType="done"
@@ -402,7 +406,7 @@ export default function BusinessScheduleScreen() {
                       style={styles.timeInput}
                       value={day.endTime}
                       placeholder="23:00"
-                      placeholderTextColor="#6B7C72"
+                      placeholderTextColor={c.textMuted}
                       keyboardType="numbers-and-punctuation"
                       maxLength={5}
                       returnKeyType="done"
@@ -434,7 +438,7 @@ export default function BusinessScheduleScreen() {
                         <Ionicons
                           name={active ? "checkmark-circle" : "ellipse-outline"}
                           size={14}
-                          color={active ? "#22C55E" : "#6B7C72"}
+                          color={active ? c.primary : c.textMuted}
                         />
                         <Text
                           style={[
@@ -453,14 +457,14 @@ export default function BusinessScheduleScreen() {
                 <View style={styles.cascadeCard}>
                   <View style={styles.cascadeHeader}>
                     <View style={styles.cascadeHeaderLeft}>
-                      <Ionicons name="git-merge-outline" size={18} color="#22C55E" />
+                      <Ionicons name="git-merge-outline" size={18} color={c.primary} />
                       <Text style={styles.cascadeTitle}>Каскадный график</Text>
                     </View>
                     <Switch
                       value={!!day.cascadeEnabled}
                       onValueChange={() => toggleCascade(idx)}
-                      trackColor={{ false: "#2A352E", true: "#22C55E" }}
-                      thumbColor="#FFFFFF"
+                      trackColor={{ false: c.border, true: c.primary }}
+                      thumbColor={c.textPrimary}
                     />
                   </View>
                   <Text style={styles.cascadeHelp}>
@@ -496,7 +500,7 @@ export default function BusinessScheduleScreen() {
                             style={styles.cascadeInput}
                             value={day.cascadeInitialEndTime || "14:00"}
                             placeholder="14:00"
-                            placeholderTextColor="#6B7C72"
+                            placeholderTextColor={c.textMuted}
                             keyboardType="numbers-and-punctuation"
                             maxLength={5}
                             returnKeyType="done"
@@ -514,7 +518,7 @@ export default function BusinessScheduleScreen() {
                             style={styles.cascadeInput}
                             value={day.cascadeSecondBoundaryTime || "18:00"}
                             placeholder="18:00"
-                            placeholderTextColor="#6B7C72"
+                            placeholderTextColor={c.textMuted}
                             keyboardType="numbers-and-punctuation"
                             maxLength={5}
                             returnKeyType="done"
@@ -532,7 +536,7 @@ export default function BusinessScheduleScreen() {
                             style={styles.cascadeInput}
                             value={day.cascadeCutoffTime || "22:00"}
                             placeholder="22:00"
-                            placeholderTextColor="#6B7C72"
+                            placeholderTextColor={c.textMuted}
                             keyboardType="numbers-and-punctuation"
                             maxLength={5}
                             returnKeyType="done"
@@ -569,7 +573,8 @@ export default function BusinessScheduleScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   noHalls: {
     flex: 1,
     alignItems: "center",
@@ -579,12 +584,12 @@ const styles = StyleSheet.create({
   },
   noHallsTitle: {
     ...typography.cardTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginTop: spacing.sm,
   },
   noHallsSub: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     textAlign: "center",
     lineHeight: 20,
   },
@@ -598,20 +603,20 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radii.smallChip,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   hallChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.surfaceElevated,
+    borderColor: c.primary,
+    backgroundColor: c.surfaceElevated,
   },
   hallChipText: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "600",
   },
   hallChipTextActive: {
-    color: colors.primary,
+    color: c.primary,
   },
   copyAllBtn: {
     flexDirection: "row",
@@ -623,11 +628,11 @@ const styles = StyleSheet.create({
   copyAllText: {
     ...typography.caption,
     fontWeight: "600",
-    color: colors.primary,
+    color: c.primary,
   },
   container: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
   },
   header: {
     paddingHorizontal: 16,
@@ -637,23 +642,23 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   saveTopBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -662,7 +667,7 @@ const styles = StyleSheet.create({
   saveTopBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
   scroll: {
     padding: 16,
@@ -689,11 +694,11 @@ const styles = StyleSheet.create({
   bannerTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   bannerSub: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   syncBtn: {
@@ -710,21 +715,21 @@ const styles = StyleSheet.create({
   syncBtnText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   sectionHeader: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 12,
   },
   dayCard: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   dayTopRow: {
     flexDirection: "row",
@@ -737,7 +742,7 @@ const styles = StyleSheet.create({
   dayName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   dayStatusText: {
     fontSize: 12,
@@ -745,10 +750,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   statusOpen: {
-    color: "#22C55E",
+    color: c.primary,
   },
   statusClosed: {
-    color: "#EF4444",
+    color: c.error,
   },
   switchRow: {
     flexDirection: "row",
@@ -757,18 +762,18 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 11,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   daySettings: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.06)",
+    borderTopColor: c.hairline,
   },
   subLabel: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginBottom: 6,
   },
   presetsRow: {
@@ -779,20 +784,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   presetChipActive: {
     backgroundColor: "rgba(34, 197, 94, 0.2)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   presetText: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   presetTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   timeInputsRow: {
@@ -801,19 +806,19 @@ const styles = StyleSheet.create({
   },
   timeLabel: {
     fontSize: 10,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginBottom: 4,
   },
   timeInput: {
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 13,
     fontWeight: "600",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
   },
   durationsRow: {
     flexDirection: "row",
@@ -826,20 +831,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   durationChipActive: {
     backgroundColor: "rgba(34, 197, 94, 0.15)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   durationText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   durationTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   // Cascade Card Styles
@@ -847,7 +852,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.08)",
+    borderTopColor: c.subtle,
   },
   cascadeHeader: {
     flexDirection: "row",
@@ -862,11 +867,11 @@ const styles = StyleSheet.create({
   cascadeTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   cascadeHelp: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
     lineHeight: 16,
     marginTop: 4,
   },
@@ -876,12 +881,12 @@ const styles = StyleSheet.create({
   },
   cascadeLabel: {
     fontSize: 12,
-    color: "#B2BFB8",
+    color: c.textSecondary,
     fontWeight: "600",
   },
   cascadeFieldLabel: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginBottom: 4,
   },
   cascadeStepsRow: {
@@ -892,21 +897,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   stepChipActive: {
     backgroundColor: "rgba(34, 197, 94, 0.15)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   stepChipText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontWeight: "500",
   },
   stepChipTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   cascadeBoundariesRow: {
@@ -914,19 +919,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   cascadeInput: {
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 7,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 13,
     fontWeight: "600",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
     textAlign: "center",
   },
   bigSaveBtn: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
@@ -935,7 +940,7 @@ const styles = StyleSheet.create({
   bigSaveBtnText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#0B0F0D",
+    color: c.background,
   },
 });
 

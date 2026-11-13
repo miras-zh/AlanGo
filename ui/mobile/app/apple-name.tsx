@@ -7,7 +7,11 @@ import { updateMyProfile } from "@/lib/user";
 import { loginWithApple } from "@/lib/registration";
 import { getErrorMessage } from "@/lib/errorMessage";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export default function AppleNameScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const { colors } = useAppTheme();
   const router = useRouter();
   // Set when the backend answered 422 (new Apple account without a name):
@@ -70,7 +74,8 @@ export default function AppleNameScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 24, gap: 14, flex: 1, justifyContent: "center" },
   title: { fontSize: 24, fontWeight: "800" },
@@ -88,5 +93,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 6,
   },
-  primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  primaryBtnText: { color: c.textPrimary, fontWeight: "700", fontSize: 15 },
 });

@@ -7,8 +7,10 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radii, spacing } from "@/constants/theme";
+import { radii, spacing } from "@/constants/theme";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 interface EventCalendarModalProps {
   visible: boolean;
@@ -30,6 +32,8 @@ export function EventCalendarModal({
   onClose,
   onSelectDate,
 }: EventCalendarModalProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   return (
     <Modal
       visible={visible}
@@ -47,13 +51,13 @@ export function EventCalendarModal({
               <Ionicons
                 name="calendar"
                 size={20}
-                color={colors.primary}
+                color={c.primary}
                 style={{ marginRight: 8 }}
               />
               <Text style={styles.title}>Выберите дату</Text>
             </View>
             <Pressable hitSlop={8} onPress={onClose}>
-              <Ionicons name="close" size={22} color={colors.textSecondary} />
+              <Ionicons name="close" size={22} color={c.textSecondary} />
             </Pressable>
           </View>
 
@@ -90,7 +94,7 @@ export function EventCalendarModal({
                     <Ionicons
                       name="checkmark-circle"
                       size={20}
-                      color={colors.primary}
+                      color={c.primary}
                     />
                   )}
                 </Pressable>
@@ -103,7 +107,8 @@ export function EventCalendarModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.72)",
@@ -117,10 +122,10 @@ const styles = StyleSheet.create({
   modalCard: {
     width: "100%",
     maxWidth: 380,
-    backgroundColor: "rgba(18, 26, 22, 0.96)",
+    backgroundColor: c.glassBackground,
     borderRadius: radii.modal,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: c.subtle,
     padding: 20,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 10 },
@@ -141,7 +146,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   optionsWrap: {
     gap: 10,
@@ -150,27 +155,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    backgroundColor: c.hairline,
     borderRadius: radii.smallChip,
     padding: 14,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   optionItemSelected: {
     backgroundColor: "rgba(0, 201, 104, 0.12)",
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   optionLabel: {
     fontSize: 15,
     fontWeight: "600",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   optionLabelSelected: {
-    color: colors.primary,
+    color: c.primary,
   },
   optionSub: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
 });

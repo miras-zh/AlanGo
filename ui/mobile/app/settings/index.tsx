@@ -19,7 +19,9 @@ import { isHapticsEnabled, setHapticsEnabled, hapticSelection } from "@/lib/hapt
 import { requestNotificationPermissions } from "@/lib/pushNotificationsService";
 import { PRIVACY_URL, SITE_NAME, SUPPORT_EMAIL, TERMS_URL } from "@/lib/site";
 import { getSessionUser } from "@/lib/auth";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 // Cached API data that can be re-downloaded. Session, theme, language,
 // favorites and other preferences are intentionally kept.
@@ -50,6 +52,8 @@ function openMail(subject: string, body = "") {
 }
 
 export default function SettingsScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [hapticsOn, setHapticsOn] = useState(true);
   const [notifStatus, setNotifStatus] = useState<"granted" | "denied" | "undetermined">("undetermined");
@@ -129,10 +133,12 @@ export default function SettingsScreen() {
           hitSlop={10}
           onPress={() => {
             hapticSelection();
-            router.back();
+            // After a reload the stack can be empty; fall back to the parent screen.
+            if (router.canGoBack()) router.back();
+            else router.replace("/(tabs)/profile");
           }}
         >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="chevron-back" size={22} color={c.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Настройки</Text>
       </View>
@@ -158,12 +164,15 @@ export default function SettingsScreen() {
             icon="phone-portrait-outline"
             title="Тактильный отклик"
             subtitle="Вибрация при нажатиях и переключениях"
+            // The whole row toggles: a Switch inside a disabled Pressable
+            // didn't receive taps reliably.
+            onPress={() => toggleHaptics(!hapticsOn)}
             right={
               <Switch
                 value={hapticsOn}
                 onValueChange={toggleHaptics}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor="#FFFFFF"
+                trackColor={{ false: c.border, true: c.primary }}
+                thumbColor={c.textPrimary}
               />
             }
           />
@@ -256,6 +265,8 @@ function Row({
   disabled?: boolean;
   last?: boolean;
 }) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       disabled={disabled || !onPress}
@@ -263,17 +274,17 @@ function Row({
       style={({ pressed }) => [styles.row, !last && styles.rowDivider, pressed && { opacity: 0.7 }]}
     >
       <View style={styles.rowIcon}>
-        <Ionicons name={icon} size={19} color={disabled ? colors.textSecondary : colors.primary} />
+        <Ionicons name={icon} size={19} color={disabled ? c.textSecondary : c.primary} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[styles.rowTitle, disabled && !value && { color: colors.textSecondary }]}>{title}</Text>
+        <Text style={[styles.rowTitle, disabled && !value && { color: c.textSecondary }]}>{title}</Text>
         {subtitle ? <Text style={styles.rowSub}>{subtitle}</Text> : null}
       </View>
       {right ?? (
         <>
-          {value ? <Text style={[styles.rowValue, disabled && { color: colors.textSecondary }]}>{value}</Text> : null}
+          {value ? <Text style={[styles.rowValue, disabled && { color: c.textSecondary }]}>{value}</Text> : null}
           {onPress && !disabled ? (
-            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            <Ionicons name="chevron-forward" size={18} color={c.textSecondary} />
           ) : null}
         </>
       )}
@@ -281,10 +292,11 @@ function Row({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -299,12 +311,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
   },
   headerTitle: {
     ...typography.sectionTitle,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   scroll: {
     padding: spacing.screenHorizontal,
@@ -313,7 +325,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     ...typography.caption,
     fontWeight: "700",
-    color: colors.textSecondary,
+    color: c.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginTop: spacing.section,
@@ -324,8 +336,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   row: {
     flexDirection: "row",
@@ -336,7 +348,7 @@ const styles = StyleSheet.create({
   },
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
   },
   rowIcon: {
     width: 36,
@@ -344,20 +356,20 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   rowTitle: {
     ...typography.cardTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   rowSub: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   rowValue: {
     ...typography.caption,
     fontWeight: "600",
-    color: colors.primary,
+    color: c.primary,
   },
 });

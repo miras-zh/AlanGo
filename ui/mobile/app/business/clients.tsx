@@ -19,6 +19,8 @@ import { plural } from "@/lib/plural";
 import { ClientProfile, getClientProfiles } from "@/lib/businessCrmData";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 const STATUS_FILTERS = [
   { key: "all", label: "Все клиенты" },
   { key: "vip", label: "⭐ VIP" },
@@ -27,6 +29,8 @@ const STATUS_FILTERS = [
 ];
 
 export default function BusinessClientsScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { arenaId, loading: arenaLoading } = useMyArenaId();
 
@@ -109,7 +113,7 @@ export default function BusinessClientsScreen() {
           }}
           hitSlop={10}
         >
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </Pressable>
 
         <View style={{ flex: 1, marginHorizontal: 8 }}>
@@ -122,17 +126,17 @@ export default function BusinessClientsScreen() {
 
       {/* Search Input */}
       <View style={styles.searchWrap}>
-        <Ionicons name="search" size={18} color="#6B7C72" style={{ marginLeft: 8 }} />
+        <Ionicons name="search" size={18} color={c.textMuted} style={{ marginLeft: 8 }} />
         <TextInput
           style={styles.searchInput}
           placeholder="Поиск по имени или номеру телефона..."
-          placeholderTextColor="#6B7C72"
+          placeholderTextColor={c.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
           <Pressable onPress={() => setSearchQuery("")} hitSlop={10}>
-            <Ionicons name="close-circle" size={18} color="#6B7C72" />
+            <Ionicons name="close-circle" size={18} color={c.textMuted} />
           </Pressable>
         )}
       </View>
@@ -162,7 +166,7 @@ export default function BusinessClientsScreen() {
 
       {loading ? (
         <View style={styles.centerWrap}>
-          <ActivityIndicator color="#22C55E" size="small" />
+          <ActivityIndicator color={c.primary} size="small" />
         </View>
       ) : (
         <FlatList
@@ -176,12 +180,12 @@ export default function BusinessClientsScreen() {
                 setRefreshing(true);
                 loadData();
               }}
-              tintColor="#22C55E"
+              tintColor={c.primary}
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Ionicons name="people-outline" size={48} color="#2A352E" />
+              <Ionicons name="people-outline" size={48} color={c.border} />
               <Text style={styles.emptyTitle}>
                 {clients.length === 0 ? "Пока нет клиентов" : "Клиенты не найдены"}
               </Text>
@@ -217,7 +221,7 @@ export default function BusinessClientsScreen() {
                       style={[
                         styles.statusBadgeText,
                         isVip && { color: "#F59E0B" },
-                        isRegular && { color: "#22C55E" },
+                        isRegular && { color: c.primary },
                         isNew && { color: "#3B82F6" },
                       ]}
                     >
@@ -241,7 +245,7 @@ export default function BusinessClientsScreen() {
 
                   <View style={styles.metricItem}>
                     <Text style={styles.metricLabel}>Общий оборот</Text>
-                    <Text style={[styles.metricVal, { color: "#22C55E" }]}>
+                    <Text style={[styles.metricVal, { color: c.primary }]}>
                       {item.totalSpent.toLocaleString("ru-RU")} ₸
                     </Text>
                   </View>
@@ -254,7 +258,7 @@ export default function BusinessClientsScreen() {
 
                 {item.notes && (
                   <View style={styles.notesBox}>
-                    <Ionicons name="document-text-outline" size={13} color="#8E9B94" />
+                    <Ionicons name="document-text-outline" size={13} color={c.textSecondary} />
                     <Text style={styles.notesText}>{item.notes}</Text>
                   </View>
                 )}
@@ -265,7 +269,7 @@ export default function BusinessClientsScreen() {
                     style={styles.callBtn}
                     onPress={() => handleCall(item.phone)}
                   >
-                    <Ionicons name="call" size={15} color="#FFFFFF" />
+                    <Ionicons name="call" size={15} color={c.textPrimary} />
                     <Text style={styles.callBtnText}>Позвонить</Text>
                   </Pressable>
 
@@ -273,12 +277,12 @@ export default function BusinessClientsScreen() {
                     style={styles.whatsappBtn}
                     onPress={() => handleWhatsApp(item.phone, item.name)}
                   >
-                    <Ionicons name="logo-whatsapp" size={15} color="#FFFFFF" />
+                    <Ionicons name="logo-whatsapp" size={15} color={c.textPrimary} />
                     <Text style={styles.whatsappBtnText}>WhatsApp</Text>
                   </Pressable>
 
                   <Pressable style={styles.chatBtn} onPress={handleOpenChat}>
-                    <Ionicons name="chatbubble-ellipses" size={15} color="#22C55E" />
+                    <Ionicons name="chatbubble-ellipses" size={15} color={c.primary} />
                   </Pressable>
                 </View>
               </View>
@@ -290,10 +294,11 @@ export default function BusinessClientsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -301,7 +306,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   backBtn: {
     paddingRight: 6,
@@ -309,11 +314,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   headerSub: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   searchWrap: {
@@ -321,17 +326,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 16,
     marginTop: 10,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   searchInput: {
     flex: 1,
     fontSize: 13,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginLeft: 8,
   },
   filterRow: {
@@ -344,21 +349,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   filterChipActive: {
     backgroundColor: "rgba(34, 197, 94, 0.2)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   filterText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontWeight: "600",
   },
   filterTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   centerWrap: {
@@ -371,11 +376,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   clientCard: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   cardHeaderRow: {
     flexDirection: "row",
@@ -385,18 +390,18 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   clientPhone: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: c.hairline,
   },
   statusBadgeVip: {
     backgroundColor: "rgba(245, 158, 11, 0.15)",
@@ -415,7 +420,7 @@ const styles = StyleSheet.create({
   },
   metricsRow: {
     flexDirection: "row",
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderRadius: 10,
     padding: 10,
     marginTop: 10,
@@ -426,25 +431,25 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 10,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   metricVal: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   notesBox: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    backgroundColor: c.hairline,
     padding: 8,
     borderRadius: 8,
     marginTop: 8,
   },
   notesText: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
     flex: 1,
   },
   cardActionsRow: {
@@ -458,14 +463,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: c.subtle,
     paddingVertical: 8,
     borderRadius: 8,
   },
   callBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   whatsappBtn: {
     flex: 1,
@@ -480,7 +485,7 @@ const styles = StyleSheet.create({
   whatsappBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   chatBtn: {
     width: 36,
@@ -500,12 +505,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginTop: 12,
   },
   emptySub: {
     fontSize: 12,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginTop: 4,
   },
 });

@@ -3,7 +3,11 @@ import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from "rea
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/theme/ThemeProvider";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export function PasswordInput({ style, ...props }: TextInputProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const { tokens } = useTheme();
   const [visible, setVisible] = useState(false);
 
@@ -31,7 +35,8 @@ export function PasswordInput({ style, ...props }: TextInputProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   wrap: {
     position: "relative",
     justifyContent: "center",

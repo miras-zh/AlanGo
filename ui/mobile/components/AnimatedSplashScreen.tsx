@@ -10,8 +10,10 @@ import {
 } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact } from "@/lib/haptics";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 // Prevent native splash from auto-hiding before our animation takes over
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -27,6 +29,8 @@ export function AnimatedSplashScreen({
   onAnimationComplete,
   children,
 }: AnimatedSplashScreenProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [animationFinished, setAnimationFinished] = useState(false);
 
   // Animation values
@@ -277,7 +281,7 @@ export function AnimatedSplashScreen({
               <MaterialCommunityIcons
                 name="soccer"
                 size={36}
-                color={colors.background}
+                color={c.background}
               />
             </View>
           </Animated.View>
@@ -287,14 +291,15 @@ export function AnimatedSplashScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   rootContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   splashOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: colors.background, // Deep Dark #080D0B
+    backgroundColor: c.background, // Deep Dark #080D0B
     alignItems: "center",
     justifyContent: "center",
     zIndex: 99999,
@@ -305,7 +310,7 @@ const styles = StyleSheet.create({
     height: 280,
     borderRadius: 140,
     backgroundColor: "rgba(0, 201, 104, 0.16)",
-    shadowColor: colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 50,
@@ -321,8 +326,8 @@ const styles = StyleSheet.create({
     height: 144,
     borderRadius: 36,
     borderWidth: 2,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
+    borderColor: c.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.85,
     shadowRadius: 24,
@@ -334,7 +339,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#000000",
     borderWidth: 1.5,
-    borderColor: colors.glassBorder,
+    borderColor: c.glassBorder,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.5,
@@ -354,18 +359,18 @@ const styles = StyleSheet.create({
   titleAlan: {
     fontSize: 28,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     letterSpacing: -0.5,
   },
   titleGo: {
     fontSize: 28,
     fontWeight: "900",
-    color: colors.accent,
+    color: c.accent,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 6,
     letterSpacing: 0.2,
   },
@@ -393,8 +398,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.textPrimary, // White football ball body
-    shadowColor: colors.primary,
+    backgroundColor: c.textPrimary, // White football ball body
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.95,
     shadowRadius: 16,

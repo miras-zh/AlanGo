@@ -26,11 +26,15 @@ import { pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
 import { AvatarCropModal } from "@/components/AvatarCropModal";
 import { BusinessAccountCard } from "@/components/BusinessAccountCard";
 import { ProfilePreferences } from "@/components/ProfilePreferences";
-import { colors } from "@/constants/theme";
+
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getErrorMessage } from "@/lib/errorMessage";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export default function ProfileScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [user, setUser] = useState(getSessionUser());
   const [name, setName] = useState(user?.name || "");
@@ -152,7 +156,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: "#0B0F0D" }]} edges={["top"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: c.background }]} edges={["top"]}>
       {/* Top Bar */}
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>Мой профиль</Text>
@@ -163,7 +167,7 @@ export default function ProfileScreen() {
             router.push("/settings");
           }}
         >
-          <Ionicons name="settings-outline" size={22} color="#FFFFFF" />
+          <Ionicons name="settings-outline" size={22} color={c.textPrimary} />
         </Pressable>
       </View>
 
@@ -173,7 +177,7 @@ export default function ProfileScreen() {
           <>
             <View style={styles.guestCard}>
               <View style={styles.guestIconWrap}>
-                <Ionicons name="person-circle-outline" size={54} color="#22C55E" />
+                <Ionicons name="person-circle-outline" size={54} color={c.primary} />
               </View>
               <Text style={styles.guestTitle}>Войдите в аккаунт</Text>
               <Text style={styles.guestSubtitle}>
@@ -186,14 +190,14 @@ export default function ProfileScreen() {
                   router.push("/login");
                 }}
               >
-                <Ionicons name="log-in-outline" size={20} color="#0B0F0D" />
+                <Ionicons name="log-in-outline" size={20} color={c.background} />
                 <Text style={styles.guestLoginBtnText}>Войти / Зарегистрироваться</Text>
               </Pressable>
             </View>
 
             {/* Sports Subscriptions Card */}
             <Pressable
-              style={[styles.card, { borderColor: "#059669", backgroundColor: "#111814" }]}
+              style={[styles.card, { borderColor: c.primary, backgroundColor: "#111814" }]}
               onPress={() => {
                 hapticSelection();
                 router.push("/subscriptions");
@@ -201,7 +205,7 @@ export default function ProfileScreen() {
             >
               <View style={styles.cardHeader}>
                 <View style={[styles.cardIconWrap, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
-                  <Ionicons name="ticket" size={20} color="#10b981" />
+                  <Ionicons name="ticket" size={20} color={c.primary} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={styles.cardTitle}>Спортивные абонементы</Text>
@@ -209,7 +213,7 @@ export default function ProfileScreen() {
                     Пакеты игр (8-12 тренировок), экономия до 25% и QR-пропуск
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#10b981" />
+                <Ionicons name="chevron-forward" size={18} color={c.primary} />
               </View>
             </Pressable>
             <ProfilePreferences signedIn={false} />
@@ -230,7 +234,7 @@ export default function ProfileScreen() {
                   )}
                   {uploadingAvatar ? (
                     <View style={[styles.avatar, styles.avatarOverlay]}>
-                      <ActivityIndicator color={colors.textPrimary} />
+                      <ActivityIndicator color={c.textPrimary} />
                     </View>
                   ) : null}
                 </Pressable>
@@ -240,7 +244,7 @@ export default function ProfileScreen() {
                   hitSlop={8}
                   style={styles.avatarEditBadge}
                 >
-                  <Ionicons name="pencil" size={12} color={colors.background} />
+                  <Ionicons name="pencil" size={12} color={c.background} />
                 </Pressable>
               </View>
               <View style={styles.userInfo}>
@@ -248,7 +252,7 @@ export default function ProfileScreen() {
                   <Text style={styles.userName}>{name || user.email?.split("@")[0] || "Пользователь"}</Text>
                   {sub?.plan && sub.plan !== "standard" && (
                     <View style={styles.proBadge}>
-                      <Ionicons name="shield-checkmark" size={12} color="#22C55E" />
+                      <Ionicons name="shield-checkmark" size={12} color={c.primary} />
                       <Text style={styles.proBadgeText}>{sub.plan.toUpperCase()}</Text>
                     </View>
                   )}
@@ -278,7 +282,7 @@ export default function ProfileScreen() {
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={styles.cardIconWrap}>
-                  <Ionicons name="flash" size={20} color="#22C55E" />
+                  <Ionicons name="flash" size={20} color={c.primary} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={styles.cardTitle}>SportRent Club</Text>
@@ -365,7 +369,7 @@ export default function ProfileScreen() {
 
             {/* Sports Subscriptions Card */}
             <Pressable
-              style={[styles.card, { borderColor: "#059669", backgroundColor: "#111814" }]}
+              style={[styles.card, { borderColor: c.primary, backgroundColor: "#111814" }]}
               onPress={() => {
                 hapticSelection();
                 router.push("/subscriptions");
@@ -373,7 +377,7 @@ export default function ProfileScreen() {
             >
               <View style={styles.cardHeader}>
                 <View style={[styles.cardIconWrap, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
-                  <Ionicons name="ticket" size={20} color="#10b981" />
+                  <Ionicons name="ticket" size={20} color={c.primary} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={styles.cardTitle}>Спортивные абонементы</Text>
@@ -381,7 +385,7 @@ export default function ProfileScreen() {
                     Пакеты игр (8-12 тренировок), экономия до 25% и QR-пропуск
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#10b981" />
+                <Ionicons name="chevron-forward" size={18} color={c.primary} />
               </View>
             </Pressable>
 
@@ -404,7 +408,8 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -419,15 +424,15 @@ const styles = StyleSheet.create({
   topBarTitle: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   settingsBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#161D19",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#232F28",
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -439,10 +444,10 @@ const styles = StyleSheet.create({
 
   // Guest Card
   guestCard: {
-    backgroundColor: "#141A17",
+    backgroundColor: c.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#1F2823",
+    borderColor: c.border,
     padding: 24,
     alignItems: "center",
   },
@@ -458,14 +463,14 @@ const styles = StyleSheet.create({
   guestTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 8,
     textAlign: "center",
   },
   guestSubtitle: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#8E9B94",
+    color: c.textSecondary,
     textAlign: "center",
     marginBottom: 20,
   },
@@ -474,7 +479,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 14,
@@ -483,15 +488,15 @@ const styles = StyleSheet.create({
   guestLoginBtnText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
 
   // User Card
   userCard: {
-    backgroundColor: "#141A17",
+    backgroundColor: c.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#1F2823",
+    borderColor: c.border,
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -506,17 +511,17 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 34,
     borderWidth: 2,
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   avatarFallback: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   avatarLetter: {
     fontSize: 28,
     fontWeight: "800",
-    color: colors.primary,
+    color: c.primary,
   },
   avatarOverlay: {
     position: "absolute",
@@ -535,9 +540,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     borderWidth: 2,
-    borderColor: colors.surface,
+    borderColor: c.surface,
   },
   userInfo: {
     flex: 1,
@@ -550,7 +555,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   proBadge: {
     flexDirection: "row",
@@ -566,16 +571,16 @@ const styles = StyleSheet.create({
   proBadgeText: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#22C55E",
+    color: c.primary,
   },
   userEmail: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 3,
   },
   userLocation: {
     fontSize: 12,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginTop: 3,
   },
 
@@ -586,30 +591,30 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: "#141A17",
+    backgroundColor: c.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#1F2823",
+    borderColor: c.border,
     paddingVertical: 14,
     alignItems: "center",
   },
   statNumber: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
 
   // Generic Card
   card: {
-    backgroundColor: "#141A17",
+    backgroundColor: c.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#1F2823",
+    borderColor: c.border,
     padding: 18,
   },
   cardHeader: {
@@ -628,11 +633,11 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   cardSubtitle: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   pendingRequestBanner: {
@@ -660,7 +665,7 @@ const styles = StyleSheet.create({
   },
   pendingRequestSub: {
     fontSize: 11,
-    color: "#D1D5DB",
+    color: c.textSecondary,
     marginTop: 1,
   },
   planSelector: {
@@ -679,7 +684,7 @@ const styles = StyleSheet.create({
   },
   planChipActive: {
     backgroundColor: "#132E1D",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   planChipPending: {
     backgroundColor: "rgba(245, 158, 11, 0.08)",
@@ -693,10 +698,10 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   planNameActive: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontWeight: "700",
   },
   planNamePending: {
@@ -719,10 +724,10 @@ const styles = StyleSheet.create({
   },
   planPrice: {
     fontSize: 13,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   planPriceActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   planPricePending: {
@@ -747,12 +752,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 12,
   },
   label: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontWeight: "600",
     marginBottom: 6,
     marginTop: 8,
@@ -762,13 +767,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#253329",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 14,
     paddingHorizontal: 14,
     paddingVertical: 11,
   },
   saveBtn: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingVertical: 13,
     borderRadius: 14,
     alignItems: "center",
@@ -777,13 +782,13 @@ const styles = StyleSheet.create({
   saveBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
   accountActionsCard: {
-    backgroundColor: "#141A17",
+    backgroundColor: c.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#1F2823",
+    borderColor: c.border,
     padding: 16,
     gap: 12,
   },
@@ -792,14 +797,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: c.subtle,
     paddingVertical: 13,
     borderRadius: 14,
   },
   logoutBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   deleteAccountBtn: {
     flexDirection: "row",
@@ -815,6 +820,6 @@ const styles = StyleSheet.create({
   deleteAccountBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#EF4444",
+    color: c.error,
   },
 });

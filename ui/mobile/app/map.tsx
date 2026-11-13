@@ -15,8 +15,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { WebView } from "react-native-webview";
 import { ArenaWithHalls, getArenasWithHalls } from "@/lib/sportRentData";
 import { getSelectedCity } from "@/lib/cities";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const { width, height } = Dimensions.get("window");
 
@@ -40,6 +42,8 @@ const CITY_COORDINATES: Record<string, { lat: number; lng: number; zoom: number 
 const WebViewComponent = WebView as any;
 
 export default function MapScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const webViewRef = useRef<any>(null);
 
@@ -336,7 +340,7 @@ export default function MapScreen() {
       userMarker = L.circleMarker(e.latlng, {
         radius: 8,
         fillColor: '#1976D2',
-        color: '#FFFFFF',
+        color: c.textPrimary,
         weight: 3,
         opacity: 1,
         fillOpacity: 1
@@ -360,13 +364,13 @@ export default function MapScreen() {
           }}
           hitSlop={8}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color={c.textPrimary} />
         </Pressable>
 
         <View style={styles.titleWrap}>
           <Text style={styles.titleText}>Залы рядом</Text>
           <View style={styles.cityPill}>
-            <Ionicons name="location-sharp" size={12} color="#22C55E" />
+            <Ionicons name="location-sharp" size={12} color={c.primary} />
             <Text style={styles.cityName}>{currentCity}</Text>
             <Text style={styles.venueCount}>• {filteredArenas.length} залов</Text>
           </View>
@@ -379,7 +383,7 @@ export default function MapScreen() {
             router.back();
           }}
         >
-          <Ionicons name="list" size={18} color="#22C55E" />
+          <Ionicons name="list" size={18} color={c.primary} />
           <Text style={styles.listToggleText}>Списком</Text>
         </Pressable>
       </View>
@@ -406,7 +410,7 @@ export default function MapScreen() {
                 <Ionicons
                   name={s.icon as any}
                   size={15}
-                  color={active ? "#0B0F0D" : "#9EABA3"}
+                  color={active ? c.background : c.textSecondary}
                 />
                 <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
                   {s.name}
@@ -442,7 +446,7 @@ export default function MapScreen() {
             }}
             hitSlop={10}
           >
-            <Ionicons name="close" size={18} color="#9EABA3" />
+            <Ionicons name="close" size={18} color={c.textSecondary} />
           </Pressable>
 
           <View style={styles.previewContent}>
@@ -459,7 +463,7 @@ export default function MapScreen() {
               </View>
 
               <Text style={styles.previewAddress} numberOfLines={1}>
-                <Ionicons name="location-outline" size={13} color="#6B7C72" /> {selectedArena.address}
+                <Ionicons name="location-outline" size={13} color={c.textMuted} /> {selectedArena.address}
               </Text>
 
               <View style={styles.previewMetaRow}>
@@ -483,7 +487,7 @@ export default function MapScreen() {
                 }}
               >
                 <Text style={styles.bookBtnText}>Посмотреть залы и бронь</Text>
-                <Ionicons name="arrow-forward" size={15} color="#0B0F0D" />
+                <Ionicons name="arrow-forward" size={15} color={c.background} />
               </Pressable>
             </View>
           </View>
@@ -493,10 +497,11 @@ export default function MapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
   },
   topBar: {
     flexDirection: "row",
@@ -504,7 +509,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderBottomWidth: 1,
     borderBottomColor: "#18201B",
   },
@@ -512,7 +517,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "#161D19",
+    backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -522,7 +527,7 @@ const styles = StyleSheet.create({
   titleText: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   cityPill: {
     flexDirection: "row",
@@ -533,11 +538,11 @@ const styles = StyleSheet.create({
   cityName: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#22C55E",
+    color: c.primary,
   },
   venueCount: {
     fontSize: 12,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   listToggleBtn: {
     flexDirection: "row",
@@ -553,10 +558,10 @@ const styles = StyleSheet.create({
   listToggleText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   filterBar: {
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     paddingVertical: 8,
   },
   filterScroll: {
@@ -567,7 +572,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#161D19",
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: "#202B24",
     paddingHorizontal: 12,
@@ -575,16 +580,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   filterChipActive: {
-    backgroundColor: "#22C55E",
-    borderColor: "#22C55E",
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#9EABA3",
+    color: c.textSecondary,
   },
   filterChipTextActive: {
-    color: "#0B0F0D",
+    color: c.background,
     fontWeight: "700",
   },
   mapContainer: {
@@ -600,7 +605,7 @@ const styles = StyleSheet.create({
     bottom: 24,
     left: 16,
     right: 16,
-    backgroundColor: "#141A17",
+    backgroundColor: c.surface,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#223128",
@@ -619,7 +624,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#1C2420",
+    backgroundColor: c.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -631,7 +636,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 105,
     borderRadius: 14,
-    backgroundColor: "#1C2420",
+    backgroundColor: c.surfaceElevated,
   },
   previewDetails: {
     flex: 1,
@@ -643,11 +648,11 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   previewAddress: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   previewMetaRow: {
@@ -664,28 +669,28 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   reviewsCount: {
     fontSize: 11,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   previewPrice: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#22C55E",
+    color: c.primary,
   },
   previewPriceUnit: {
     fontSize: 11,
     fontWeight: "500",
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   bookBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingVertical: 9,
     borderRadius: 12,
     marginTop: 2,
@@ -693,6 +698,6 @@ const styles = StyleSheet.create({
   bookBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
 });

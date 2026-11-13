@@ -1,5 +1,5 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
-import { colors } from "@/constants/theme";
+import { usePalette } from "@/theme/palette";
 
 // iOS tab bar: the system UITabBar (Expo Router NativeTabs). On iOS 26+ the
 // OS draws it in Liquid Glass — a floating glass bar with a glass lens that
@@ -10,8 +10,9 @@ import { colors } from "@/constants/theme";
 // NativeTabs can't navigate to hidden tabs, so every route in (tabs) must be
 // a visible tab here.
 export default function TabsLayout() {
+  const c = usePalette();
   return (
-    <NativeTabs tintColor={colors.primary}>
+    <NativeTabs tintColor={c.primary}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Главная</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: "house", selected: "house.fill" }} />

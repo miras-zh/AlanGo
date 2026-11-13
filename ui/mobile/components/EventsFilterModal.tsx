@@ -8,9 +8,11 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radii, spacing } from "@/constants/theme";
+import { radii, spacing } from "@/constants/theme";
 import { EventFilterState, EventType } from "@/lib/eventsData";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 interface EventsFilterModalProps {
   visible: boolean;
@@ -43,6 +45,8 @@ export function EventsFilterModal({
   onApply,
   onReset,
 }: EventsFilterModalProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [draft, setDraft] = useState<EventFilterState>(filters);
 
   useEffect(() => {
@@ -175,7 +179,7 @@ export function EventsFilterModal({
                   ]}
                 >
                   {draft.onlyWithSpots && (
-                    <Ionicons name="checkmark" size={16} color={colors.background} />
+                    <Ionicons name="checkmark" size={16} color={c.background} />
                   )}
                 </View>
               </Pressable>
@@ -202,7 +206,8 @@ export function EventsFilterModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.72)",
@@ -212,11 +217,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sheet: {
-    backgroundColor: "rgba(18, 26, 22, 0.96)",
+    backgroundColor: c.glassBackground,
     borderTopLeftRadius: radii.modal,
     borderTopRightRadius: radii.modal,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: c.subtle,
     paddingBottom: 34,
     maxHeight: "80%",
   },
@@ -237,16 +242,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenHorizontal,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.08)",
+    borderBottomColor: c.subtle,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   resetText: {
     fontSize: 14,
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "600",
   },
   content: {
@@ -259,7 +264,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 14,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 10,
   },
   chipsRow: {
@@ -268,24 +273,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: c.hairline,
     paddingVertical: 9,
     paddingHorizontal: 14,
     borderRadius: radii.smallChip,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
   },
   chipSelected: {
     backgroundColor: "rgba(0, 201, 104, 0.16)",
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   chipText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "500",
   },
   chipTextSelected: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   toggleRow: {
@@ -297,11 +302,11 @@ const styles = StyleSheet.create({
   toggleTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   toggleSub: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   checkbox: {
@@ -314,17 +319,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkboxActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   footer: {
     paddingHorizontal: spacing.screenHorizontal,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.08)",
+    borderTopColor: c.subtle,
   },
   applyBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     paddingVertical: 14,
     borderRadius: radii.button,
     alignItems: "center",
@@ -333,6 +338,6 @@ const styles = StyleSheet.create({
   applyBtnText: {
     fontSize: 15,
     fontWeight: "700",
-    color: colors.background,
+    color: c.background,
   },
 });

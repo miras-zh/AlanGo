@@ -36,14 +36,18 @@ import {
   notifyBookingRejected,
 } from "@/lib/pushNotificationsService";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 const STATUS_FILTERS = ["Все", "Подтверждено", "В ожидании", "Отменено / Отклонено"];
 
 const OUTCOME_LABELS: Record<string, { label: string; color: string }> = {
-  completed: { label: "Игра состоялась ⚽️", color: "#22C55E" },
+  completed: { label: "Игра состоялась ⚽️", color: "#00C968" },
   no_show: { label: "Неявка / Срыв ❌", color: "#EF4444" },
 };
 
 export default function BusinessBookingsScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [halls, setHalls] = useState<Hall[]>([]);
   const [selectedFilter, setSelectedFilter] = useState("Все");
@@ -184,7 +188,7 @@ export default function BusinessBookingsScreen() {
             setManualModalOpen(true);
           }}
         >
-          <Ionicons name="add" size={18} color="#0B0F0D" />
+          <Ionicons name="add" size={18} color={c.background} />
           <Text style={styles.addBtnText}>Записать</Text>
         </Pressable>
       </View>
@@ -201,7 +205,7 @@ export default function BusinessBookingsScreen() {
           <Ionicons
             name="calendar"
             size={16}
-            color={screenMode === "calendar" ? "#22C55E" : "#8E9B94"}
+            color={screenMode === "calendar" ? c.primary : c.textSecondary}
           />
           <Text
             style={[
@@ -223,7 +227,7 @@ export default function BusinessBookingsScreen() {
           <Ionicons
             name="list"
             size={16}
-            color={screenMode === "list" ? "#22C55E" : "#8E9B94"}
+            color={screenMode === "list" ? c.primary : c.textSecondary}
           />
           <Text
             style={[
@@ -297,12 +301,12 @@ export default function BusinessBookingsScreen() {
                   setRefreshing(true);
                   loadData();
                 }}
-                tintColor="#22C55E"
+                tintColor={c.primary}
               />
             }
             ListEmptyComponent={
               <View style={styles.emptyWrap}>
-                <Ionicons name="calendar-outline" size={48} color="#2A352E" />
+                <Ionicons name="calendar-outline" size={48} color={c.border} />
                 <Text style={styles.emptyTitle}>
                   {bookings.length === 0 ? "Пока нет броней" : "Нет броней"}
                 </Text>
@@ -335,7 +339,7 @@ export default function BusinessBookingsScreen() {
                         style={styles.phoneRow}
                         onPress={() => handleCall(item.clientPhone)}
                       >
-                        <Ionicons name="call-outline" size={13} color="#22C55E" />
+                        <Ionicons name="call-outline" size={13} color={c.primary} />
                         <Text style={styles.clientPhone}>{item.clientPhone}</Text>
                       </Pressable>
                     </View>
@@ -374,7 +378,7 @@ export default function BusinessBookingsScreen() {
                     </View>
 
                     <View style={styles.infoRow}>
-                      <Ionicons name="time-outline" size={14} color="#22C55E" />
+                      <Ionicons name="time-outline" size={14} color={c.primary} />
                       <Text style={styles.slotTime}>
                         {item.date}, {item.timeSlot} ({item.durationMinutes} мин)
                       </Text>
@@ -382,7 +386,7 @@ export default function BusinessBookingsScreen() {
 
                     {item.notes ? (
                       <View style={styles.notesRow}>
-                        <Ionicons name="document-text-outline" size={13} color="#9EABA3" />
+                        <Ionicons name="document-text-outline" size={13} color={c.textSecondary} />
                         <Text style={styles.notesRowText}>{item.notes}</Text>
                       </View>
                     ) : null}
@@ -409,7 +413,7 @@ export default function BusinessBookingsScreen() {
                             : "wallet-outline"
                         }
                         size={15}
-                        color={isPaid100 ? "#22C55E" : isPartial ? "#F59E0B" : "#8E9B94"}
+                        color={isPaid100 ? c.primary : isPartial ? "#F59E0B" : c.textSecondary}
                       />
                       <View style={{ flex: 1 }}>
                         <Text
@@ -428,14 +432,14 @@ export default function BusinessBookingsScreen() {
                         </Text>
                       </View>
                       <View style={styles.paymentEditTag}>
-                        <Ionicons name="card" size={12} color="#8E9B94" />
+                        <Ionicons name="card" size={12} color={c.textSecondary} />
                         <Text style={styles.paymentEditText}>Оплата</Text>
                       </View>
                     </Pressable>
 
                     {item.rejectionReason && (
                       <View style={styles.reasonBox}>
-                        <Ionicons name="alert-circle" size={14} color="#EF4444" />
+                        <Ionicons name="alert-circle" size={14} color={c.error} />
                         <Text style={styles.reasonText}>
                           Причина: {item.rejectionReason}
                         </Text>
@@ -472,7 +476,7 @@ export default function BusinessBookingsScreen() {
                           setEditTarget(item);
                         }}
                       >
-                        <Ionicons name="create-outline" size={15} color="#22C55E" />
+                        <Ionicons name="create-outline" size={15} color={c.primary} />
                         <Text style={styles.editBtnText}>Изменить</Text>
                       </Pressable>
 
@@ -480,7 +484,7 @@ export default function BusinessBookingsScreen() {
                         style={styles.callIconBtn}
                         onPress={() => handleCall(item.clientPhone)}
                       >
-                        <Ionicons name="call" size={15} color="#FFFFFF" />
+                        <Ionicons name="call" size={15} color={c.textPrimary} />
                       </Pressable>
 
                       {isPending && (
@@ -488,7 +492,7 @@ export default function BusinessBookingsScreen() {
                           style={styles.confirmBtn}
                           onPress={() => handleStatusChange(item.id, "confirmed")}
                         >
-                          <Ionicons name="checkmark" size={16} color="#0B0F0D" />
+                          <Ionicons name="checkmark" size={16} color={c.background} />
                           <Text style={styles.confirmBtnText}>Принять</Text>
                         </Pressable>
                       )}
@@ -501,7 +505,7 @@ export default function BusinessBookingsScreen() {
                             setRejectTarget(item);
                           }}
                         >
-                          <Ionicons name="close" size={16} color="#EF4444" />
+                          <Ionicons name="close" size={16} color={c.error} />
                         </Pressable>
                       )}
                     </View>
@@ -548,10 +552,11 @@ export default function BusinessBookingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
   },
   header: {
     paddingHorizontal: 16,
@@ -561,23 +566,23 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -585,16 +590,16 @@ const styles = StyleSheet.create({
   addBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
   modeTabsRow: {
     flexDirection: "row",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     gap: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   modeTab: {
     flex: 1,
@@ -604,27 +609,27 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   modeTabActive: {
     backgroundColor: "rgba(34, 197, 94, 0.15)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   modeTabText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   modeTabTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   filterWrap: {
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   filterList: {
     paddingHorizontal: 16,
@@ -634,21 +639,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   filterChipActive: {
     backgroundColor: "rgba(34, 197, 94, 0.2)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   filterChipText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   filterChipTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   list: {
@@ -656,11 +661,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   bookingCard: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   cardHeader: {
     flexDirection: "row",
@@ -671,7 +676,7 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   phoneRow: {
     flexDirection: "row",
@@ -681,7 +686,7 @@ const styles = StyleSheet.create({
   },
   clientPhone: {
     fontSize: 12,
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "600",
   },
   statusBadge: {
@@ -703,19 +708,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   textConfirmed: {
-    color: "#22C55E",
+    color: c.primary,
   },
   textPending: {
     color: "#EAB308",
   },
   textCancelled: {
-    color: "#EF4444",
+    color: c.error,
   },
   cardBody: {
     gap: 6,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.04)",
+    borderTopColor: c.hairline,
   },
   infoRow: {
     flexDirection: "row",
@@ -725,11 +730,11 @@ const styles = StyleSheet.create({
   hallTitle: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   slotTime: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   reasonBox: {
     flexDirection: "row",
@@ -743,12 +748,12 @@ const styles = StyleSheet.create({
   },
   reasonText: {
     fontSize: 12,
-    color: "#EF4444",
+    color: c.error,
     flex: 1,
   },
   outcomeBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: c.hairline,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
@@ -764,16 +769,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.06)",
+    borderTopColor: c.hairline,
   },
   priceLabel: {
     fontSize: 10,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   priceValue: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   actionsRow: {
     flexDirection: "row",
@@ -784,7 +789,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: c.subtle,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -792,7 +797,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
@@ -800,7 +805,7 @@ const styles = StyleSheet.create({
   confirmBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
   cancelBtn: {
     width: 34,
@@ -818,12 +823,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginTop: 12,
   },
   emptySub: {
     fontSize: 12,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginTop: 4,
     textAlign: "center",
   },
@@ -831,7 +836,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    backgroundColor: c.hairline,
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 8,
@@ -839,7 +844,7 @@ const styles = StyleSheet.create({
   },
   notesRowText: {
     fontSize: 12,
-    color: "#9EABA3",
+    color: c.textSecondary,
     flex: 1,
   },
   paymentBadgeBar: {
@@ -861,8 +866,8 @@ const styles = StyleSheet.create({
     borderColor: "rgba(245, 158, 11, 0.25)",
   },
   paymentBarNotPaid: {
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: c.hairline,
+    borderColor: c.subtle,
   },
   paymentBarTitle: {
     fontSize: 12,
@@ -872,7 +877,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: c.subtle,
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 6,
@@ -880,16 +885,16 @@ const styles = StyleSheet.create({
   paymentEditText: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   textPaid: {
-    color: "#22C55E",
+    color: c.primary,
   },
   textPartial: {
     color: "#F59E0B",
   },
   textNotPaid: {
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   editBtn: {
     flexDirection: "row",
@@ -905,6 +910,6 @@ const styles = StyleSheet.create({
   editBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
 });

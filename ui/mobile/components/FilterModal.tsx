@@ -8,8 +8,10 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 export interface FilterState {
   sport: string;
@@ -57,6 +59,8 @@ export function FilterModal({
   onReset,
   totalResultsCount,
 }: FilterModalProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [localFilters, setLocalFilters] = useState<FilterState>(filters);
 
   // Sync whenever modal opens
@@ -132,7 +136,7 @@ export function FilterModal({
               onPress={onClose}
               hitSlop={10}
             >
-              <Ionicons name="close" size={22} color={colors.textPrimary} />
+              <Ionicons name="close" size={22} color={c.textPrimary} />
             </Pressable>
           </View>
 
@@ -158,13 +162,13 @@ export function FilterModal({
                     >
                       {isSelected && (
                         <View style={styles.checkBadge}>
-                          <Ionicons name="checkmark" size={12} color="#080D0B" />
+                          <Ionicons name="checkmark" size={12} color={c.background} />
                         </View>
                       )}
                       <Ionicons
                         name={s.icon as any}
                         size={22}
-                        color={isSelected ? colors.primary : colors.textSecondary}
+                        color={isSelected ? c.primary : c.textSecondary}
                       />
                       <Text
                         style={[
@@ -278,7 +282,7 @@ export function FilterModal({
                       <Ionicons
                         name={a.icon as any}
                         size={22}
-                        color={isSelected ? colors.primary : colors.textSecondary}
+                        color={isSelected ? c.primary : c.textSecondary}
                       />
                       <Text
                         style={[
@@ -313,7 +317,8 @@ export function FilterModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.72)",
@@ -323,12 +328,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sheet: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderTopLeftRadius: radii.modal,
     borderTopRightRadius: radii.modal,
     maxHeight: "85%",
     borderTopWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   header: {
     flexDirection: "row",
@@ -338,17 +343,17 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   headerTitle: {
     ...typography.sectionTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: c.hairline,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -363,7 +368,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 12,
   },
   sportsGrid: {
@@ -374,17 +379,17 @@ const styles = StyleSheet.create({
   sportCard: {
     width: "31%",
     aspectRatio: 1.15,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     position: "relative",
   },
   sportCardSelected: {
-    borderColor: colors.primary,
+    borderColor: c.primary,
     backgroundColor: "rgba(0, 201, 104, 0.12)",
   },
   checkBadge: {
@@ -394,17 +399,17 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   sportText: {
     fontSize: 12,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   sportTextSelected: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   segmentedRow: {
@@ -415,23 +420,23 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: radii.button,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
   },
   segmentBtnActive: {
-    borderColor: colors.primary,
+    borderColor: c.primary,
     backgroundColor: "rgba(0, 201, 104, 0.15)",
   },
   segmentText: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   segmentTextActive: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   priceHeaderRow: {
@@ -442,7 +447,7 @@ const styles = StyleSheet.create({
   priceRangeLabel: {
     fontSize: 13,
     fontWeight: "700",
-    color: colors.primary,
+    color: c.primary,
   },
   presetsRow: {
     flexDirection: "row",
@@ -453,22 +458,22 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: radii.smallChip,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: "center",
   },
   presetChipActive: {
-    borderColor: colors.primary,
+    borderColor: c.primary,
     backgroundColor: "rgba(0, 201, 104, 0.15)",
   },
   presetText: {
     fontSize: 12,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   presetTextActive: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   amenitiesGrid: {
@@ -478,25 +483,25 @@ const styles = StyleSheet.create({
   amenityCard: {
     width: "23%",
     aspectRatio: 1,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
   },
   amenityCardSelected: {
-    borderColor: colors.primary,
+    borderColor: c.primary,
     backgroundColor: "rgba(0, 201, 104, 0.12)",
   },
   amenityText: {
     fontSize: 11,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "500",
   },
   amenityTextSelected: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   footer: {
@@ -505,36 +510,36 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: spacing.screenHorizontal,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.06)",
+    borderTopColor: c.hairline,
     paddingBottom: 28,
   },
   resetBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: radii.button,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
   },
   resetBtnText: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   applyBtn: {
     flex: 2,
     paddingVertical: 14,
     borderRadius: radii.button,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   applyBtnText: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#080D0B",
+    color: c.background,
   },
 });
 

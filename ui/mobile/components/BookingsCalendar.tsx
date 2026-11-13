@@ -12,6 +12,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Booking, Hall } from "@/lib/sportRentData";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 const { width } = Dimensions.get("window");
 
 export type CalendarViewMode = "day" | "week" | "month";
@@ -37,6 +39,8 @@ export function BookingsCalendar({
   onRejectBooking,
   onOutcomeChange,
 }: BookingsCalendarProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [viewMode, setViewMode] = useState<CalendarViewMode>("day");
   const [selectedDayOffset, setSelectedDayOffset] = useState<number>(0); // 0 = Сегодня, 1 = Завтра ...
 
@@ -119,14 +123,14 @@ export function BookingsCalendar({
   const getStatusColor = (status: Booking["status"]) => {
     switch (status) {
       case "confirmed":
-        return "#22C55E";
+        return c.primary;
       case "pending":
         return "#EAB308";
       case "rejected":
       case "cancelled":
-        return "#EF4444";
+        return c.error;
       default:
-        return "#8E9B94";
+        return c.textSecondary;
     }
   };
 
@@ -177,7 +181,7 @@ export function BookingsCalendar({
             onAddManualBooking();
           }}
         >
-          <Ionicons name="add" size={18} color="#0B0F0D" />
+          <Ionicons name="add" size={18} color={c.background} />
           <Text style={styles.quickAddBtnText}>Записать</Text>
         </Pressable>
       </View>
@@ -191,7 +195,7 @@ export function BookingsCalendar({
             setSelectedDayOffset((prev) => prev - (viewMode === "week" ? 7 : 1));
           }}
         >
-          <Ionicons name="chevron-back" size={18} color="#C4D0C9" />
+          <Ionicons name="chevron-back" size={18} color={c.textSecondary} />
         </Pressable>
 
         <View style={styles.dateLabelWrap}>
@@ -212,7 +216,7 @@ export function BookingsCalendar({
             setSelectedDayOffset((prev) => prev + (viewMode === "week" ? 7 : 1));
           }}
         >
-          <Ionicons name="chevron-forward" size={18} color="#C4D0C9" />
+          <Ionicons name="chevron-forward" size={18} color={c.textSecondary} />
         </Pressable>
       </View>
 
@@ -293,7 +297,7 @@ export function BookingsCalendar({
                       >
                         <View style={styles.bookingBlockHeader}>
                           <View style={styles.bookingTitleRow}>
-                            <Ionicons name="time" size={13} color="#22C55E" />
+                            <Ionicons name="time" size={13} color={c.primary} />
                             <Text style={styles.bookingSlotTime}>{b.timeSlot}</Text>
                             {b.source === "manual" && (
                               <View style={styles.sourceManualBadge}>
@@ -321,7 +325,7 @@ export function BookingsCalendar({
                         <Text style={styles.bookingHallName}>{b.hallTitle}</Text>
 
                         <View style={styles.bookingClientRow}>
-                          <Ionicons name="person-circle-outline" size={16} color="#8E9B94" />
+                          <Ionicons name="person-circle-outline" size={16} color={c.textSecondary} />
                           <Text style={styles.bookingClientName}>{b.clientName}</Text>
                           <Text style={styles.bookingPrice}>
                             {b.totalPrice.toLocaleString("ru-RU")} ₸
@@ -338,7 +342,7 @@ export function BookingsCalendar({
                                 onStatusChange(b.id, "confirmed");
                               }}
                             >
-                              <Ionicons name="checkmark" size={14} color="#0B0F0D" />
+                              <Ionicons name="checkmark" size={14} color={c.background} />
                               <Text style={styles.quickConfirmText}>Подтвердить</Text>
                             </Pressable>
 
@@ -349,7 +353,7 @@ export function BookingsCalendar({
                                 onRejectBooking(b);
                               }}
                             >
-                              <Ionicons name="close" size={14} color="#EF4444" />
+                              <Ionicons name="close" size={14} color={c.error} />
                               <Text style={styles.quickRejectText}>Отклонить</Text>
                             </Pressable>
 
@@ -359,7 +363,7 @@ export function BookingsCalendar({
                                 Linking.openURL(`tel:${b.clientPhone.replace(/[^0-9+]/g, "")}`);
                               }}
                             >
-                              <Ionicons name="call" size={13} color="#22C55E" />
+                              <Ionicons name="call" size={13} color={c.primary} />
                             </Pressable>
                           </View>
                         )}
@@ -449,7 +453,7 @@ export function BookingsCalendar({
                   )}
                 </View>
 
-                <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+                <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
               </Pressable>
             );
           })}
@@ -466,7 +470,7 @@ export function BookingsCalendar({
             </View>
             <View style={styles.monthDivider} />
             <View style={styles.monthStatCol}>
-              <Text style={[styles.monthStatNum, { color: "#22C55E" }]}>
+              <Text style={[styles.monthStatNum, { color: c.primary }]}>
                 {bookings.filter((b) => b.status === "confirmed").length}
               </Text>
               <Text style={styles.monthStatLabel}>Сыграно</Text>
@@ -489,7 +493,8 @@ export function BookingsCalendar({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   calendarContainer: {
     flex: 1,
   },
@@ -504,11 +509,11 @@ const styles = StyleSheet.create({
   },
   modeTabs: {
     flexDirection: "row",
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: 3,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   modeTab: {
     paddingHorizontal: 14,
@@ -516,28 +521,28 @@ const styles = StyleSheet.create({
     borderRadius: 9,
   },
   modeTabActive: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
   },
   modeTabText: {
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontSize: 13,
     fontWeight: "600",
   },
   modeTabTextActive: {
-    color: "#0B0F0D",
+    color: c.background,
     fontWeight: "700",
   },
   quickAddBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingHorizontal: 13,
     paddingVertical: 8,
     borderRadius: 12,
   },
   quickAddBtnText: {
-    color: "#0B0F0D",
+    color: c.background,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -552,22 +557,22 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#161E1A",
+    backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   dateLabelWrap: {
     alignItems: "center",
   },
   dateTitleText: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "700",
   },
   dateSubText: {
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontSize: 11,
     marginTop: 2,
   },
@@ -577,7 +582,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
     marginBottom: 6,
   },
   weekDayItem: {
@@ -590,16 +595,16 @@ const styles = StyleSheet.create({
   weekDayItemActive: {
     backgroundColor: "rgba(34, 197, 94, 0.12)",
     borderWidth: 1,
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   weekDayName: {
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontSize: 11,
     fontWeight: "500",
     marginBottom: 4,
   },
   weekDayNameActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   dayNumCircle: {
@@ -613,15 +618,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#1F2B24",
   },
   dayNumSelected: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
   },
   weekDayNumber: {
-    color: "#D4DDD7",
+    color: c.textSecondary,
     fontSize: 13,
     fontWeight: "700",
   },
   weekDayNumberActive: {
-    color: "#0B0F0D",
+    color: c.background,
   },
   dotsRow: {
     flexDirection: "row",
@@ -632,7 +637,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
   },
   timelineScroll: {
     flex: 1,
@@ -647,7 +652,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   hourText: {
-    color: "#6B7C72",
+    color: c.textMuted,
     fontSize: 12,
     fontWeight: "600",
   },
@@ -662,7 +667,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 6,
     height: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: c.hairline,
   },
   bookingBlock: {
     borderLeftWidth: 3,
@@ -671,7 +676,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: "#131A16",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   bookingBlockHeader: {
     flexDirection: "row",
@@ -685,18 +690,18 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   bookingSlotTime: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 13,
     fontWeight: "700",
   },
   sourceManualBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: c.subtle,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 6,
   },
   sourceManualText: {
-    color: "#D4DDD7",
+    color: c.textSecondary,
     fontSize: 10,
     fontWeight: "600",
   },
@@ -710,7 +715,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   bookingHallName: {
-    color: "#D4DDD7",
+    color: c.textSecondary,
     fontSize: 13,
     fontWeight: "600",
     marginBottom: 4,
@@ -721,12 +726,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   bookingClientName: {
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontSize: 12,
     flex: 1,
   },
   bookingPrice: {
-    color: "#22C55E",
+    color: c.primary,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -737,19 +742,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.06)",
+    borderTopColor: c.hairline,
   },
   quickConfirmBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
   },
   quickConfirmText: {
-    color: "#0B0F0D",
+    color: c.background,
     fontSize: 11,
     fontWeight: "700",
   },
@@ -765,7 +770,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(239, 68, 68, 0.3)",
   },
   quickRejectText: {
-    color: "#EF4444",
+    color: c.error,
     fontSize: 11,
     fontWeight: "700",
   },
@@ -784,17 +789,17 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingTop: 6,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.06)",
+    borderTopColor: c.hairline,
   },
   outcomeLabel: {
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontSize: 10,
   },
   outcomeChip: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    backgroundColor: "#161E1A",
+    backgroundColor: c.surface,
   },
   outcomeChipActiveGreen: {
     backgroundColor: "rgba(34, 197, 94, 0.2)",
@@ -803,7 +808,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(239, 68, 68, 0.2)",
   },
   outcomeChipText: {
-    color: "#C4D0C9",
+    color: c.textSecondary,
     fontSize: 10,
     fontWeight: "600",
   },
@@ -820,7 +825,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   weekOverviewTitle: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 10,
@@ -828,28 +833,28 @@ const styles = StyleSheet.create({
   weekOverviewCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   weekCardLeft: {
     width: 44,
     alignItems: "center",
     borderRightWidth: 1,
-    borderRightColor: "rgba(255, 255, 255, 0.08)",
+    borderRightColor: c.subtle,
     paddingRight: 10,
     marginRight: 12,
   },
   weekCardDay: {
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontSize: 11,
     fontWeight: "600",
   },
   weekCardDate: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: "800",
     marginTop: 2,
@@ -858,12 +863,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   weekCardStats: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 14,
     fontWeight: "600",
   },
   weekCardRevenue: {
-    color: "#22C55E",
+    color: c.primary,
     fontSize: 12,
     fontWeight: "600",
     marginTop: 2,
@@ -876,33 +881,33 @@ const styles = StyleSheet.create({
   monthStatsCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   monthStatCol: {
     flex: 1,
     alignItems: "center",
   },
   monthStatNum: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 22,
     fontWeight: "800",
   },
   monthStatLabel: {
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontSize: 11,
     marginTop: 4,
   },
   monthDivider: {
     width: 1,
     height: 36,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: c.subtle,
   },
   monthHelpText: {
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontSize: 13,
     lineHeight: 18,
     textAlign: "center",

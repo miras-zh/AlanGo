@@ -14,6 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { KZ_CITIES, TOP_CITIES, setSelectedCity } from "@/lib/cities";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 interface CityPickerModalProps {
   visible: boolean;
   selectedCity: string;
@@ -27,6 +29,8 @@ export function CityPickerModal({
   onClose,
   onSelect,
 }: CityPickerModalProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [query, setQuery] = useState("");
 
   const filteredCities = useMemo(() => {
@@ -55,7 +59,7 @@ export function CityPickerModal({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Ionicons name="location" size={22} color="#22C55E" />
+              <Ionicons name="location" size={22} color={c.primary} />
               <Text style={styles.title}>Города Казахстана</Text>
             </View>
             <Pressable
@@ -66,7 +70,7 @@ export function CityPickerModal({
               style={styles.closeBtn}
               hitSlop={8}
             >
-              <Ionicons name="close" size={22} color="#8E9B94" />
+              <Ionicons name="close" size={22} color={c.textSecondary} />
             </Pressable>
           </View>
 
@@ -101,11 +105,11 @@ export function CityPickerModal({
 
           {/* Search Box */}
           <View style={styles.searchBox}>
-            <Ionicons name="search" size={18} color="#6E7A73" />
+            <Ionicons name="search" size={18} color={c.textMuted} />
             <TextInput
               style={styles.searchInput}
               placeholder="Поиск города..."
-              placeholderTextColor="#6E7A73"
+              placeholderTextColor={c.textMuted}
               value={query}
               onChangeText={setQuery}
               autoCorrect={false}
@@ -113,7 +117,7 @@ export function CityPickerModal({
             />
             {query.length > 0 && Platform.OS === "android" && (
               <Pressable onPress={() => setQuery("")}>
-                <Ionicons name="close-circle" size={18} color="#8E9B94" />
+                <Ionicons name="close-circle" size={18} color={c.textSecondary} />
               </Pressable>
             )}
           </View>
@@ -143,7 +147,7 @@ export function CityPickerModal({
                     {item}
                   </Text>
                   {isSelected && (
-                    <Ionicons name="checkmark-circle" size={20} color="#22C55E" />
+                    <Ionicons name="checkmark-circle" size={20} color={c.primary} />
                   )}
                 </Pressable>
               );
@@ -161,14 +165,15 @@ export function CityPickerModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.7)",
     justifyContent: "flex-end",
   },
   sheetContainer: {
-    backgroundColor: "#111714",
+    backgroundColor: c.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "85%",
@@ -183,7 +188,7 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#1C2621",
+    borderBottomColor: c.surfaceElevated,
   },
   headerLeft: {
     flexDirection: "row",
@@ -191,7 +196,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: "700",
   },
@@ -199,7 +204,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#1A231F",
+    backgroundColor: c.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -209,7 +214,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   sectionLabel: {
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontSize: 12,
     fontWeight: "600",
     marginBottom: 8,
@@ -224,13 +229,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: "#17211C",
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
     borderColor: "#23332B",
   },
   topCityChipActive: {
     backgroundColor: "rgba(34, 197, 94, 0.15)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   topCityText: {
     color: "#E2E8E4",
@@ -238,7 +243,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   topCityTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   searchBox: {
@@ -250,13 +255,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 14,
-    backgroundColor: "#161E1A",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#222D27",
+    borderColor: c.surfaceElevated,
   },
   searchInput: {
     flex: 1,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 15,
     padding: 0,
   },
@@ -270,18 +275,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#17211C",
+    borderBottomColor: c.surfaceElevated,
   },
   cityRowActive: {
     borderBottomColor: "rgba(34, 197, 94, 0.2)",
   },
   cityName: {
-    color: "#D4DDD7",
+    color: c.textSecondary,
     fontSize: 16,
     fontWeight: "500",
   },
   cityNameActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   emptyContainer: {
@@ -291,7 +296,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyText: {
-    color: "#6E7A73",
+    color: c.textMuted,
     fontSize: 14,
   },
 });

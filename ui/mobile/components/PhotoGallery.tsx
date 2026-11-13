@@ -14,7 +14,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hapticSelection } from "@/lib/haptics";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 type Props = {
   photos: string[];
@@ -27,6 +29,8 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 
 // Swipeable hall photo gallery with a page counter; tap opens full screen.
 export function PhotoGallery({ photos, height, overlay }: Props) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -39,7 +43,7 @@ export function PhotoGallery({ photos, height, overlay }: Props) {
   if (photos.length === 0) {
     return (
       <View style={[styles.empty, { height }]}>
-        <Ionicons name="images-outline" size={40} color={colors.textSecondary} />
+        <Ionicons name="images-outline" size={40} color={c.textSecondary} />
         <Text style={styles.emptyText}>Фото зала пока не добавлены</Text>
         {overlay}
       </View>
@@ -77,7 +81,7 @@ export function PhotoGallery({ photos, height, overlay }: Props) {
       ) : null}
 
       <View style={styles.counter} pointerEvents="none">
-        <Ionicons name="camera-outline" size={13} color={colors.textPrimary} />
+        <Ionicons name="camera-outline" size={13} color={c.textPrimary} />
         <Text style={styles.counterText}>
           {index + 1}/{photos.length}
         </Text>
@@ -111,7 +115,7 @@ export function PhotoGallery({ photos, height, overlay }: Props) {
             hitSlop={10}
             onPress={() => setViewerIndex(null)}
           >
-            <Ionicons name="close" size={24} color={colors.textPrimary} />
+            <Ionicons name="close" size={24} color={c.textPrimary} />
           </Pressable>
         </View>
       </Modal>
@@ -119,16 +123,17 @@ export function PhotoGallery({ photos, height, overlay }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   empty: {
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   emptyText: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   dots: {
     position: "absolute",
@@ -147,7 +152,7 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     width: 18,
-    backgroundColor: colors.textPrimary,
+    backgroundColor: c.textPrimary,
   },
   counter: {
     position: "absolute",
@@ -164,7 +169,7 @@ const styles = StyleSheet.create({
   counterText: {
     ...typography.caption,
     fontWeight: "600",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   viewer: {
     flex: 1,

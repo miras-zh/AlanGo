@@ -1,22 +1,24 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Platform, StyleSheet } from "react-native";
+import { usePalette } from "@/theme/palette";
 
 export default function BusinessTabsLayout() {
+  const c = usePalette();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#111613",
-          borderTopColor: "rgba(255, 255, 255, 0.08)",
+          backgroundColor: c.surface,
+          borderTopColor: c.hairline,
           borderTopWidth: 1,
           height: Platform.OS === "ios" ? 88 : 68,
           paddingBottom: Platform.OS === "ios" ? 28 : 10,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: "#22C55E",
-        tabBarInactiveTintColor: "#6B7C72",
+        tabBarActiveTintColor: c.primary,
+        tabBarInactiveTintColor: c.textMuted,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "600",

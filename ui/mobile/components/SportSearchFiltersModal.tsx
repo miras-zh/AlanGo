@@ -12,6 +12,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export type SportFilterState = {
   sports: string[];
   surfaces: string[];
@@ -76,6 +78,8 @@ export function SportSearchFiltersModal({
   onClose,
   onApply,
 }: SportSearchFiltersModalProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [draft, setDraft] = useState<SportFilterState>(filters);
 
   useEffect(() => {
@@ -167,7 +171,7 @@ export function SportSearchFiltersModal({
                 style={styles.closeBtn}
                 hitSlop={8}
               >
-                <Ionicons name="close" size={22} color="#8E9B94" />
+                <Ionicons name="close" size={22} color={c.textSecondary} />
               </Pressable>
             </View>
           </View>
@@ -193,7 +197,7 @@ export function SportSearchFiltersModal({
                       <Ionicons
                         name={sport.icon}
                         size={16}
-                        color={active ? "#22C55E" : "#8E9B94"}
+                        color={active ? c.primary : c.textSecondary}
                       />
                       <Text style={[styles.chipText, active && styles.chipTextActive]}>
                         {sport.label}
@@ -262,7 +266,7 @@ export function SportSearchFiltersModal({
                         <Ionicons
                           name={amenity.icon}
                           size={20}
-                          color={active ? "#22C55E" : "#8E9B94"}
+                          color={active ? c.primary : c.textSecondary}
                         />
                         <Text style={[styles.amenityLabel, active && styles.amenityLabelActive]}>
                           {amenity.label}
@@ -271,7 +275,7 @@ export function SportSearchFiltersModal({
                       <Ionicons
                         name={active ? "checkbox" : "square-outline"}
                         size={22}
-                        color={active ? "#22C55E" : "#4A5851"}
+                        color={active ? c.primary : "#4A5851"}
                       />
                     </Pressable>
                   );
@@ -288,7 +292,7 @@ export function SportSearchFiltersModal({
                   ? `Показать ${matchedCount} ${getDeclension(matchedCount, "площадку", "площадки", "площадок")}`
                   : "Показать площадки"}
               </Text>
-              <Ionicons name="arrow-forward" size={18} color="#0B0F0D" />
+              <Ionicons name="arrow-forward" size={18} color={c.background} />
             </Pressable>
           </View>
         </SafeAreaView>
@@ -305,14 +309,15 @@ function getDeclension(n: number, one: string, few: string, many: string): strin
   return many;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.75)",
     justifyContent: "flex-end",
   },
   sheetContainer: {
-    backgroundColor: "#111714",
+    backgroundColor: c.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     height: "90%",
@@ -325,7 +330,7 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#1C2621",
+    borderBottomColor: c.surfaceElevated,
   },
   headerTitleRow: {
     flexDirection: "row",
@@ -333,18 +338,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerTitle: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 20,
     fontWeight: "700",
   },
   countBadge: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
   },
   countBadgeText: {
-    color: "#0B0F0D",
+    color: c.background,
     fontSize: 12,
     fontWeight: "700",
   },
@@ -358,7 +363,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   resetBtnText: {
-    color: "#EF4444",
+    color: c.error,
     fontSize: 14,
     fontWeight: "600",
   },
@@ -366,7 +371,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#1A231F",
+    backgroundColor: c.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -383,7 +388,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionTitle: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "700",
     letterSpacing: 0.2,
@@ -400,21 +405,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 14,
-    backgroundColor: "#17211C",
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: "#223129",
+    borderColor: c.surfaceElevated,
   },
   chipActive: {
     backgroundColor: "rgba(34, 197, 94, 0.15)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   chipText: {
-    color: "#C2CEC7",
+    color: c.textSecondary,
     fontSize: 13,
     fontWeight: "500",
   },
   chipTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   amenitiesList: {
@@ -427,7 +432,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 14,
-    backgroundColor: "#161E1A",
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: "#202C26",
   },
@@ -442,12 +447,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   amenityLabel: {
-    color: "#D4DDD7",
+    color: c.textSecondary,
     fontSize: 14,
     fontWeight: "500",
   },
   amenityLabelActive: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontWeight: "600",
   },
   bottomBar: {
@@ -455,20 +460,20 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: Platform.OS === "ios" ? 12 : 20,
     borderTopWidth: 1,
-    borderTopColor: "#1C2621",
-    backgroundColor: "#111714",
+    borderTopColor: c.surfaceElevated,
+    backgroundColor: c.surface,
   },
   applyBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingVertical: 15,
     borderRadius: 16,
   },
   applyBtnText: {
-    color: "#0B0F0D",
+    color: c.background,
     fontSize: 16,
     fontWeight: "700",
   },

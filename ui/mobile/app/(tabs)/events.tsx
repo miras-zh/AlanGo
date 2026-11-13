@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radii, spacing } from "@/constants/theme";
+import { radii, spacing } from "@/constants/theme";
 import {
   DEFAULT_EVENT_FILTERS,
   EventFilterState,
@@ -28,7 +28,11 @@ import { EventCalendarModal } from "@/components/EventCalendarModal";
 import { GlassSurface } from "@/components/GlassSurface";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 function AllDotsIcon({ color }: { color: string }) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.allDotsWrap}>
       <View style={[styles.dotCircle, { borderColor: color }]} />
@@ -58,6 +62,8 @@ function getCategoryIcon(id: SportCategoryId, color: string) {
 }
 
 export default function EventsScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [events, setEvents] = useState<SportEvent[]>(INITIAL_EVENTS);
   const [filters, setFilters] = useState<EventFilterState>(DEFAULT_EVENT_FILTERS);
@@ -123,7 +129,7 @@ export default function EventsScreen() {
               <Ionicons
                 name="calendar-outline"
                 size={20}
-                color={colors.textPrimary}
+                color={c.textPrimary}
               />
             </GlassSurface>
           </Pressable>
@@ -145,7 +151,7 @@ export default function EventsScreen() {
               <Ionicons
                 name="options-outline"
                 size={20}
-                color={colors.textPrimary}
+                color={c.textPrimary}
               />
               {/* Notification Red Indicator Badge */}
               <View style={styles.redDot} />
@@ -163,7 +169,7 @@ export default function EventsScreen() {
         >
           {SPORT_CATEGORIES.map((cat) => {
             const isSelected = filters.sportCategory === cat.id;
-            const iconColor = isSelected ? colors.primary : colors.textSecondary;
+            const iconColor = isSelected ? c.primary : c.textSecondary;
 
             return (
               <Pressable
@@ -220,7 +226,7 @@ export default function EventsScreen() {
           <Ionicons
             name="chevron-forward"
             size={16}
-            color={colors.primary}
+            color={c.primary}
             style={{ marginLeft: 2 }}
           />
         </Pressable>
@@ -234,7 +240,7 @@ export default function EventsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.primary}
+            tintColor={c.primary}
           />
         }
         contentContainerStyle={styles.eventsListContent}
@@ -257,7 +263,7 @@ export default function EventsScreen() {
             <Ionicons
               name="calendar-clear-outline"
               size={48}
-              color={colors.textSecondary}
+              color={c.textSecondary}
             />
             <Text style={styles.emptyTitle}>Нет событий в данной категории</Text>
             <Text style={styles.emptySubtitle}>
@@ -298,10 +304,11 @@ export default function EventsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -318,12 +325,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 25,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     letterSpacing: -0.4,
   },
   subtitle: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
   },
   headerActions: {
@@ -342,7 +349,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   glassBtnInnerActive: {
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   redDot: {
     position: "absolute",
@@ -351,7 +358,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: colors.accent,
+    backgroundColor: c.accent,
   },
   allDotsWrap: {
     width: 18,
@@ -388,7 +395,7 @@ const styles = StyleSheet.create({
   },
   categoryCardSelected: {
     backgroundColor: "rgba(0, 201, 104, 0.18)",
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   categoryIconWrap: {
     height: 24,
@@ -399,11 +406,11 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontSize: 11,
     fontWeight: "500",
-    color: colors.textSecondary,
+    color: c.textSecondary,
     textAlign: "center",
   },
   categoryLabelSelected: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   sectionHeader: {
@@ -416,7 +423,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   allEventsLink: {
     flexDirection: "row",
@@ -425,7 +432,7 @@ const styles = StyleSheet.create({
   allEventsText: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.primary,
+    color: c.primary,
   },
   eventsListContent: {
     paddingHorizontal: spacing.screenHorizontal,
@@ -439,12 +446,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 12,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
     textAlign: "center",
     paddingHorizontal: 20,
@@ -456,10 +463,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: radii.smallChip,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   resetBtnText: {
-    color: colors.primary,
+    color: c.primary,
     fontSize: 13,
     fontWeight: "600",
   },

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -5,7 +6,9 @@ import { useAppTheme, type ThemeMode } from "@/theme/ThemeProvider";
 import { useI18n, type AppLocale } from "@/lib/i18n";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { hapticSelection } from "@/lib/haptics";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const THEMES: { id: ThemeMode; label: string }[] = [
   { id: "system", label: "Системная" },
@@ -28,6 +31,8 @@ function Segmented<T extends string>({
   value: T;
   onChange: (v: T) => void;
 }) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.segment}>
       {options.map((o) => {
@@ -54,8 +59,15 @@ function Segmented<T extends string>({
 // Profile block (as in Vison): theme, language, invite a friend and the
 // entry to account settings (personal data, logout, delete account).
 export function ProfilePreferences({ signedIn }: { signedIn: boolean }) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { mode, setMode } = useAppTheme();
+  // Root-context updates (theme / language) from inside an iOS native tab are
+  // only mounted on the next touch; a local state bump right after forces the
+  // commit so the switch is visible immediately.
+  const [, setTick] = useState(0);
+  const flush = () => requestAnimationFrame(() => setTick((t) => t + 1));
   const { locale, setLocale } = useI18n();
 
   const invite = async () => {
@@ -73,9 +85,17 @@ export function ProfilePreferences({ signedIn }: { signedIn: boolean }) {
     <View style={styles.wrap}>
       <View style={styles.card}>
         <Text style={styles.label}>Тема оформления</Text>
-        <Segmented options={THEMES} value={mode} onChange={setMode} />
+        <Segmented options={THEMES} value={mode} onChange={(m) => {
+            setMode(m);
+            flush();
+          }}
+        />
         <Text style={[styles.label, { marginTop: spacing.lg }]}>Язык приложения</Text>
-        <Segmented options={LANGUAGES} value={locale} onChange={setLocale} />
+        <Segmented options={LANGUAGES} value={locale} onChange={(l) => {
+            setLocale(l);
+            flush();
+          }}
+        />
         {locale === "kk" ? (
           <Text style={styles.note}>Қазақша аударма дайындалуда — әзірге мәтіндер орыс тілінде.</Text>
         ) : null}
@@ -118,24 +138,27 @@ function Row({
   onPress: () => void;
   last?: boolean;
 }) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       style={({ pressed }) => [styles.row, !last && styles.rowDivider, pressed && { opacity: 0.7 }]}
       onPress={onPress}
     >
       <View style={styles.rowIcon}>
-        <Ionicons name={icon} size={20} color={colors.primary} />
+        <Ionicons name={icon} size={20} color={c.primary} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.rowTitle}>{title}</Text>
         <Text style={styles.rowSub}>{subtitle}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+      <Ionicons name="chevron-forward" size={18} color={c.textSecondary} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   wrap: {
     gap: spacing.card,
     marginBottom: spacing.card,
@@ -144,18 +167,18 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   label: {
     ...typography.caption,
     fontWeight: "700",
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: spacing.sm,
   },
   note: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: spacing.sm,
   },
   segment: {
@@ -163,7 +186,7 @@ const styles = StyleSheet.create({
     padding: 4,
     gap: 4,
     borderRadius: radii.button,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   segmentItem: {
     flex: 1,
@@ -173,17 +196,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   segmentItemActive: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   segmentText: {
     ...typography.caption,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   segmentTextActive: {
-    color: colors.primary,
+    color: c.primary,
   },
   row: {
     flexDirection: "row",
@@ -193,7 +216,7 @@ const styles = StyleSheet.create({
   },
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
   },
   rowIcon: {
     width: 38,
@@ -201,15 +224,15 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   rowTitle: {
     ...typography.cardTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   rowSub: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
 });

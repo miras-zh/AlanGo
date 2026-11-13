@@ -11,8 +11,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Booking, Hall } from "@/lib/sportRentData";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 interface EditBookingModalProps {
   visible: boolean;
@@ -35,7 +37,7 @@ const COMMON_SLOTS = [
 ];
 
 const STATUS_OPTIONS: { id: Booking["status"]; label: string; color: string }[] = [
-  { id: "confirmed", label: "Подтверждено", color: "#22C55E" },
+  { id: "confirmed", label: "Подтверждено", color: "#00C968" },
   { id: "pending", label: "В ожидании", color: "#F59E0B" },
   { id: "cancelled", label: "Отменено", color: "#EF4444" },
 ];
@@ -47,6 +49,8 @@ export function EditBookingModal({
   onClose,
   onSave,
 }: EditBookingModalProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [selectedHallId, setSelectedHallId] = useState<number>(0);
@@ -124,7 +128,7 @@ export function EditBookingModal({
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <View style={styles.iconCircle}>
-                <Ionicons name="create-outline" size={20} color="#22C55E" />
+                <Ionicons name="create-outline" size={20} color={c.primary} />
               </View>
               <View>
                 <Text style={styles.title}>Редактирование брони</Text>
@@ -132,7 +136,7 @@ export function EditBookingModal({
               </View>
             </View>
             <Pressable onPress={onClose} hitSlop={10} style={styles.closeBtn}>
-              <Ionicons name="close" size={20} color="#8E9B94" />
+              <Ionicons name="close" size={20} color={c.textSecondary} />
             </Pressable>
           </View>
 
@@ -146,7 +150,7 @@ export function EditBookingModal({
                 value={clientName}
                 onChangeText={setClientName}
                 placeholder="Имя Фамилия"
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
               />
             </View>
 
@@ -157,7 +161,7 @@ export function EditBookingModal({
                 value={clientPhone}
                 onChangeText={setClientPhone}
                 placeholder="+7 (7XX) XXX-XX-XX"
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
                 keyboardType="phone-pad"
               />
             </View>
@@ -197,7 +201,7 @@ export function EditBookingModal({
                   value={date}
                   onChangeText={setDate}
                   placeholder="Сегодня"
-                  placeholderTextColor="#6B7C72"
+                  placeholderTextColor={c.textMuted}
                 />
               </View>
               <View style={[styles.fieldGroup, { flex: 1 }]}>
@@ -207,7 +211,7 @@ export function EditBookingModal({
                   value={timeSlot}
                   onChangeText={setTimeSlot}
                   placeholder="19:00 - 20:00"
-                  placeholderTextColor="#6B7C72"
+                  placeholderTextColor={c.textMuted}
                 />
               </View>
             </View>
@@ -244,18 +248,18 @@ export function EditBookingModal({
                   onChangeText={(txt) => setTotalPriceStr(txt.replace(/[^\d]/g, ""))}
                   keyboardType="number-pad"
                   placeholder="0"
-                  placeholderTextColor="#6B7C72"
+                  placeholderTextColor={c.textMuted}
                 />
               </View>
               <View style={[styles.fieldGroup, { flex: 1 }]}>
                 <Text style={styles.label}>Оплачено (₸)</Text>
                 <TextInput
-                  style={[styles.input, { color: "#22C55E" }]}
+                  style={[styles.input, { color: c.primary }]}
                   value={paidAmountStr}
                   onChangeText={(txt) => setPaidAmountStr(txt.replace(/[^\d]/g, ""))}
                   keyboardType="number-pad"
                   placeholder="0"
-                  placeholderTextColor="#6B7C72"
+                  placeholderTextColor={c.textMuted}
                 />
               </View>
             </View>
@@ -327,7 +331,7 @@ export function EditBookingModal({
                     <View
                       style={[
                         styles.statusDot,
-                        { backgroundColor: active ? opt.color : "#6B7C72" },
+                        { backgroundColor: active ? opt.color : c.textMuted },
                       ]}
                     />
                     <Text
@@ -351,7 +355,7 @@ export function EditBookingModal({
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Например: Kaspi предоплата 2 000 ₸, просят 2 манишки..."
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
                 multiline
                 numberOfLines={2}
               />
@@ -376,14 +380,15 @@ export function EditBookingModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.75)",
     justifyContent: "flex-end",
   },
   sheetContainer: {
-    backgroundColor: "#141A17",
+    backgroundColor: c.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderWidth: 1,
@@ -399,7 +404,7 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#1C2420",
+    borderBottomColor: c.surfaceElevated,
   },
   headerLeft: {
     flexDirection: "row",
@@ -419,18 +424,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   subTitle: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#1C2420",
+    backgroundColor: c.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -441,7 +446,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 10,
@@ -452,18 +457,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#9EABA3",
+    color: c.textSecondary,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: "#1A221E",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#25332A",
+    borderColor: c.surfaceElevated,
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 46,
     fontSize: 15,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontWeight: "600",
   },
   notesInput: {
@@ -479,31 +484,31 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   hallChip: {
-    backgroundColor: "#1A221E",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#25332A",
+    borderColor: c.surfaceElevated,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
     marginRight: 8,
   },
   hallChipActive: {
-    backgroundColor: "#22C55E",
-    borderColor: "#22C55E",
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   hallChipText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   hallChipTextActive: {
-    color: "#0B0F0D",
+    color: c.background,
     fontWeight: "700",
   },
   slotChip: {
-    backgroundColor: "#1A221E",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#25332A",
+    borderColor: c.surfaceElevated,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
@@ -511,21 +516,21 @@ const styles = StyleSheet.create({
   },
   slotChipActive: {
     backgroundColor: "rgba(34, 197, 94, 0.2)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   slotChipText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   slotChipTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   paymentSummaryBox: {
-    backgroundColor: "#1A221E",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#25332A",
+    borderColor: c.surfaceElevated,
     borderRadius: 14,
     padding: 12,
     marginTop: 4,
@@ -539,14 +544,14 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   summaryValue: {
     fontSize: 15,
     fontWeight: "700",
   },
   remainingZero: {
-    color: "#22C55E",
+    color: c.primary,
   },
   remainingDue: {
     color: "#F59E0B",
@@ -567,7 +572,7 @@ const styles = StyleSheet.create({
   quickFillText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#22C55E",
+    color: c.primary,
   },
   statusRow: {
     flexDirection: "row",
@@ -579,9 +584,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: "#1A221E",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#25332A",
+    borderColor: c.surfaceElevated,
     paddingVertical: 10,
     borderRadius: 12,
   },
@@ -593,14 +598,14 @@ const styles = StyleSheet.create({
   statusSelectText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   footer: {
     paddingHorizontal: 20,
     paddingTop: 12,
   },
   saveBtn: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
@@ -612,6 +617,6 @@ const styles = StyleSheet.create({
   saveBtnText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
 });

@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radii, spacing } from "@/constants/theme";
+import { radii, spacing } from "@/constants/theme";
 import {
   DEFAULT_EVENT_FILTERS,
   EventFilterState,
@@ -26,7 +26,11 @@ import { EventsFilterModal } from "@/components/EventsFilterModal";
 import { EventCalendarModal } from "@/components/EventCalendarModal";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export default function AllEventsScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [events, setEvents] = useState<SportEvent[]>(INITIAL_EVENTS);
   const [searchQuery, setSearchQuery] = useState("");
@@ -84,7 +88,7 @@ export default function AllEventsScreen() {
           }}
           hitSlop={8}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="chevron-back" size={24} color={c.textPrimary} />
         </Pressable>
 
         <Text style={styles.screenTitle}>Все события</Text>
@@ -97,7 +101,7 @@ export default function AllEventsScreen() {
               setCalendarModalVisible(true);
             }}
           >
-            <Ionicons name="calendar-outline" size={20} color={colors.textPrimary} />
+            <Ionicons name="calendar-outline" size={20} color={c.textPrimary} />
           </Pressable>
 
           <Pressable
@@ -107,7 +111,7 @@ export default function AllEventsScreen() {
               setFilterModalVisible(true);
             }}
           >
-            <Ionicons name="options-outline" size={20} color={colors.textPrimary} />
+            <Ionicons name="options-outline" size={20} color={c.textPrimary} />
             {hasAdvancedFilters && <View style={styles.badgeDot} />}
           </Pressable>
         </View>
@@ -116,11 +120,11 @@ export default function AllEventsScreen() {
       {/* Search Bar */}
       <View style={styles.searchBarWrap}>
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={colors.textSecondary} style={{ marginRight: 8 }} />
+          <Ionicons name="search" size={18} color={c.textSecondary} style={{ marginRight: 8 }} />
           <TextInput
             style={styles.searchInput}
             placeholder="Поиск по турнирам и играм..."
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={c.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             clearButtonMode="while-editing"
@@ -184,7 +188,7 @@ export default function AllEventsScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="calendar-clear-outline" size={48} color={colors.textSecondary} />
+            <Ionicons name="calendar-clear-outline" size={48} color={c.textSecondary} />
             <Text style={styles.emptyTitle}>Событий не найдено</Text>
             <Text style={styles.emptySub}>
               Попробуйте изменить категорию или сбросить фильтры
@@ -225,10 +229,11 @@ export default function AllEventsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   topHeader: {
     flexDirection: "row",
@@ -241,16 +246,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: c.subtle,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: c.subtle,
   },
   screenTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   headerControls: {
     flexDirection: "row",
@@ -261,15 +266,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: c.subtle,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: c.subtle,
     position: "relative",
   },
   iconBtnActive: {
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   badgeDot: {
     position: "absolute",
@@ -278,7 +283,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: colors.accent,
+    backgroundColor: c.accent,
   },
   searchBarWrap: {
     paddingHorizontal: spacing.screenHorizontal,
@@ -287,16 +292,16 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: c.hairline,
     borderRadius: radii.button,
     paddingHorizontal: 12,
     height: 44,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
   },
   searchInput: {
     flex: 1,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
   },
   categoriesWrap: {
@@ -310,21 +315,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: radii.smallChip,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: c.hairline,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
   },
   categoryChipSelected: {
     backgroundColor: "rgba(0, 201, 104, 0.16)",
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   categoryChipText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "500",
   },
   categoryChipTextSelected: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   listContent: {
@@ -339,12 +344,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 12,
   },
   emptySub: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
     textAlign: "center",
   },
@@ -355,10 +360,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: radii.smallChip,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   resetFiltersBtnText: {
-    color: colors.primary,
+    color: c.primary,
     fontSize: 13,
     fontWeight: "600",
   },

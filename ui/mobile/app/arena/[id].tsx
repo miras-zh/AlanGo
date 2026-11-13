@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, spacing } from "@/constants/theme";
+import { spacing } from "@/constants/theme";
 import {
   Arena,
   getStoredArenas,
@@ -27,9 +27,13 @@ import {
 import { hapticSelection } from "@/lib/haptics";
 import { StandaloneTabBar } from "@/components/LiquidGlassTabBar";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 const { width } = Dimensions.get("window");
 
 export default function ArenaDetailScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [arena, setArena] = useState<Arena | null>(null);
@@ -64,13 +68,13 @@ export default function ArenaDetailScreen() {
       {/* Top Nav */}
       <View style={styles.topNav}>
         <Pressable onPress={() => router.back()} style={styles.roundBtn}>
-          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={22} color={c.textPrimary} />
         </Pressable>
         <Text style={styles.topNavTitle} numberOfLines={1}>
           {arena.title}
         </Text>
         <Pressable onPress={handleCall} style={styles.roundBtn}>
-          <Ionicons name="call-outline" size={18} color="#22C55E" />
+          <Ionicons name="call-outline" size={18} color={c.primary} />
         </Pressable>
       </View>
 
@@ -79,7 +83,7 @@ export default function ArenaDetailScreen() {
         <View style={styles.imageWrap}>
           <Image source={{ uri: arena.imageUrl }} style={styles.heroImage} />
           <View style={styles.ratingBadge}>
-            <Ionicons name="star" size={13} color="#22C55E" />
+            <Ionicons name="star" size={13} color={c.primary} />
             <Text style={styles.ratingText}>
               {arena.rating}
               {arena.reviewsCount ? ` (${arena.reviewsCount} отзывов)` : ""}
@@ -96,11 +100,11 @@ export default function ArenaDetailScreen() {
             <Text style={[styles.arenaTitle, { flex: 1 }]}>{arena.title}</Text>
           </View>
           <View style={styles.row}>
-            <Ionicons name="location-sharp" size={15} color="#22C55E" />
+            <Ionicons name="location-sharp" size={15} color={c.primary} />
             <Text style={styles.addressText}>{arena.city}, {arena.address}</Text>
           </View>
           <View style={styles.row}>
-            <Ionicons name="time-outline" size={15} color="#8E9B94" />
+            <Ionicons name="time-outline" size={15} color={c.textSecondary} />
             <Text style={styles.hoursText}>{arena.workingHours}</Text>
           </View>
 
@@ -121,7 +125,7 @@ export default function ArenaDetailScreen() {
           >
             <View style={styles.chatActionLeft}>
               <View style={styles.chatActionIcon}>
-                <Ionicons name="chatbubbles" size={18} color="#22C55E" />
+                <Ionicons name="chatbubbles" size={18} color={c.primary} />
               </View>
               <View>
                 <Text style={styles.chatActionTitle}>Чат с ареной</Text>
@@ -130,14 +134,14 @@ export default function ArenaDetailScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#22C55E" />
+            <Ionicons name="chevron-forward" size={18} color={c.primary} />
           </Pressable>
         </View>
 
         {/* Description */}
         <View style={styles.promoCallout}>
           <View style={styles.promoCalloutIcon}>
-            <Ionicons name="sunny" size={20} color="#10b981" />
+            <Ionicons name="sunny" size={20} color={c.primary} />
           </View>
           <View style={styles.promoCalloutTextWrap}>
             <Text style={styles.promoCalloutTitle}>Счастливые часы: -20%</Text>
@@ -158,7 +162,7 @@ export default function ArenaDetailScreen() {
           <View style={styles.featuresGrid}>
             {arena.features.map((feat, idx) => (
               <View key={idx} style={styles.featItem}>
-                <Ionicons name="checkmark-done" size={16} color="#22C55E" />
+                <Ionicons name="checkmark-done" size={16} color={c.primary} />
                 <Text style={styles.featText}>{feat}</Text>
               </View>
             ))}
@@ -186,10 +190,10 @@ export default function ArenaDetailScreen() {
                   <Text style={styles.hallItemTitle}>{h.title}</Text>
                   <Text style={styles.hallItemSurface}>{h.surfaceType}</Text>
                   <Text style={styles.hallItemPrice}>
-                    {h.pricePerHour.toLocaleString("ru-RU")} ₸ <Text style={{ fontSize: 11, color: "#8E9B94" }}>/ час</Text>
+                    {h.pricePerHour.toLocaleString("ru-RU")} ₸ <Text style={{ fontSize: 11, color: c.textSecondary }}>/ час</Text>
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#22C55E" />
+                <Ionicons name="chevron-forward" size={18} color={c.primary} />
               </Pressable>
             ))}
           </View>
@@ -219,10 +223,11 @@ export default function ArenaDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   topNav: {
     flexDirection: "row",
@@ -230,20 +235,20 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   roundBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#161D19",
+    backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   topNavTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     flex: 1,
     textAlign: "center",
     marginHorizontal: 10,
@@ -275,7 +280,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   infoSection: {
     padding: 16,
@@ -291,13 +296,13 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
-    backgroundColor: colors.surfaceElevated,
+    borderColor: c.glassBorder,
+    backgroundColor: c.surfaceElevated,
   },
   arenaTitle: {
     fontSize: 24,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   row: {
     flexDirection: "row",
@@ -307,18 +312,18 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   hoursText: {
     fontSize: 13,
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "500",
   },
   chatActionBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: "rgba(34, 197, 94, 0.3)",
     borderRadius: 14,
@@ -341,11 +346,11 @@ const styles = StyleSheet.create({
   chatActionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   chatActionSub: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   promoCallout: {
@@ -374,20 +379,20 @@ const styles = StyleSheet.create({
   promoCalloutTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
   },
   promoCalloutSub: {
     fontSize: 11,
-    color: "#94a3b8",
+    color: c.textSecondary,
     marginTop: 2,
     lineHeight: 15,
   },
   card: {
     marginHorizontal: 16,
-    backgroundColor: "#141A17",
+    backgroundColor: c.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#1F2823",
+    borderColor: c.border,
     padding: 16,
     marginBottom: 14,
   },
@@ -400,12 +405,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 10,
   },
   descText: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
     lineHeight: 19,
   },
   featuresGrid: {
@@ -418,7 +423,7 @@ const styles = StyleSheet.create({
   },
   featText: {
     fontSize: 13,
-    color: "#D1D5DB",
+    color: c.textSecondary,
   },
   hallsList: {
     gap: 10,
@@ -426,7 +431,7 @@ const styles = StyleSheet.create({
   hallItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1A221E",
+    backgroundColor: c.surface,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#243229",
@@ -444,17 +449,17 @@ const styles = StyleSheet.create({
   hallItemTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   hallItemSurface: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   hallItemPrice: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#22C55E",
+    color: c.primary,
     marginTop: 4,
   },
   scheduleList: {
@@ -465,20 +470,20 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 4,
     borderBottomWidth: 0.5,
-    borderBottomColor: "#1F2823",
+    borderBottomColor: c.border,
   },
   scheduleDayName: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   scheduleTime: {
     fontSize: 13,
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "600",
   },
   scheduleClosed: {
     fontSize: 13,
-    color: "#EF4444",
+    color: c.error,
     fontWeight: "600",
   },
 });

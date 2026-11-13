@@ -3,7 +3,9 @@ import { FlatList, Keyboard, Modal, Pressable, StyleSheet, Text, View } from "re
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hapticSelection } from "@/lib/haptics";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 export type SelectOption<T extends string | number> = { value: T; label: string };
 
@@ -25,6 +27,8 @@ export function SelectField<T extends string | number>({
   onChange,
   sheetTitle,
 }: Props<T>) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const selected = options.find((o) => o.value === value);
@@ -43,7 +47,7 @@ export function SelectField<T extends string | number>({
         <Text style={[styles.value, !selected && styles.placeholder]} numberOfLines={1}>
           {selected ? selected.label : placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+        <Ionicons name="chevron-down" size={18} color={c.textSecondary} />
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
@@ -67,7 +71,7 @@ export function SelectField<T extends string | number>({
                   }}
                 >
                   <Text style={[styles.optionText, active && styles.optionTextActive]}>{item.label}</Text>
-                  {active ? <Ionicons name="checkmark" size={20} color={colors.primary} /> : null}
+                  {active ? <Ionicons name="checkmark" size={20} color={c.primary} /> : null}
                 </Pressable>
               );
             }}
@@ -78,14 +82,15 @@ export function SelectField<T extends string | number>({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   wrap: {
     gap: spacing.sm,
   },
   label: {
     ...typography.caption,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   field: {
     height: 50,
@@ -96,17 +101,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderRadius: radii.button,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   value: {
     ...typography.body,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   placeholder: {
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   pressed: {
     opacity: 0.7,
@@ -119,9 +124,9 @@ const styles = StyleSheet.create({
     maxHeight: "65%",
     borderTopLeftRadius: radii.modal,
     borderTopRightRadius: radii.modal,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderTopWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: c.glassBorder,
     paddingTop: spacing.sm,
   },
   handle: {
@@ -129,12 +134,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.border,
+    backgroundColor: c.border,
     marginBottom: spacing.md,
   },
   sheetTitle: {
     ...typography.cardTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     paddingHorizontal: spacing.xl,
     marginBottom: spacing.sm,
   },
@@ -148,15 +153,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
   },
   optionText: {
     ...typography.body,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   optionTextActive: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "600",
   },
 });

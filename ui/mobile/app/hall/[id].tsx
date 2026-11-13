@@ -17,7 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
 import {
   createHallBooking,
   getHallAvailability,
@@ -33,6 +33,8 @@ import { PhotoGallery } from "@/components/PhotoGallery";
 import { capacityLabel, sizeLabel } from "@/lib/hallOptions";
 import { getSessionUser } from "@/lib/auth";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const { width } = Dimensions.get("window");
 
@@ -92,6 +94,8 @@ const FAVORITES_STORAGE_KEY = "alango_favorite_halls";
 const HERO_HEIGHT = 270;
 
 export default function HallDetailScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
@@ -164,7 +168,7 @@ export default function HallDetailScreen() {
   if (!hall) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator color={colors.primary} size="large" />
+        <ActivityIndicator color={c.primary} size="large" />
       </View>
     );
   }
@@ -259,20 +263,20 @@ export default function HallDetailScreen() {
                 router.back();
               }}
             >
-              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={20} color={c.textPrimary} />
             </Pressable>
 
             {/* Right Buttons: Share & Favorite */}
             <View style={styles.topRightBtns}>
               <Pressable style={styles.circleBtn} onPress={handleShare}>
-                <Ionicons name="share-outline" size={19} color="#FFFFFF" />
+                <Ionicons name="share-outline" size={19} color={c.textPrimary} />
               </Pressable>
 
               <Pressable style={styles.circleBtn} onPress={handleToggleFav}>
                 <Ionicons
                   name={isFav ? "heart" : "heart-outline"}
                   size={20}
-                  color={isFav ? colors.accent : "#FFFFFF"}
+                  color={isFav ? c.accent : c.textPrimary}
                 />
               </Pressable>
             </View>
@@ -288,7 +292,7 @@ export default function HallDetailScreen() {
 
           {/* Rating Row */}
           <View style={styles.ratingRow}>
-            <Ionicons name="star" size={15} color={colors.primary} />
+            <Ionicons name="star" size={15} color={c.primary} />
             <Text style={styles.ratingText}>
               {hall.rating.toFixed(1)}{" "}
               <Text style={styles.reviewCountText}>
@@ -300,12 +304,12 @@ export default function HallDetailScreen() {
           {/* Sport & Facility Attributes */}
           <View style={styles.tagsRow}>
             <View style={styles.attributeChip}>
-              <Ionicons name="football-outline" size={13} color={colors.primary} />
+              <Ionicons name="football-outline" size={13} color={c.primary} />
               <Text style={styles.attributeChipText}>{hall.sportType}</Text>
             </View>
 
             <View style={styles.attributeChip}>
-              <Ionicons name="people-outline" size={13} color={colors.textSecondary} />
+              <Ionicons name="people-outline" size={13} color={c.textSecondary} />
               <Text style={styles.attributeChipText}>
                 {capacityLabel(hall.maxPeople ?? 0) || hall.capacity || "Вместимость не указана"}
               </Text>
@@ -313,7 +317,7 @@ export default function HallDetailScreen() {
 
             {sizeLabel(hall.lengthM ?? 0, hall.widthM ?? 0) ? (
               <View style={styles.attributeChip}>
-                <Ionicons name="resize-outline" size={13} color={colors.textSecondary} />
+                <Ionicons name="resize-outline" size={13} color={c.textSecondary} />
                 <Text style={styles.attributeChipText}>
                   {sizeLabel(hall.lengthM ?? 0, hall.widthM ?? 0)}
                 </Text>
@@ -322,7 +326,7 @@ export default function HallDetailScreen() {
 
             {hall.surfaceType ? (
               <View style={styles.attributeChip}>
-                <Ionicons name="layers-outline" size={13} color={colors.textSecondary} />
+                <Ionicons name="layers-outline" size={13} color={c.textSecondary} />
                 <Text style={styles.attributeChipText}>{hall.surfaceType}</Text>
               </View>
             ) : null}
@@ -334,7 +338,7 @@ export default function HallDetailScreen() {
               <Ionicons
                 name="location-outline"
                 size={15}
-                color={colors.textSecondary}
+                color={c.textSecondary}
               />
               <Text style={styles.addressText} numberOfLines={1}>
                 {hall.arenaAddress || "Астана, ул. Нур-Султан 12"}
@@ -423,7 +427,7 @@ export default function HallDetailScreen() {
                     <Ionicons
                       name={item.icon as any}
                       size={24}
-                      color={colors.textSecondary}
+                      color={c.textSecondary}
                     />
                     <Text style={styles.amenityCardLabel}>{item.label}</Text>
                   </View>
@@ -439,7 +443,7 @@ export default function HallDetailScreen() {
                 }}
               >
                 <View style={styles.arenaBannerIcon}>
-                  <Ionicons name="business" size={20} color={colors.primary} />
+                  <Ionicons name="business" size={20} color={c.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.arenaBannerTitle}>{hall.arenaTitle}</Text>
@@ -508,20 +512,20 @@ export default function HallDetailScreen() {
 
               {/* Slots: free ones are bright, unavailable ones dimmed */}
               {slotsLoading && !availability ? (
-                <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.xl }} />
+                <ActivityIndicator color={c.primary} style={{ marginVertical: spacing.xl }} />
               ) : slotsError ? (
                 <View style={styles.closedCard}>
-                  <Ionicons name="cloud-offline-outline" size={24} color={colors.accent} />
+                  <Ionicons name="cloud-offline-outline" size={24} color={c.accent} />
                   <Text style={styles.closedText}>{slotsError}</Text>
                 </View>
               ) : availability?.isClosed ? (
                 <View style={styles.closedCard}>
-                  <Ionicons name="time-outline" size={24} color={colors.accent} />
+                  <Ionicons name="time-outline" size={24} color={c.accent} />
                   <Text style={styles.closedText}>Зал не работает в выбранный день</Text>
                 </View>
               ) : availability && availability.slots.length === 0 ? (
                 <View style={styles.closedCard}>
-                  <Ionicons name="time-outline" size={24} color={colors.accent} />
+                  <Ionicons name="time-outline" size={24} color={c.accent} />
                   <Text style={styles.closedText}>На этот день нет слотов</Text>
                 </View>
               ) : availability ? (
@@ -575,7 +579,7 @@ export default function HallDetailScreen() {
                   <View style={styles.reviewTopRow}>
                     <Text style={styles.reviewerName}>{rev.name}</Text>
                     <View style={styles.reviewStars}>
-                      <Ionicons name="star" size={13} color={colors.primary} />
+                      <Ionicons name="star" size={13} color={c.primary} />
                       <Text style={styles.reviewScore}>{rev.rating}</Text>
                     </View>
                   </View>
@@ -638,7 +642,7 @@ export default function HallDetailScreen() {
                 onPress={() => setBookingModalOpen(false)}
                 hitSlop={10}
               >
-                <Ionicons name="close" size={22} color={colors.textPrimary} />
+                <Ionicons name="close" size={22} color={c.textPrimary} />
               </Pressable>
             </View>
 
@@ -669,7 +673,7 @@ export default function HallDetailScreen() {
               value={clientName}
               onChangeText={setClientName}
               placeholder="Ваше имя"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={c.textSecondary}
               style={styles.contactInput}
             />
             <Text style={styles.contactLabel}>Телефон</Text>
@@ -677,7 +681,7 @@ export default function HallDetailScreen() {
               value={clientPhone}
               onChangeText={setClientPhone}
               placeholder="+7 (7__) ___-__-__"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={c.textSecondary}
               keyboardType="phone-pad"
               style={styles.contactInput}
             />
@@ -691,7 +695,7 @@ export default function HallDetailScreen() {
               disabled={bookingLoading}
             >
               {bookingLoading ? (
-                <ActivityIndicator color="#080D0B" />
+                <ActivityIndicator color={c.background} />
               ) : (
                 <Text style={styles.confirmBookingBtnText}>
                   Подтвердить бронь
@@ -705,14 +709,15 @@ export default function HallDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   centerContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -723,7 +728,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: HERO_HEIGHT,
     position: "relative",
-    backgroundColor: "#16201B",
+    backgroundColor: c.surfaceElevated,
   },
   heroImage: {
     width: "100%",
@@ -749,9 +754,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(18, 26, 22, 0.72)",
+    backgroundColor: c.glassBackground,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: c.glassBorder,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -762,16 +767,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(18, 26, 22, 0.75)",
+    backgroundColor: c.glassBackground,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: c.glassBorder,
   },
   photoCountText: {
     fontSize: 11,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontWeight: "600",
   },
   infoSection: {
@@ -780,7 +785,7 @@ const styles = StyleSheet.create({
   hallTitle: {
     fontSize: 22,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 4,
     marginBottom: 6,
   },
@@ -793,12 +798,12 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 14,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   reviewCountText: {
     fontSize: 13,
     fontWeight: "400",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   tagsRow: {
     flexDirection: "row",
@@ -810,16 +815,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radii.smallChip,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   attributeChipText: {
     fontSize: 12,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: "600",
   },
   locationRow: {
@@ -837,22 +842,22 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
   },
   distanceText: {
     fontSize: 12,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   segmentedTabsWrap: {
     flexDirection: "row",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radii.button,
     padding: 4,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   segmentTab: {
     flex: 1,
@@ -863,15 +868,15 @@ const styles = StyleSheet.create({
   segmentTabActive: {
     backgroundColor: "rgba(0, 201, 104, 0.15)",
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   segmentTabText: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   segmentTabTextActive: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   tabContentSection: {
@@ -880,12 +885,12 @@ const styles = StyleSheet.create({
   aboutDescription: {
     fontSize: 14,
     lineHeight: 22,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   amenitiesHeader: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   amenitiesGrid: {
     flexDirection: "row",
@@ -894,28 +899,28 @@ const styles = StyleSheet.create({
   amenityCard: {
     width: "23%",
     aspectRatio: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
   },
   amenityCardLabel: {
     fontSize: 11,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "500",
   },
   arenaBanner: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     padding: 14,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     marginTop: 6,
   },
   arenaBannerIcon: {
@@ -929,11 +934,11 @@ const styles = StyleSheet.create({
   arenaBannerTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   arenaBannerSub: {
     fontSize: 12,
-    color: colors.primary,
+    color: c.primary,
     marginTop: 2,
   },
   daysScroll: {
@@ -944,21 +949,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: radii.smallChip,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   dayChipActive: {
     backgroundColor: "rgba(0, 201, 104, 0.15)",
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   dayChipText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "600",
   },
   dayChipTextActive: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   closedCard: {
@@ -971,7 +976,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   closedText: {
-    color: colors.accent,
+    color: c.accent,
     fontSize: 13,
     fontWeight: "600",
   },
@@ -984,25 +989,25 @@ const styles = StyleSheet.create({
     width: "31%",
     paddingVertical: 10,
     borderRadius: radii.smallChip,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: "center",
   },
   slotChipDisabled: {
     opacity: 0.35,
   },
   slotChipTextFree: {
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   slotStatusText: {
     fontSize: 10,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   slotsHint: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: spacing.sm,
   },
   durationRow: {
@@ -1015,25 +1020,25 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radii.smallChip,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   durationChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.surfaceElevated,
+    borderColor: c.primary,
+    backgroundColor: c.surfaceElevated,
   },
   durationText: {
     ...typography.caption,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   durationTextActive: {
-    color: colors.primary,
+    color: c.primary,
   },
   contactLabel: {
     ...typography.caption,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
@@ -1041,31 +1046,31 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: radii.button,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
     paddingHorizontal: spacing.lg,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
   },
   slotChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   slotChipText: {
     fontSize: 12,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   slotChipTextActive: {
-    color: "#080D0B",
+    color: c.background,
     fontWeight: "800",
   },
   reviewCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     padding: 14,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     marginBottom: 10,
   },
   reviewTopRow: {
@@ -1076,7 +1081,7 @@ const styles = StyleSheet.create({
   reviewerName: {
     fontSize: 14,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   reviewStars: {
     flexDirection: "row",
@@ -1086,27 +1091,27 @@ const styles = StyleSheet.create({
   reviewScore: {
     fontSize: 13,
     fontWeight: "700",
-    color: colors.primary,
+    color: c.primary,
   },
   reviewDate: {
     fontSize: 11,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
     marginBottom: 6,
   },
   reviewBody: {
     fontSize: 13,
     lineHeight: 18,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   stickyFooter: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -1120,19 +1125,19 @@ const styles = StyleSheet.create({
   },
   footerPriceLabel: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   footerPriceValue: {
     fontSize: 18,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   footerPriceSuffix: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   bookButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: radii.button,
@@ -1140,7 +1145,7 @@ const styles = StyleSheet.create({
   bookButtonText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#080D0B",
+    color: c.background,
   },
   modalOverlay: {
     flex: 1,
@@ -1151,12 +1156,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bookingSheet: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderTopLeftRadius: radii.modal,
     borderTopRightRadius: radii.modal,
     padding: spacing.screenHorizontal,
     borderTopWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     paddingBottom: 32,
   },
   modalHeader: {
@@ -1167,25 +1172,25 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     ...typography.sectionTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   modalSummaryBox: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderRadius: radii.card,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     marginBottom: 20,
     gap: 8,
   },
   summaryTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   summarySub: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 6,
   },
   summaryRow: {
@@ -1195,20 +1200,20 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   summaryValue: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   summaryTotal: {
     fontSize: 16,
     fontWeight: "800",
-    color: colors.primary,
+    color: c.primary,
   },
   confirmBookingBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     borderRadius: radii.button,
     paddingVertical: 14,
     alignItems: "center",
@@ -1216,6 +1221,6 @@ const styles = StyleSheet.create({
   confirmBookingBtnText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#080D0B",
+    color: c.background,
   },
 });

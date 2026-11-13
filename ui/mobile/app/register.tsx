@@ -23,7 +23,11 @@ import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export default function RegisterScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const { colors } = useAppTheme();
   const { t } = useI18n();
   const router = useRouter();
@@ -127,7 +131,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: "#0B0F0D" }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: c.background }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.topBar}>
           <Pressable
@@ -135,7 +139,7 @@ export default function RegisterScreen() {
             style={styles.backBtn}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+            <Ionicons name="chevron-back" size={24} color={c.textPrimary} />
           </Pressable>
           <Text style={styles.stepIndicator}>
             {step === "form" ? "Шаг 1 из 2" : "Шаг 2 из 2"}
@@ -155,7 +159,7 @@ export default function RegisterScreen() {
                 value={name}
                 onChangeText={setName}
                 placeholder="Иван Иванов"
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
                 style={styles.input}
               />
 
@@ -164,7 +168,7 @@ export default function RegisterScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="name@example.com"
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 style={styles.input}
@@ -191,22 +195,22 @@ export default function RegisterScreen() {
             </View>
 
             <Pressable onPress={() => router.replace("/login")} style={styles.switchBtn}>
-              <Text style={{ color: "#8E9B94", fontSize: 14 }}>
+              <Text style={{ color: c.textSecondary, fontSize: 14 }}>
                 Уже есть аккаунт?{" "}
-                <Text style={{ color: "#22C55E", fontWeight: "700" }}>Войти</Text>
+                <Text style={{ color: c.primary, fontWeight: "700" }}>Войти</Text>
               </Text>
             </Pressable>
           </>
         ) : (
           <>
             <View style={styles.emailIconBox}>
-              <Ionicons name="mail-open-outline" size={36} color="#22C55E" />
+              <Ionicons name="mail-open-outline" size={36} color={c.primary} />
             </View>
 
             <Text style={styles.title}>Введите код</Text>
             <Text style={styles.subtitle}>
               Мы отправили 6-значный код подтверждения на почту{"\n"}
-              <Text style={{ color: "#22C55E", fontWeight: "700" }}>{email}</Text>
+              <Text style={{ color: c.primary, fontWeight: "700" }}>{email}</Text>
             </Text>
 
             <View style={styles.form}>
@@ -218,7 +222,7 @@ export default function RegisterScreen() {
                   if (val.length === 6) hapticImpact();
                 }}
                 placeholder="123456"
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
                 keyboardType="number-pad"
                 maxLength={6}
                 style={styles.codeInput}
@@ -254,7 +258,7 @@ export default function RegisterScreen() {
                 onPress={() => setStep("form")}
                 style={styles.changeEmailBtn}
               >
-                <Ionicons name="pencil-outline" size={14} color="#8E9B94" />
+                <Ionicons name="pencil-outline" size={14} color={c.textSecondary} />
                 <Text style={styles.changeEmailText}>Изменить email адрес</Text>
               </Pressable>
             </View>
@@ -265,7 +269,8 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: { flex: 1 },
   scroll: { padding: 24, paddingBottom: 40 },
   topBar: {
@@ -278,14 +283,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#161D19",
+    backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   stepIndicator: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
     backgroundColor: "rgba(34, 197, 94, 0.12)",
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -303,58 +308,58 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(34, 197, 94, 0.25)",
   },
-  title: { fontSize: 26, fontWeight: "800", color: "#FFFFFF", marginBottom: 6 },
-  subtitle: { fontSize: 14, color: "#8E9B94", lineHeight: 20, marginBottom: 24 },
+  title: { fontSize: 26, fontWeight: "800", color: c.textPrimary, marginBottom: 6 },
+  subtitle: { fontSize: 14, color: c.textSecondary, lineHeight: 20, marginBottom: 24 },
   form: { gap: 14 },
   fieldLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#E2E8F0",
+    color: c.textPrimary,
     marginBottom: 2,
   },
   input: {
-    backgroundColor: "#161D19",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   codeInput: {
-    backgroundColor: "#161D19",
+    backgroundColor: c.surface,
     borderWidth: 1.5,
-    borderColor: "#22C55E",
+    borderColor: c.primary,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 16,
     fontSize: 28,
     fontWeight: "800",
-    color: "#22C55E",
+    color: c.primary,
     textAlign: "center",
     letterSpacing: 10,
   },
   primaryBtn: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: "center",
     marginTop: 10,
   },
-  primaryBtnText: { color: "#0B0F0D", fontWeight: "700", fontSize: 16 },
+  primaryBtnText: { color: c.background, fontWeight: "700", fontSize: 16 },
   resendRow: {
     alignItems: "center",
     marginTop: 10,
   },
   cooldownText: {
     fontSize: 13,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   resendBtnText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#22C55E",
+    color: c.primary,
   },
   changeEmailBtn: {
     flexDirection: "row",
@@ -365,7 +370,7 @@ const styles = StyleSheet.create({
   },
   changeEmailText: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   switchBtn: { marginTop: 28, alignItems: "center" },
 });

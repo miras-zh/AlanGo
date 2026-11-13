@@ -19,11 +19,15 @@ import { deleteAccountApi, logoutCurrentSession } from "@/lib/registration";
 import { updateMyProfile } from "@/lib/user";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 // Account settings: personal data (moved out of the profile screen), logout
 // and account deletion (App Store Guideline 5.1.1(v)).
 export default function AccountSettingsScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const user = getSessionUser();
   const [name, setName] = useState(user?.name || user?.full_name || "");
@@ -108,7 +112,7 @@ export default function AccountSettingsScreen() {
             router.back();
           }}
         >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="chevron-back" size={22} color={c.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Настройки аккаунта</Text>
       </View>
@@ -125,7 +129,7 @@ export default function AccountSettingsScreen() {
               onChangeText={setName}
               style={styles.input}
               placeholder="Ваше имя"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={c.textSecondary}
             />
 
             <Text style={styles.label}>Телефон</Text>
@@ -134,7 +138,7 @@ export default function AccountSettingsScreen() {
               onChangeText={setPhone}
               style={styles.input}
               placeholder="+7 (___) ___-__-__"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={c.textSecondary}
               keyboardType="phone-pad"
             />
 
@@ -144,7 +148,7 @@ export default function AccountSettingsScreen() {
               onChangeText={setCity}
               style={styles.input}
               placeholder="Город"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={c.textSecondary}
             />
 
             <Pressable
@@ -153,7 +157,7 @@ export default function AccountSettingsScreen() {
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color={colors.background} />
+                <ActivityIndicator color={c.background} />
               ) : (
                 <Text style={styles.saveBtnText}>Сохранить изменения</Text>
               )}
@@ -162,11 +166,11 @@ export default function AccountSettingsScreen() {
 
           <View style={styles.card}>
             <Pressable style={styles.logoutBtn} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={18} color={colors.textPrimary} />
+              <Ionicons name="log-out-outline" size={18} color={c.textPrimary} />
               <Text style={styles.logoutText}>Выйти из аккаунта</Text>
             </Pressable>
             <Pressable style={styles.deleteBtn} onPress={handleDeleteAccount}>
-              <Ionicons name="trash-outline" size={17} color={colors.error} />
+              <Ionicons name="trash-outline" size={17} color={c.error} />
               <Text style={styles.deleteText}>Удалить аккаунт</Text>
             </Pressable>
           </View>
@@ -176,10 +180,11 @@ export default function AccountSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -194,12 +199,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
   },
   headerTitle: {
     ...typography.sectionTitle,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   scroll: {
     padding: spacing.screenHorizontal,
@@ -210,34 +215,34 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
     gap: spacing.sm,
   },
   sectionTitle: {
     ...typography.cardTitle,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   email: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: spacing.xs,
   },
   label: {
     ...typography.caption,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: spacing.sm,
   },
   input: {
     height: 50,
     borderRadius: radii.button,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
+    borderColor: c.border,
+    backgroundColor: c.background,
     paddingHorizontal: spacing.lg,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
   },
   saveBtn: {
@@ -246,11 +251,11 @@ const styles = StyleSheet.create({
     borderRadius: radii.button,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   saveBtnText: {
     ...typography.button,
-    color: colors.background,
+    color: c.background,
   },
   logoutBtn: {
     height: 50,
@@ -259,11 +264,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.sm,
     borderRadius: radii.button,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   logoutText: {
     ...typography.button,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   deleteBtn: {
     height: 50,
@@ -273,10 +278,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderRadius: radii.button,
     borderWidth: 1,
-    borderColor: colors.error,
+    borderColor: c.error,
   },
   deleteText: {
     ...typography.button,
-    color: colors.error,
+    color: c.error,
   },
 });

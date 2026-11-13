@@ -7,9 +7,11 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radii, spacing } from "@/constants/theme";
+import { radii, spacing } from "@/constants/theme";
 import { SportEvent } from "@/lib/eventsData";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 export interface EventCardProps {
   event: SportEvent;
@@ -24,6 +26,8 @@ export function EventCard({
   onRegister,
   onToggleFavorite,
 }: EventCardProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       style={({ pressed }) => [
@@ -69,7 +73,7 @@ export function EventCard({
             <Ionicons
               name={event.isFavorite ? "heart" : "heart-outline"}
               size={20}
-              color={event.isFavorite ? colors.accent : "#FFFFFF"}
+              color={event.isFavorite ? c.accent : c.textPrimary}
             />
           </Pressable>
         </View>
@@ -79,7 +83,7 @@ export function EventCard({
           <Ionicons
             name="calendar-outline"
             size={13}
-            color={colors.textSecondary}
+            color={c.textSecondary}
             style={styles.metaIcon}
           />
           <Text style={styles.metaText} numberOfLines={1}>
@@ -92,7 +96,7 @@ export function EventCard({
           <Ionicons
             name="location-outline"
             size={13}
-            color={colors.textSecondary}
+            color={c.textSecondary}
             style={styles.metaIcon}
           />
           <Text style={styles.metaText} numberOfLines={1}>
@@ -125,13 +129,14 @@ export function EventCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   card: {
     flexDirection: "row",
-    backgroundColor: "rgba(18, 26, 22, 0.72)",
+    backgroundColor: c.glassBackground,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
     padding: 10,
     marginBottom: spacing.card,
     shadowColor: "#000000",
@@ -150,7 +155,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
     position: "relative",
-    backgroundColor: "#1C2722",
+    backgroundColor: c.surfaceElevated,
   },
   thumbnail: {
     width: "100%",
@@ -161,7 +166,7 @@ const styles = StyleSheet.create({
     top: 6,
     left: 6,
     maxWidth: 104,
-    backgroundColor: "rgba(8, 13, 11, 0.85)",
+    backgroundColor: c.glassBackground,
     paddingVertical: 3,
     paddingHorizontal: 7,
     borderRadius: 8,
@@ -171,7 +176,7 @@ const styles = StyleSheet.create({
   categoryBadgeText: {
     fontSize: 10,
     fontWeight: "700",
-    color: colors.primary,
+    color: c.primary,
   },
   infoWrapper: {
     flex: 1,
@@ -188,7 +193,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginRight: 6,
   },
   heartBtn: {
@@ -204,7 +209,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
   },
   bottomRow: {
@@ -216,10 +221,10 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: 15,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   registerBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     paddingVertical: 7,
     paddingHorizontal: 16,
     borderRadius: radii.button,
@@ -233,6 +238,6 @@ const styles = StyleSheet.create({
   registerBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: colors.background,
+    color: c.background,
   },
 });

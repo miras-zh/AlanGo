@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
 import {
   ArenaWithHalls,
   getArenasWithHalls,
@@ -27,6 +27,8 @@ import { getSelectedCity, setSelectedCity, TOP_CITIES } from "@/lib/cities";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 import { VenueCard } from "@/components/VenueCard";
 import { FilterModal, FilterState } from "@/components/FilterModal";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const SPORT_CHIPS = [
   { key: "Все", label: "Все", icon: "apps-outline" },
@@ -49,6 +51,8 @@ const CITIES = ["Астана", "Алматы", "Шымкент", "Карага�
 const FAVORITES_STORAGE_KEY = "alango_favorite_halls";
 
 export default function ItemsScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const searchParams = useLocalSearchParams<{ openFilter?: string; sport?: string }>();
 
@@ -243,7 +247,7 @@ export default function ItemsScreen() {
               router.push("/map");
             }}
           >
-            <Ionicons name="location-outline" size={19} color={colors.textPrimary} />
+            <Ionicons name="location-outline" size={19} color={c.textPrimary} />
           </Pressable>
 
           {/* Filter Button */}
@@ -261,7 +265,7 @@ export default function ItemsScreen() {
             <Ionicons
               name="options-outline"
               size={19}
-              color={activeFiltersCount > 0 ? colors.primary : colors.textPrimary}
+              color={activeFiltersCount > 0 ? c.primary : c.textPrimary}
             />
             {activeFiltersCount > 0 && <View style={styles.filterDot} />}
           </Pressable>
@@ -274,12 +278,12 @@ export default function ItemsScreen() {
           <Ionicons
             name="search-outline"
             size={18}
-            color={colors.textSecondary}
+            color={c.textSecondary}
             style={{ marginRight: 8 }}
           />
           <TextInput
             placeholder="Поиск по названию, адресу..."
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={c.textSecondary}
             value={search}
             onChangeText={setSearch}
             style={styles.searchInput}
@@ -290,7 +294,7 @@ export default function ItemsScreen() {
               <Ionicons
                 name="close-circle"
                 size={16}
-                color={colors.textSecondary}
+                color={c.textSecondary}
               />
             </Pressable>
           )}
@@ -318,7 +322,7 @@ export default function ItemsScreen() {
                 <Ionicons
                   name={chip.icon as any}
                   size={15}
-                  color={isSelected ? colors.primary : colors.textSecondary}
+                  color={isSelected ? c.primary : c.textSecondary}
                   style={{ marginRight: 6 }}
                 />
                 <Text
@@ -349,7 +353,7 @@ export default function ItemsScreen() {
           <Ionicons
             name="chevron-down"
             size={13}
-            color={colors.textSecondary}
+            color={c.textSecondary}
             style={{ marginLeft: 4 }}
           />
         </Pressable>
@@ -365,14 +369,14 @@ export default function ItemsScreen() {
           <Ionicons
             name="navigate-outline"
             size={13}
-            color={colors.primary}
+            color={c.primary}
             style={{ marginRight: 4 }}
           />
           <Text style={styles.controlPillText}>{currentCity}</Text>
           <Ionicons
             name="chevron-down"
             size={13}
-            color={colors.textSecondary}
+            color={c.textSecondary}
             style={{ marginLeft: 4 }}
           />
         </Pressable>
@@ -381,7 +385,7 @@ export default function ItemsScreen() {
       {/* 5. Venue Cards List */}
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator color={colors.primary} size="large" />
+          <ActivityIndicator color={c.primary} size="large" />
           <Text style={styles.loadingText}>Загрузка залов...</Text>
         </View>
       ) : (
@@ -397,7 +401,7 @@ export default function ItemsScreen() {
                 setRefreshing(true);
                 loadData();
               }}
-              tintColor={colors.primary}
+              tintColor={c.primary}
             />
           }
           ListEmptyComponent={
@@ -405,7 +409,7 @@ export default function ItemsScreen() {
               <Ionicons
                 name="search-outline"
                 size={48}
-                color={colors.textSecondary}
+                color={c.textSecondary}
               />
               <Text style={styles.emptyTitle}>Залы не найдены</Text>
               <Text style={styles.emptySub}>
@@ -521,7 +525,7 @@ export default function ItemsScreen() {
                   {opt.label}
                 </Text>
                 {currentSort === opt.key && (
-                  <Ionicons name="checkmark" size={18} color={colors.primary} />
+                  <Ionicons name="checkmark" size={18} color={c.primary} />
                 )}
               </Pressable>
             ))}
@@ -542,25 +546,25 @@ export default function ItemsScreen() {
         >
           <View style={styles.sortSheet}>
             <Text style={styles.sortTitle}>Выберите город</Text>
-            {CITIES.map((c) => (
+            {CITIES.map((cityName) => (
               <Pressable
-                key={c}
+                key={cityName}
                 style={[
                   styles.sortOptionRow,
-                  currentCity === c && styles.sortOptionRowActive,
+                  currentCity === cityName && styles.sortOptionRowActive,
                 ]}
-                onPress={() => handleSelectCity(c)}
+                onPress={() => handleSelectCity(cityName)}
               >
                 <Text
                   style={[
                     styles.sortOptionText,
-                    currentCity === c && styles.sortOptionTextActive,
+                    currentCity === cityName && styles.sortOptionTextActive,
                   ]}
                 >
-                  {c}
+                  {cityName}
                 </Text>
-                {currentCity === c && (
-                  <Ionicons name="checkmark" size={18} color={colors.primary} />
+                {currentCity === cityName && (
+                  <Ionicons name="checkmark" size={18} color={c.primary} />
                 )}
               </Pressable>
             ))}
@@ -571,10 +575,11 @@ export default function ItemsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -589,11 +594,11 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     ...typography.screenTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   screenSubtitle: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   headerActions: {
@@ -605,15 +610,15 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
   iconBtnActive: {
-    borderColor: colors.primary,
+    borderColor: c.primary,
     backgroundColor: "rgba(0, 201, 104, 0.15)",
   },
   filterDot: {
@@ -623,7 +628,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   searchContainer: {
     paddingHorizontal: spacing.screenHorizontal,
@@ -633,16 +638,16 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radii.button,
     paddingHorizontal: 12,
     height: 44,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   searchInput: {
     flex: 1,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
   },
   categoriesWrap: {
@@ -658,21 +663,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radii.smallChip,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   categoryChipActive: {
     backgroundColor: "rgba(0, 201, 104, 0.15)",
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   categoryText: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   categoryTextActive: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   controlsRow: {
@@ -685,22 +690,22 @@ const styles = StyleSheet.create({
   controlPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radii.smallChip,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   controlPillText: {
     fontSize: 12,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   activeFilterPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radii.smallChip,
@@ -708,7 +713,7 @@ const styles = StyleSheet.create({
   activeFilterPillText: {
     fontSize: 12,
     fontWeight: "800",
-    color: "#080D0B",
+    color: c.background,
   },
   listContent: {
     paddingHorizontal: spacing.screenHorizontal,
@@ -721,7 +726,7 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   loadingText: {
-    color: colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 13,
     marginTop: 10,
   },
@@ -732,29 +737,29 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...typography.sectionTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 14,
   },
   emptySub: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     textAlign: "center",
     marginTop: 6,
     paddingHorizontal: 32,
   },
   emptyResetBtn: {
     marginTop: 16,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: radii.button,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   emptyResetBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: colors.primary,
+    color: c.primary,
   },
   modalBackdrop: {
     flex: 1,
@@ -763,16 +768,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   sortSheet: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radii.modal,
     padding: 20,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   sortTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 14,
   },
   sortOptionRow: {
@@ -781,7 +786,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.05)",
+    borderBottomColor: c.hairline,
   },
   sortOptionRowActive: {
     backgroundColor: "rgba(0, 201, 104, 0.08)",
@@ -790,11 +795,11 @@ const styles = StyleSheet.create({
   },
   sortOptionText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "500",
   },
   sortOptionTextActive: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
 });

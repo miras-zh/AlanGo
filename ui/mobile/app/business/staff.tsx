@@ -27,14 +27,18 @@ import {
 } from "@/lib/businessCrmData";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 const ROLES: { key: StaffMember["role"]; label: string; color: string }[] = [
-  { key: "admin_senior", label: "Старший админ 🔑", color: "#22C55E" },
+  { key: "admin_senior", label: "Старший админ 🔑", color: "#00C968" },
   { key: "manager_shift", label: "Менеджер смены 📋", color: "#3B82F6" },
   { key: "duty_coach", label: "Дежурный тренер ⚽️", color: "#A855F7" },
   { key: "maintenance", label: "Техник / Инвентарь 🔧", color: "#EAB308" },
 ];
 
 export default function BusinessStaffScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState(getSessionUser());
   const { arenaId, loading: arenaLoading } = useMyArenaId();
@@ -141,7 +145,7 @@ export default function BusinessStaffScreen() {
           }}
           hitSlop={10}
         >
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </Pressable>
 
         <View style={{ flex: 1, marginHorizontal: 8 }}>
@@ -158,14 +162,14 @@ export default function BusinessStaffScreen() {
             setModalOpen(true);
           }}
         >
-          <Ionicons name="add" size={18} color="#0B0F0D" />
+          <Ionicons name="add" size={18} color={c.background} />
           <Text style={styles.addBtnText}>Добавить</Text>
         </Pressable>
       </View>
 
       {loading ? (
         <View style={styles.centerWrap}>
-          <ActivityIndicator color="#22C55E" size="small" />
+          <ActivityIndicator color={c.primary} size="small" />
         </View>
       ) : (
         <FlatList
@@ -179,12 +183,12 @@ export default function BusinessStaffScreen() {
                 setRefreshing(true);
                 loadData();
               }}
-              tintColor="#22C55E"
+              tintColor={c.primary}
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Ionicons name="person-add-outline" size={48} color="#2A352E" />
+              <Ionicons name="person-add-outline" size={48} color={c.border} />
               <Text style={styles.emptyTitle}>Нет сотрудников</Text>
               <Text style={styles.emptySub}>
                 Нажмите «Добавить», чтобы назначить дежурных менеджеров арены.
@@ -204,7 +208,7 @@ export default function BusinessStaffScreen() {
                 <View style={styles.cardTopRow}>
                   <View style={styles.avatarWrap}>
                     <View style={styles.avatarBox}>
-                      <Ionicons name="person" size={20} color="#22C55E" />
+                      <Ionicons name="person" size={20} color={c.primary} />
                     </View>
                   </View>
 
@@ -227,7 +231,7 @@ export default function BusinessStaffScreen() {
 
                 {/* Shift Info */}
                 <View style={styles.shiftBox}>
-                  <Ionicons name="calendar-outline" size={14} color="#8E9B94" />
+                  <Ionicons name="calendar-outline" size={14} color={c.textSecondary} />
                   <Text style={styles.shiftText}>Смены: {item.shiftDays}</Text>
                 </View>
 
@@ -235,7 +239,7 @@ export default function BusinessStaffScreen() {
                 <View style={styles.actionsRow}>
                   {isCurrent ? (
                     <View style={styles.activeSessionBadge}>
-                      <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                      <Ionicons name="checkmark-circle" size={14} color={c.primary} />
                       <Text style={styles.activeSessionText}>Вы вошли</Text>
                     </View>
                   ) : (
@@ -243,7 +247,7 @@ export default function BusinessStaffScreen() {
                       style={styles.switchBtn}
                       onPress={() => handleSwitchToStaff(item)}
                     >
-                      <Ionicons name="log-in-outline" size={14} color="#10B981" />
+                      <Ionicons name="log-in-outline" size={14} color={c.primary} />
                       <Text style={styles.switchBtnText}>Войти</Text>
                     </Pressable>
                   )}
@@ -252,7 +256,7 @@ export default function BusinessStaffScreen() {
                     style={styles.callBtn}
                     onPress={() => handleCall(item.phone)}
                   >
-                    <Ionicons name="call" size={14} color="#FFFFFF" />
+                    <Ionicons name="call" size={14} color={c.textPrimary} />
                     <Text style={styles.callBtnText}>Позвонить</Text>
                   </Pressable>
 
@@ -260,7 +264,7 @@ export default function BusinessStaffScreen() {
                     style={styles.removeBtn}
                     onPress={() => handleRemove(item.id, item.name)}
                   >
-                    <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                    <Ionicons name="trash-outline" size={14} color={c.error} />
                     <Text style={styles.removeBtnText}>Отозвать</Text>
                   </Pressable>
                 </View>
@@ -277,7 +281,7 @@ export default function BusinessStaffScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Новый сотрудник арены</Text>
               <Pressable onPress={() => setModalOpen(false)} hitSlop={10}>
-                <Ionicons name="close" size={24} color="#FFFFFF" />
+                <Ionicons name="close" size={24} color={c.textPrimary} />
               </Pressable>
             </View>
 
@@ -286,7 +290,7 @@ export default function BusinessStaffScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Например: Арман Сериков"
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
                 value={newName}
                 onChangeText={setNewName}
               />
@@ -296,7 +300,7 @@ export default function BusinessStaffScreen() {
                 style={styles.input}
                 keyboardType="phone-pad"
                 placeholder="+7 (701) 000-00-00"
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
                 value={newPhone}
                 onChangeText={setNewPhone}
               />
@@ -331,7 +335,7 @@ export default function BusinessStaffScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Например: Пн, Ср, Пт (08:00 - 16:00)"
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
                 value={newShifts}
                 onChangeText={setNewShifts}
               />
@@ -347,10 +351,11 @@ export default function BusinessStaffScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -358,7 +363,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   backBtn: {
     paddingRight: 6,
@@ -366,18 +371,18 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   headerSub: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -385,7 +390,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
   centerWrap: {
     flex: 1,
@@ -398,11 +403,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   staffCard: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   cardTopRow: {
     flexDirection: "row",
@@ -422,18 +427,18 @@ const styles = StyleSheet.create({
   staffName: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   staffPhone: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   roleBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    backgroundColor: c.hairline,
     borderWidth: 1,
   },
   roleBadgeText: {
@@ -444,14 +449,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     padding: 8,
     borderRadius: 8,
     marginTop: 10,
   },
   shiftText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   actionsRow: {
     flexDirection: "row",
@@ -473,7 +478,7 @@ const styles = StyleSheet.create({
   switchBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#10B981",
+    color: c.primary,
   },
   activeSessionBadge: {
     flex: 1.1,
@@ -485,12 +490,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#10B981",
+    borderColor: c.primary,
   },
   activeSessionText: {
     fontSize: 12,
     fontWeight: "800",
-    color: "#10B981",
+    color: c.primary,
   },
   callBtn: {
     flex: 1,
@@ -498,14 +503,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: c.subtle,
     paddingVertical: 8,
     borderRadius: 8,
   },
   callBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   removeBtn: {
     flex: 1,
@@ -520,7 +525,7 @@ const styles = StyleSheet.create({
   removeBtnText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#EF4444",
+    color: c.error,
   },
   modalOverlay: {
     flex: 1,
@@ -528,12 +533,12 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "90%",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
   },
   modalHeader: {
     flexDirection: "row",
@@ -542,12 +547,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.08)",
+    borderBottomColor: c.subtle,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   modalScroll: {
     padding: 20,
@@ -555,18 +560,18 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 14,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
     marginBottom: 14,
   },
   rolesGrid: {
@@ -579,25 +584,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   roleChipActive: {
-    borderColor: "#22C55E",
+    borderColor: c.primary,
     backgroundColor: "rgba(34, 197, 94, 0.15)",
   },
   roleChipText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontWeight: "600",
   },
   roleChipTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   submitBtn: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
@@ -607,7 +612,7 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#0B0F0D",
+    color: c.background,
   },
   emptyWrap: {
     alignItems: "center",
@@ -617,12 +622,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginTop: 12,
   },
   emptySub: {
     fontSize: 12,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginTop: 4,
     textAlign: "center",
   },

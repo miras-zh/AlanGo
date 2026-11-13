@@ -7,8 +7,10 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 export interface VenueCardProps {
   id: number | string;
@@ -53,6 +55,8 @@ export function VenueCard({
   onPress,
   onToggleFavorite,
 }: VenueCardProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const formattedPrice = (pricePerHour || 0).toLocaleString("ru-RU");
 
   return (
@@ -79,7 +83,7 @@ export function VenueCard({
             <Ionicons
               name={getSportIcon(sportType)}
               size={26}
-              color={colors.textSecondary}
+              color={c.textSecondary}
             />
           </View>
         )}
@@ -101,7 +105,7 @@ export function VenueCard({
             <Ionicons
               name={isFavorite ? "heart" : "heart-outline"}
               size={13}
-              color={isFavorite ? colors.accent : colors.textPrimary}
+              color={isFavorite ? c.accent : c.textPrimary}
             />
           </Pressable>
         )}
@@ -116,7 +120,7 @@ export function VenueCard({
 
         {/* Rating & Reviews */}
         <View style={styles.ratingRow}>
-          <Ionicons name="star" size={13} color={colors.primary} />
+          <Ionicons name="star" size={13} color={c.primary} />
           <Text style={styles.ratingValue}>{rating ? rating.toFixed(1) : "5.0"}</Text>
           {reviewsCount !== undefined && (
             <Text style={styles.reviewsCount}>({reviewsCount})</Text>
@@ -129,7 +133,7 @@ export function VenueCard({
             <Ionicons
               name="location-outline"
               size={12}
-              color={colors.textSecondary}
+              color={c.textSecondary}
               style={styles.metaIcon}
             />
             <Text style={styles.metaText} numberOfLines={1}>
@@ -142,7 +146,7 @@ export function VenueCard({
             <Ionicons
               name="location-outline"
               size={12}
-              color={colors.textSecondary}
+              color={c.textSecondary}
               style={styles.metaIcon}
             />
             <Text style={styles.metaText} numberOfLines={1}>
@@ -157,7 +161,7 @@ export function VenueCard({
             <Ionicons
               name={getSportIcon(sportType)}
               size={12}
-              color={colors.textSecondary}
+              color={c.textSecondary}
               style={styles.metaIcon}
             />
             <Text style={styles.metaText} numberOfLines={1}>
@@ -172,7 +176,7 @@ export function VenueCard({
             <Ionicons
               name="calendar-outline"
               size={12}
-              color={colors.textSecondary}
+              color={c.textSecondary}
               style={styles.metaIcon}
             />
             <Text style={styles.metaText} numberOfLines={1}>
@@ -200,7 +204,7 @@ export function VenueCard({
               onPress();
             }}
           >
-            <Ionicons name="arrow-forward" size={18} color={colors.background} />
+            <Ionicons name="arrow-forward" size={18} color={c.background} />
           </Pressable>
         </View>
       </View>
@@ -208,12 +212,13 @@ export function VenueCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: spacing.md,
     marginBottom: spacing.card,
     flexDirection: "row",
@@ -221,13 +226,13 @@ const styles = StyleSheet.create({
   },
   cardPressed: {
     opacity: 0.96,
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   imageContainer: {
     width: 108,
     height: 108,
     borderRadius: 14,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     overflow: "hidden",
     position: "relative",
     flexShrink: 0,
@@ -241,7 +246,7 @@ const styles = StyleSheet.create({
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   favoriteBtn: {
     position: "absolute",
@@ -250,9 +255,9 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: "rgba(18, 26, 22, 0.72)",
+    backgroundColor: c.glassBackground,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: c.glassBorder,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -263,7 +268,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.cardTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     lineHeight: 20,
     marginBottom: 2,
   },
@@ -276,12 +281,12 @@ const styles = StyleSheet.create({
   ratingValue: {
     fontSize: 12,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   reviewsCount: {
     fontSize: 12,
     fontWeight: "400",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   metaRow: {
     flexDirection: "row",
@@ -294,7 +299,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
   },
   bottomRow: {
@@ -312,22 +317,22 @@ const styles = StyleSheet.create({
   },
   pricePrefix: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   priceAmount: {
     fontSize: 16,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   priceSuffix: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   actionBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,

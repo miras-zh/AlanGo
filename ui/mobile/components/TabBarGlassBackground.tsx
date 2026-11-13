@@ -1,6 +1,8 @@
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View, UIManager } from "react-native";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 // Safe check to avoid "Unimplemented component: <ViewManagerAdapter_ExpoBlur_ExpoBlurView>"
 // if native module isn't loaded in the current Expo Go client.
 function isBlurSupported(): boolean {
@@ -21,6 +23,8 @@ function isBlurSupported(): boolean {
  * mirroring the high-end iOS/Android Liquid Glass visual design from Vison.
  */
 export function TabBarGlassBackground({ isCapsule = false }: { isCapsule?: boolean }) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const canBlur = isBlurSupported();
 
   return (
@@ -56,7 +60,7 @@ export function TabBarGlassBackground({ isCapsule = false }: { isCapsule?: boole
         style={[
           isCapsule ? styles.capsuleBorder : styles.hairline,
           {
-            borderColor: "rgba(255, 255, 255, 0.12)",
+            borderColor: c.subtle,
           },
         ]}
       />
@@ -64,14 +68,15 @@ export function TabBarGlassBackground({ isCapsule = false }: { isCapsule?: boole
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   hairline: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    backgroundColor: c.subtle,
   },
   capsuleBorder: {
     ...StyleSheet.absoluteFill,

@@ -25,9 +25,13 @@ import {
 } from "@/lib/chatData";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 type TabType = "chats" | "notifications";
 
 export default function NotificationsScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("chats");
   const [dialogs, setDialogs] = useState<ChatDialog[]>([]);
@@ -93,7 +97,7 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: "#0B0F0D" }]}
+      style={[styles.container, { backgroundColor: c.background }]}
       edges={["top"]}
     >
       {/* Header */}
@@ -163,12 +167,12 @@ export default function NotificationsScreen() {
                 setRefreshing(true);
                 loadData();
               }}
-              tintColor="#22C55E"
+              tintColor={c.primary}
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Ionicons name="chatbubbles-outline" size={48} color="#2A352E" />
+              <Ionicons name="chatbubbles-outline" size={48} color={c.border} />
               <Text style={styles.emptyTitle}>Нет диалогов</Text>
               <Text style={styles.emptySub}>
                 Напишите спортивному комплексу, чтобы уточнить детали игры.
@@ -222,7 +226,7 @@ export default function NotificationsScreen() {
                 setRefreshing(true);
                 loadData();
               }}
-              tintColor="#22C55E"
+              tintColor={c.primary}
             />
           }
           ListEmptyComponent={
@@ -230,7 +234,7 @@ export default function NotificationsScreen() {
               <Ionicons
                 name="notifications-outline"
                 size={48}
-                color="#2A352E"
+                color={c.border}
               />
               <Text style={styles.emptyTitle}>Нет уведомлений</Text>
               <Text style={styles.emptySub}>
@@ -258,7 +262,7 @@ export default function NotificationsScreen() {
                   size={20}
                   color={
                     item.type === "booking_confirmed"
-                      ? "#22C55E"
+                      ? c.primary
                       : item.type === "promo"
                       ? "#EAB308"
                       : "#3B82F6"
@@ -286,7 +290,8 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -297,7 +302,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   tabsRow: {
     flexDirection: "row",
@@ -309,32 +314,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   tabBtnActive: {
     backgroundColor: "rgba(34, 197, 94, 0.2)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   tabBtnText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   tabBtnTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   tabBadgeDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     marginLeft: 6,
   },
   tabBadgeCount: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 10,
@@ -343,11 +348,11 @@ const styles = StyleSheet.create({
   tabBadgeCountText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#0B0F0D",
+    color: c.background,
   },
   readAllText: {
     fontSize: 12,
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "600",
   },
   list: {
@@ -360,9 +365,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 12,
     borderRadius: 14,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
     gap: 12,
   },
   avatarWrap: {
@@ -381,9 +386,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     borderWidth: 2,
-    borderColor: "#131916",
+    borderColor: c.surface,
   },
   chatBody: {
     flex: 1,
@@ -397,13 +402,13 @@ const styles = StyleSheet.create({
   chatName: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     flex: 1,
     marginRight: 8,
   },
   chatTime: {
     fontSize: 11,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   chatMsgRow: {
     flexDirection: "row",
@@ -412,12 +417,12 @@ const styles = StyleSheet.create({
   },
   chatMessage: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
     flex: 1,
     marginRight: 8,
   },
   unreadBadge: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 10,
@@ -425,15 +430,15 @@ const styles = StyleSheet.create({
   unreadText: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#0B0F0D",
+    color: c.background,
   },
   notifCard: {
     flexDirection: "row",
     padding: 14,
     borderRadius: 14,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
     gap: 12,
   },
   notifCardUnread: {
@@ -444,7 +449,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -454,17 +459,17 @@ const styles = StyleSheet.create({
   notifTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 4,
   },
   notifText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     lineHeight: 18,
   },
   notifDate: {
     fontSize: 10,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginTop: 6,
   },
   emptyWrap: {
@@ -475,12 +480,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginTop: 12,
   },
   emptySub: {
     fontSize: 12,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginTop: 4,
     textAlign: "center",
     maxWidth: 240,

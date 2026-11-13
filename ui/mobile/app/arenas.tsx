@@ -19,7 +19,9 @@ import { ArenaWithHalls, getArenasWithHalls } from "@/lib/sportRentData";
 import { getSelectedCity } from "@/lib/cities";
 import { plural } from "@/lib/plural";
 import { hapticSelection } from "@/lib/haptics";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const SPORTS = ["Все", "Футбол", "Мини-футбол", "Баскетбол", "Волейбол", "Теннис", "Сквош и падл", "Хоккей"];
 
@@ -33,6 +35,8 @@ type SortKey = (typeof SORTS)[number]["key"];
 // Sports complexes (arenas) — separate from the halls catalog: each card is
 // a whole venue with several halls inside.
 export default function ArenasScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const params = useLocalSearchParams<{ sport?: string }>();
   const [arenas, setArenas] = useState<ArenaWithHalls[]>([]);
@@ -89,7 +93,7 @@ export default function ArenasScreen() {
             else router.replace("/(tabs)");
           }}
         >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="chevron-back" size={22} color={c.textPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Спорткомплексы</Text>
@@ -111,18 +115,18 @@ export default function ArenasScreen() {
               setRefreshing(true);
               load();
             }}
-            tintColor={colors.primary}
+            tintColor={c.primary}
           />
         }
         ListHeaderComponent={
           <View style={styles.filters}>
             <View style={styles.searchBox}>
-              <Ionicons name="search" size={18} color={colors.textSecondary} />
+              <Ionicons name="search" size={18} color={c.textSecondary} />
               <TextInput
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Название или адрес"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={c.textSecondary}
                 style={styles.searchInput}
               />
             </View>
@@ -166,10 +170,10 @@ export default function ArenasScreen() {
         ItemSeparatorComponent={() => <View style={{ height: spacing.card }} />}
         ListEmptyComponent={
           loading ? (
-            <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xxl }} />
+            <ActivityIndicator color={c.primary} style={{ marginTop: spacing.xxl }} />
           ) : (
             <View style={styles.empty}>
-              <Ionicons name="business-outline" size={44} color={colors.border} />
+              <Ionicons name="business-outline" size={44} color={c.border} />
               <Text style={styles.emptyTitle}>Спорткомплексы не найдены</Text>
               <Text style={styles.emptySub}>Попробуйте другой вид спорта или запрос.</Text>
             </View>
@@ -188,10 +192,11 @@ export default function ArenasScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -206,16 +211,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
   },
   headerTitle: {
     ...typography.screenTitle,
     fontSize: 24,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   headerSub: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   list: {
     paddingHorizontal: spacing.screenHorizontal,
@@ -234,12 +239,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radii.button,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   searchInput: {
     flex: 1,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
   },
   chips: {
@@ -250,20 +255,20 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radii.smallChip,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   chipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.surfaceElevated,
+    borderColor: c.primary,
+    backgroundColor: c.surfaceElevated,
   },
   chipText: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "600",
   },
   chipTextActive: {
-    color: colors.primary,
+    color: c.primary,
   },
   sortRow: {
     flexDirection: "row",
@@ -272,15 +277,15 @@ const styles = StyleSheet.create({
   },
   sortLabel: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   sortOption: {
     ...typography.caption,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   sortOptionActive: {
-    color: colors.primary,
+    color: c.primary,
   },
   empty: {
     alignItems: "center",
@@ -289,10 +294,10 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...typography.cardTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   emptySub: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
 });

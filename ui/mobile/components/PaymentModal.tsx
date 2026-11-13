@@ -10,8 +10,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Booking } from "@/lib/sportRentData";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 interface PaymentModalProps {
   visible: boolean;
@@ -26,6 +28,8 @@ export function PaymentModal({
   onClose,
   onSavePayment,
 }: PaymentModalProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [amountStr, setAmountStr] = useState("0");
   const [saving, setSaving] = useState(false);
 
@@ -73,7 +77,7 @@ export function PaymentModal({
           <View style={styles.header}>
             <View style={styles.headerTitleWrap}>
               <View style={styles.iconCircle}>
-                <Ionicons name="card" size={20} color="#22C55E" />
+                <Ionicons name="card" size={20} color={c.primary} />
               </View>
               <View>
                 <Text style={styles.title}>Учет оплаты брони</Text>
@@ -83,7 +87,7 @@ export function PaymentModal({
               </View>
             </View>
             <Pressable onPress={onClose} hitSlop={10} style={styles.closeBtn}>
-              <Ionicons name="close" size={20} color="#8E9B94" />
+              <Ionicons name="close" size={20} color={c.textSecondary} />
             </Pressable>
           </View>
 
@@ -127,7 +131,7 @@ export function PaymentModal({
               <Ionicons
                 name="checkmark-circle"
                 size={16}
-                color={currentPaid === total ? "#0B0F0D" : "#22C55E"}
+                color={currentPaid === total ? c.background : c.primary}
               />
               <Text
                 style={[
@@ -200,7 +204,7 @@ export function PaymentModal({
               onChangeText={(txt) => setAmountStr(txt.replace(/[^\d]/g, ""))}
               keyboardType="number-pad"
               placeholder="0"
-              placeholderTextColor="#6B7C72"
+              placeholderTextColor={c.textMuted}
             />
             <Text style={styles.currencyTag}>₸</Text>
           </View>
@@ -210,7 +214,7 @@ export function PaymentModal({
             <Text style={styles.statusPreviewLabel}>Итоговый статус:</Text>
             {remaining === 0 && total > 0 ? (
               <View style={[styles.statusBadge, styles.statusBadgePaid]}>
-                <Ionicons name="checkmark-done" size={14} color="#22C55E" />
+                <Ionicons name="checkmark-done" size={14} color={c.primary} />
                 <Text style={styles.statusBadgeTextPaid}>Оплачено 100%</Text>
               </View>
             ) : currentPaid > 0 ? (
@@ -222,7 +226,7 @@ export function PaymentModal({
               </View>
             ) : (
               <View style={[styles.statusBadge, styles.statusBadgeNotPaid]}>
-                <Ionicons name="time-outline" size={14} color="#EF4444" />
+                <Ionicons name="time-outline" size={14} color={c.error} />
                 <Text style={styles.statusBadgeTextNotPaid}>Не оплачено</Text>
               </View>
             )}
@@ -244,7 +248,8 @@ export function PaymentModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.75)",
@@ -255,7 +260,7 @@ const styles = StyleSheet.create({
   modalCard: {
     width: "100%",
     maxWidth: 420,
-    backgroundColor: "#141A17",
+    backgroundColor: c.surface,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: "#223128",
@@ -290,18 +295,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   subTitle: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#1C2420",
+    backgroundColor: c.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -309,9 +314,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    backgroundColor: "#1A221E",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#25332A",
+    borderColor: c.surfaceElevated,
     borderRadius: 16,
     paddingVertical: 12,
     marginBottom: 16,
@@ -321,25 +326,25 @@ const styles = StyleSheet.create({
   },
   overviewLabel: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginBottom: 4,
   },
   overviewTotal: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   overviewPaid: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   overviewRemaining: {
     fontSize: 15,
     fontWeight: "700",
   },
   remainingZero: {
-    color: "#22C55E",
+    color: c.primary,
   },
   remainingDue: {
     color: "#F59E0B",
@@ -352,7 +357,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#9EABA3",
+    color: c.textSecondary,
     marginBottom: 8,
   },
   presetsGrid: {
@@ -373,25 +378,25 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   presetBtnActive: {
-    backgroundColor: "#22C55E",
-    borderColor: "#22C55E",
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   presetBtnText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#D1D5DB",
+    color: c.textSecondary,
   },
   presetBtnTextActive: {
-    color: "#0B0F0D",
+    color: c.background,
     fontWeight: "700",
   },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1A221E",
+    backgroundColor: c.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#25332A",
+    borderColor: c.surfaceElevated,
     paddingHorizontal: 16,
     marginBottom: 16,
   },
@@ -400,12 +405,12 @@ const styles = StyleSheet.create({
     height: 48,
     fontSize: 18,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   currencyTag: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   statusPreviewRow: {
     flexDirection: "row",
@@ -416,7 +421,7 @@ const styles = StyleSheet.create({
   },
   statusPreviewLabel: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   statusBadge: {
     flexDirection: "row",
@@ -434,7 +439,7 @@ const styles = StyleSheet.create({
   statusBadgeTextPaid: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   statusBadgePartial: {
     backgroundColor: "rgba(245, 158, 11, 0.15)",
@@ -454,10 +459,10 @@ const styles = StyleSheet.create({
   statusBadgeTextNotPaid: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#EF4444",
+    color: c.error,
   },
   saveBtn: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
@@ -469,6 +474,6 @@ const styles = StyleSheet.create({
   saveBtnText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
 });

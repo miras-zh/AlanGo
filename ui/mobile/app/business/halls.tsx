@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
 import { resolveMyArenaId } from "@/lib/business";
 import { getSessionUser } from "@/lib/auth";
 import {
@@ -41,6 +41,8 @@ import { pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 const SPORT_OPTIONS: SportType[] = [
   "Футбол",
   "Баскетбол",
@@ -64,6 +66,8 @@ const PRESET_EQUIPMENT = [
 ];
 
 export default function BusinessHallsScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [arenaId, setArenaId] = useState<number | null>(null);
   const [hallsLoaded, setHallsLoaded] = useState(false);
@@ -312,7 +316,7 @@ export default function BusinessHallsScreen() {
           </Text>
         </View>
         <Pressable style={styles.addBtn} onPress={openCreateModal}>
-          <Ionicons name="add" size={20} color="#0B0F0D" />
+          <Ionicons name="add" size={20} color={c.background} />
           <Text style={styles.addBtnText}>Добавить</Text>
         </Pressable>
       </View>
@@ -328,19 +332,19 @@ export default function BusinessHallsScreen() {
               setRefreshing(true);
               loadHalls();
             }}
-            tintColor="#22C55E"
+            tintColor={c.primary}
           />
         }
         ListEmptyComponent={
           hallsLoaded ? (
             <View style={styles.emptyWrap}>
-              <Ionicons name="layers-outline" size={48} color={colors.border} />
+              <Ionicons name="layers-outline" size={48} color={c.border} />
               <Text style={styles.emptyTitle}>У вас пока нет залов</Text>
               <Text style={styles.emptySub}>
                 Добавьте первый зал или площадку: вид спорта, покрытие и цену за час.
               </Text>
               <Pressable style={styles.emptyBtn} onPress={openCreateModal}>
-                <Ionicons name="add" size={18} color={colors.background} />
+                <Ionicons name="add" size={18} color={c.background} />
                 <Text style={styles.emptyBtnText}>Добавить зал</Text>
               </Pressable>
             </View>
@@ -352,13 +356,13 @@ export default function BusinessHallsScreen() {
               <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
             ) : (
               <Pressable style={[styles.cardImage, styles.cardImageEmpty]} onPress={() => openEditModal(item)}>
-                <Ionicons name="images-outline" size={32} color={colors.textSecondary} />
+                <Ionicons name="images-outline" size={32} color={c.textSecondary} />
                 <Text style={styles.cardImageEmptyText}>Добавьте фото зала</Text>
               </Pressable>
             )}
             {(item.photos?.length ?? 0) > 1 ? (
               <View style={styles.photoCountBadge}>
-                <Ionicons name="images" size={12} color={colors.textPrimary} />
+                <Ionicons name="images" size={12} color={c.textPrimary} />
                 <Text style={styles.photoCountText}>{item.photos?.length}</Text>
               </View>
             ) : null}
@@ -380,7 +384,7 @@ export default function BusinessHallsScreen() {
                       styles.statusDot,
                       {
                         backgroundColor:
-                          item.status === "active" ? "#22C55E" : "#EAB308",
+                          item.status === "active" ? c.primary : "#EAB308",
                       },
                     ]}
                   />
@@ -389,7 +393,7 @@ export default function BusinessHallsScreen() {
                       styles.statusPillText,
                       {
                         color:
-                          item.status === "active" ? "#22C55E" : "#EAB308",
+                          item.status === "active" ? c.primary : "#EAB308",
                       },
                     ]}
                   >
@@ -402,7 +406,7 @@ export default function BusinessHallsScreen() {
 
               {/* Surface type */}
               <View style={styles.metaRow}>
-                <Ionicons name="layers-outline" size={14} color="#22C55E" />
+                <Ionicons name="layers-outline" size={14} color={c.primary} />
                 <Text style={styles.metaLabel}>Покрытие:</Text>
                 <Text style={styles.metaValue} numberOfLines={1}>
                   {item.surfaceType}
@@ -456,7 +460,7 @@ export default function BusinessHallsScreen() {
                       router.push({ pathname: "/business/schedule", params: { hallId: String(item.id) } });
                     }}
                   >
-                    <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                    <Ionicons name="calendar-outline" size={16} color={c.primary} />
                     {!item.scheduleConfigured ? (
                       <Text style={styles.editBtnText}>Настроить график</Text>
                     ) : null}
@@ -466,7 +470,7 @@ export default function BusinessHallsScreen() {
                     accessibilityLabel="Редактировать зал"
                     onPress={() => openEditModal(item)}
                   >
-                    <Ionicons name="pencil-outline" size={16} color="#22C55E" />
+                    <Ionicons name="pencil-outline" size={16} color={c.primary} />
                     {item.scheduleConfigured ? (
                       <Text style={styles.editBtnText}>Редактировать</Text>
                     ) : null}
@@ -490,7 +494,7 @@ export default function BusinessHallsScreen() {
                 onPress={() => setModalVisible(false)}
                 hitSlop={10}
               >
-                <Ionicons name="close" size={24} color="#FFFFFF" />
+                <Ionicons name="close" size={24} color={c.textPrimary} />
               </Pressable>
             </View>
 
@@ -506,7 +510,7 @@ export default function BusinessHallsScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Например: Футбольный зал Arena 1"
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
                 value={title}
                 onChangeText={setTitle}
               />
@@ -562,7 +566,7 @@ export default function BusinessHallsScreen() {
                       </View>
                     ) : null}
                     <Pressable style={styles.galleryRemove} hitSlop={6} onPress={() => handleRemovePhoto(url)}>
-                      <Ionicons name="close" size={14} color={colors.textPrimary} />
+                      <Ionicons name="close" size={14} color={c.textPrimary} />
                     </Pressable>
                   </View>
                 ))}
@@ -575,17 +579,17 @@ export default function BusinessHallsScreen() {
                       </View>
                     ) : null}
                     <Pressable style={styles.galleryRemove} hitSlop={6} onPress={() => handleRemovePhoto(p)}>
-                      <Ionicons name="close" size={14} color={colors.textPrimary} />
+                      <Ionicons name="close" size={14} color={c.textPrimary} />
                     </Pressable>
                   </View>
                 ))}
                 {photoCount < MAX_HALL_PHOTOS ? (
                   <Pressable style={styles.galleryAdd} onPress={handleAddPhoto} disabled={photoBusy}>
                     {photoBusy ? (
-                      <ActivityIndicator color={colors.primary} />
+                      <ActivityIndicator color={c.primary} />
                     ) : (
                       <>
-                        <Ionicons name="add" size={26} color={colors.primary} />
+                        <Ionicons name="add" size={26} color={c.primary} />
                         <Text style={styles.galleryAddText}>Фото</Text>
                       </>
                     )}
@@ -612,7 +616,7 @@ export default function BusinessHallsScreen() {
                     style={[styles.input, styles.inputTall]}
                     keyboardType="numeric"
                     placeholder="Например, 15000"
-                    placeholderTextColor="#6B7C72"
+                    placeholderTextColor={c.textMuted}
                     value={pricePerHour}
                     onChangeText={setPricePerHour}
                   />
@@ -671,7 +675,7 @@ export default function BusinessHallsScreen() {
                       <Ionicons
                         name={active ? "checkmark-circle" : "add-circle-outline"}
                         size={14}
-                        color={active ? "#22C55E" : "#6B7C72"}
+                        color={active ? c.primary : c.textMuted}
                       />
                       <Text
                         style={[
@@ -691,7 +695,7 @@ export default function BusinessHallsScreen() {
                 <TextInput
                   style={[styles.input, { flex: 1, marginBottom: 0 }]}
                   placeholder="Добавить своё оснащение..."
-                  placeholderTextColor="#6B7C72"
+                  placeholderTextColor={c.textMuted}
                   value={customEquip}
                   onChangeText={setCustomEquip}
                 />
@@ -710,7 +714,7 @@ export default function BusinessHallsScreen() {
                 multiline
                 numberOfLines={3}
                 placeholder="Краткое описание преимуществ зала..."
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
                 value={description}
                 onChangeText={setDescription}
               />
@@ -722,7 +726,7 @@ export default function BusinessHallsScreen() {
                 disabled={saving || photoBusy}
               >
                 {saving ? (
-                  <ActivityIndicator color={colors.background} />
+                  <ActivityIndicator color={c.background} />
                 ) : (
                   <Text style={styles.saveBtnText}>
                     {isEditing ? "Сохранить изменения" : "Создать зал"}
@@ -737,10 +741,11 @@ export default function BusinessHallsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
   },
   header: {
     paddingHorizontal: 16,
@@ -750,7 +755,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   headerText: {
     flex: 1,
@@ -760,11 +765,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   addBtn: {
@@ -772,7 +777,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
@@ -780,7 +785,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
   list: {
     padding: 16,
@@ -794,11 +799,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   cardImageEmptyText: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   photoCountBadge: {
     position: "absolute",
@@ -815,7 +820,7 @@ const styles = StyleSheet.create({
   photoCountText: {
     ...typography.caption,
     fontWeight: "600",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   galleryRow: {
     gap: spacing.sm,
@@ -826,7 +831,7 @@ const styles = StyleSheet.create({
     height: 88,
     borderRadius: radii.smallChip,
     overflow: "hidden",
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   galleryImage: {
     width: "100%",
@@ -850,12 +855,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   coverBadgeText: {
     fontSize: 10,
     fontWeight: "700",
-    color: colors.background,
+    color: c.background,
   },
   galleryAdd: {
     width: 88,
@@ -863,14 +868,14 @@ const styles = StyleSheet.create({
     borderRadius: radii.smallChip,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: colors.primary,
+    borderColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
     gap: 2,
   },
   galleryAddText: {
     ...typography.caption,
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "600",
   },
   emptyWrap: {
@@ -883,12 +888,12 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...typography.cardTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginTop: spacing.sm,
   },
   emptySub: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     textAlign: "center",
     lineHeight: 20,
   },
@@ -900,23 +905,23 @@ const styles = StyleSheet.create({
     height: 46,
     paddingHorizontal: spacing.xl,
     borderRadius: radii.button,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   emptyBtnText: {
     ...typography.button,
-    color: colors.background,
+    color: c.background,
   },
   card: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   cardImage: {
     width: "100%",
     height: 160,
-    backgroundColor: "#1A221E",
+    backgroundColor: c.surface,
   },
   cardBody: {
     padding: 16,
@@ -936,7 +941,7 @@ const styles = StyleSheet.create({
   sportTagText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   statusPill: {
     flexDirection: "row",
@@ -964,7 +969,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 8,
   },
   metaRow: {
@@ -975,11 +980,11 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     fontSize: 12,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   metaValue: {
     fontSize: 12,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontWeight: "600",
     flex: 1,
   },
@@ -991,16 +996,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   equipChip: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: c.hairline,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   equipText: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   cardFooter: {
     flexDirection: "row",
@@ -1008,21 +1013,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.06)",
+    borderTopColor: c.hairline,
   },
   priceLabel: {
     fontSize: 10,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   priceValue: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   priceSub: {
     fontSize: 11,
     fontWeight: "400",
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   editBtn: {
     flexDirection: "row",
@@ -1041,12 +1046,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   scheduleBtnCta: {
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   editBtnText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#22C55E",
+    color: c.primary,
   },
   // Modal Styles
   modalOverlay: {
@@ -1055,12 +1060,12 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "90%",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
   },
   modalHeader: {
     flexDirection: "row",
@@ -1069,12 +1074,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.08)",
+    borderBottomColor: c.subtle,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   modalScroll: {
     padding: 20,
@@ -1082,18 +1087,18 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 14,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
     marginBottom: 14,
   },
   inputTall: {
@@ -1117,21 +1122,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
   },
   sportOptionActive: {
     backgroundColor: "rgba(34, 197, 94, 0.18)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   sportOptionText: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontWeight: "600",
   },
   sportOptionTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   presetEquipWrap: {
@@ -1147,9 +1152,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
   },
   equipToggleActive: {
     backgroundColor: "rgba(34, 197, 94, 0.15)",
@@ -1157,10 +1162,10 @@ const styles = StyleSheet.create({
   },
   equipToggleText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   equipToggleTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "600",
   },
   customEquipRow: {
@@ -1180,10 +1185,10 @@ const styles = StyleSheet.create({
   addEquipBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   saveBtn: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
@@ -1193,7 +1198,7 @@ const styles = StyleSheet.create({
   saveBtnText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#0B0F0D",
+    color: c.background,
   },
 });
 

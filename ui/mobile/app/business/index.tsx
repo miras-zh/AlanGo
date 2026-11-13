@@ -26,7 +26,11 @@ import {
 } from "@/lib/sportRentData";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export default function BusinessDashboardScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [user, setUser] = useState(getSessionUser());
   const [arena, setArena] = useState<Arena | null>(null);
@@ -108,11 +112,11 @@ export default function BusinessDashboardScreen() {
             {arena?.title || "Мой спорткомплекс"}
           </Text>
           <View style={styles.cityRow}>
-            <Ionicons name="location-sharp" size={13} color="#22C55E" />
+            <Ionicons name="location-sharp" size={13} color={c.primary} />
             <Text style={styles.cityText}>{arena?.address || (arena?.city ? `г. ${arena.city}` : "Адрес не указан")}</Text>
             {user?.staffMemberId && (
               <View style={styles.staffActivePill}>
-                <Ionicons name="person-circle" size={13} color="#10B981" />
+                <Ionicons name="person-circle" size={13} color={c.primary} />
                 <Text style={styles.staffActivePillText}>{user.name}</Text>
               </View>
             )}
@@ -126,7 +130,7 @@ export default function BusinessDashboardScreen() {
             if (arena) router.push(`/arena/${arena.id}`);
           }}
         >
-          <Ionicons name="eye-outline" size={18} color="#22C55E" />
+          <Ionicons name="eye-outline" size={18} color={c.primary} />
           <Text style={styles.previewBtnText}>Вид для клиентов</Text>
         </Pressable>
       </View>
@@ -140,7 +144,7 @@ export default function BusinessDashboardScreen() {
               setRefreshing(true);
               loadData();
             }}
-            tintColor="#22C55E"
+            tintColor={c.primary}
           />
         }
       >
@@ -154,14 +158,14 @@ export default function BusinessDashboardScreen() {
             }}
           >
             <View style={styles.kpiIconWrap}>
-              <Ionicons name="cash-outline" size={20} color="#22C55E" />
+              <Ionicons name="cash-outline" size={20} color={c.primary} />
             </View>
             <Text style={styles.kpiValue}>
               {todayRevenue.toLocaleString("ru-RU")} ₸
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
               <Text style={styles.kpiTitle}>Выручка</Text>
-              <Ionicons name="chevron-forward" size={10} color="#6B7C72" />
+              <Ionicons name="chevron-forward" size={10} color={c.textMuted} />
             </View>
           </Pressable>
 
@@ -205,7 +209,7 @@ export default function BusinessDashboardScreen() {
             }}
           >
             <View style={[styles.actionIconBox, { backgroundColor: "rgba(34, 197, 94, 0.15)" }]}>
-              <Ionicons name="cash" size={24} color="#22C55E" />
+              <Ionicons name="cash" size={24} color={c.primary} />
             </View>
             <View style={styles.actionInfo}>
               <Text style={styles.actionTitle}>Финансы и выручка</Text>
@@ -213,7 +217,7 @@ export default function BusinessDashboardScreen() {
                 Калькуляция доходов за день/неделю/месяц, средний чек и загрузка
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+            <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
           </Pressable>
 
           <Pressable
@@ -232,7 +236,7 @@ export default function BusinessDashboardScreen() {
                 Капитаны команд, постоянные игроки, LTV, звонки и WhatsApp
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+            <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
           </Pressable>
 
           <Pressable
@@ -251,7 +255,7 @@ export default function BusinessDashboardScreen() {
                 Администраторы, смены, дежурные тренеры и доступ к кассе
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+            <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
           </Pressable>
 
           <Pressable
@@ -270,7 +274,7 @@ export default function BusinessDashboardScreen() {
                 Счастливые часы (-20%), горящие слоты, управление скидками
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+            <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
           </Pressable>
         </View>
 
@@ -285,7 +289,7 @@ export default function BusinessDashboardScreen() {
             }}
           >
             <View style={styles.actionIconBox}>
-              <Ionicons name="basketball-outline" size={24} color="#22C55E" />
+              <Ionicons name="basketball-outline" size={24} color={c.primary} />
             </View>
             <View style={styles.actionInfo}>
               <Text style={styles.actionTitle}>Управление залами</Text>
@@ -295,7 +299,7 @@ export default function BusinessDashboardScreen() {
                   : "Залов пока нет — добавьте первый зал, вид спорта и цену."}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+            <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
           </Pressable>
 
           <Pressable
@@ -314,7 +318,7 @@ export default function BusinessDashboardScreen() {
                 Режим работы по дням, время и длительность слотов
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+            <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
           </Pressable>
 
           <Pressable
@@ -333,7 +337,7 @@ export default function BusinessDashboardScreen() {
                 {bookings.length} записей: подтверждение и контакты клиентов
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#6B7C72" />
+            <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
           </Pressable>
         </View>
 
@@ -413,11 +417,11 @@ export default function BusinessDashboardScreen() {
 
             <View style={styles.bookingDetails}>
               <View style={styles.bookingDetailItem}>
-                <Ionicons name="football-outline" size={14} color="#6B7C72" />
+                <Ionicons name="football-outline" size={14} color={c.textMuted} />
                 <Text style={styles.bookingDetailText}>{b.hallTitle}</Text>
               </View>
               <View style={styles.bookingDetailItem}>
-                <Ionicons name="time-outline" size={14} color="#6B7C72" />
+                <Ionicons name="time-outline" size={14} color={c.textMuted} />
                 <Text style={styles.bookingDetailText}>
                   {b.date}, {b.timeSlot}
                 </Text>
@@ -451,10 +455,11 @@ export default function BusinessDashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
   },
   header: {
     paddingHorizontal: 16,
@@ -464,7 +469,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   headerLeft: {
     flex: 1,
@@ -473,14 +478,14 @@ const styles = StyleSheet.create({
   badgeLabel: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#22C55E",
+    color: c.primary,
     letterSpacing: 1.2,
     marginBottom: 2,
   },
   arenaTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   cityRow: {
     flexDirection: "row",
@@ -490,7 +495,7 @@ const styles = StyleSheet.create({
   },
   cityText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   staffActivePill: {
     flexDirection: "row",
@@ -507,7 +512,7 @@ const styles = StyleSheet.create({
   staffActivePillText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#10B981",
+    color: c.primary,
   },
   previewBtn: {
     flexDirection: "row",
@@ -523,7 +528,7 @@ const styles = StyleSheet.create({
   previewBtnText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#22C55E",
+    color: c.primary,
   },
   scroll: {
     padding: 16,
@@ -535,11 +540,11 @@ const styles = StyleSheet.create({
   },
   kpiCard: {
     flex: 1,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   kpiIconWrap: {
     width: 34,
@@ -553,17 +558,17 @@ const styles = StyleSheet.create({
   kpiValue: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 2,
   },
   kpiTitle: {
     fontSize: 11,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 12,
   },
   sectionHeaderRow: {
@@ -576,7 +581,7 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#22C55E",
+    color: c.primary,
   },
   actionsGrid: {
     gap: 10,
@@ -585,11 +590,11 @@ const styles = StyleSheet.create({
   actionCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   actionIconBox: {
     width: 44,
@@ -606,22 +611,22 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 3,
   },
   actionSubtitle: {
     fontSize: 11,
-    color: "#6B7C72",
+    color: c.textMuted,
     lineHeight: 15,
   },
   hallRowCard: {
     flexDirection: "row",
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 10,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   hallThumb: {
     width: 78,
@@ -649,7 +654,7 @@ const styles = StyleSheet.create({
   sportBadgeText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   statusDotRow: {
     flexDirection: "row",
@@ -660,41 +665,41 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
   },
   statusText: {
     fontSize: 10,
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "600",
   },
   hallName: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 2,
   },
   hallSurface: {
     fontSize: 11,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginBottom: 4,
   },
   hallPrice: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#22C55E",
+    color: c.primary,
   },
   perHour: {
     fontSize: 11,
     fontWeight: "400",
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   bookingCard: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   bookingTop: {
     flexDirection: "row",
@@ -705,11 +710,11 @@ const styles = StyleSheet.create({
   bookingClient: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   bookingPhone: {
     fontSize: 12,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginTop: 2,
   },
   bookingBadge: {
@@ -728,7 +733,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   badgeTextConfirmed: {
-    color: "#22C55E",
+    color: c.primary,
   },
   badgeTextPending: {
     color: "#EAB308",
@@ -738,7 +743,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.05)",
+    borderTopColor: c.hairline,
   },
   bookingDetailItem: {
     flexDirection: "row",
@@ -747,7 +752,7 @@ const styles = StyleSheet.create({
   },
   bookingDetailText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   bookingFooter: {
     flexDirection: "row",
@@ -755,19 +760,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.05)",
+    borderTopColor: c.hairline,
   },
   bookingPrice: {
     fontSize: 12,
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   bookingPriceBold: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   confirmBtn: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -775,7 +780,7 @@ const styles = StyleSheet.create({
   confirmBtnText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
 });
 

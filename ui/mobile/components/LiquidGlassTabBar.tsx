@@ -3,7 +3,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { TabBarGlassBackground } from "@/components/TabBarGlassBackground";
 import { hapticSelection } from "@/lib/haptics";
-import { colors } from "@/constants/theme";
+
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const TAB_CONFIG: Record<
   string,
@@ -52,6 +54,8 @@ type CapsuleProps = {
 
 /** Внешний вид плавающей капсулы без привязки к навигатору табов. */
 export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.floatingContainer} pointerEvents="box-none">
       <View style={styles.tabBarPill}>
@@ -84,7 +88,7 @@ export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
                 <Ionicons
                   name={isFocused ? config.iconFocused : config.icon}
                   size={20}
-                  color={isFocused ? colors.primary : colors.textSecondary}
+                  color={isFocused ? c.primary : c.textSecondary}
                 />
                 <Text
                   style={[
@@ -106,6 +110,8 @@ export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
 
 /** Таб-бар навигатора (tabs): капсула + стандартная логика tabPress. */
 export function LiquidGlassTabBar(props: any) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const { state, navigation } = props;
   const routes: any[] = state.routes;
   return (
@@ -134,6 +140,8 @@ export function LiquidGlassTabBar(props: any) {
  * до табов и открывает выбранную вкладку.
  */
 export function StandaloneTabBar({ activeTab = "index" }: { activeTab?: TabName | null }) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   return (
     <TabBarCapsule
@@ -146,7 +154,8 @@ export function StandaloneTabBar({ activeTab = "index" }: { activeTab?: TabName 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   floatingContainer: {
     position: "absolute",
     left: 0,
@@ -162,7 +171,7 @@ const styles = StyleSheet.create({
     marginBottom: Platform.OS === "ios" ? 22 : 12,
     backgroundColor: "rgba(18, 24, 20, 0.88)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: c.subtle,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.45,
@@ -189,7 +198,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 201, 104, 0.18)",
     borderWidth: 1,
     borderColor: "rgba(0, 201, 104, 0.45)",
-    shadowColor: colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
@@ -198,12 +207,12 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 10,
     fontWeight: "500",
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
     textAlign: "center",
   },
   tabLabelActive: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
 });

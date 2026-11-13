@@ -16,6 +16,8 @@ import {
   View,
 } from "react-native";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 const SNOOZE_STORAGE_KEY = "@alango_update_snooze_until";
 const SNOOZE_DURATION_MS = 24 * 60 * 60 * 1000;
 
@@ -30,6 +32,8 @@ interface AppVersionResponse {
 }
 
 export function AppUpdatePrompt() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const { tokens } = useTheme();
   const t = useT();
 
@@ -144,7 +148,7 @@ export function AppUpdatePrompt() {
                 { backgroundColor: tokens.accent, opacity: pressed ? 0.85 : 1 },
               ]}
             >
-              <Ionicons name="arrow-up-circle-outline" size={20} color="#FFFFFF" />
+              <Ionicons name="arrow-up-circle-outline" size={20} color={c.textPrimary} />
               <Text style={styles.primaryBtnText}>{t("update.button")}</Text>
             </Pressable>
 
@@ -168,7 +172,8 @@ export function AppUpdatePrompt() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.72)",
@@ -231,7 +236,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryBtnText: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: "600",
   },

@@ -19,7 +19,11 @@ import {
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 import * as Haptics from "expo-haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export default function BusinessPromotionsScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [promos, setPromos] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +49,7 @@ export default function BusinessPromotionsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#f8fafc" />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Маркетинг и Акции</Text>
         <View style={{ width: 40 }} />
@@ -54,7 +58,7 @@ export default function BusinessPromotionsScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Info Card */}
         <View style={styles.infoBanner}>
-          <Ionicons name="trending-up" size={24} color="#10b981" />
+          <Ionicons name="trending-up" size={24} color={c.primary} />
           <View style={styles.infoBannerText}>
             <Text style={styles.infoBannerTitle}>Динамическое ценообразование</Text>
             <Text style={styles.infoBannerSubtitle}>
@@ -74,7 +78,7 @@ export default function BusinessPromotionsScreen() {
                   { backgroundColor: p.bannerGradient[0] },
                 ]}
               >
-                <Ionicons name={p.icon as any} size={22} color="#fff" />
+                <Ionicons name={p.icon as any} size={22} color={c.textPrimary} />
               </View>
               <View style={styles.promoMeta}>
                 <View style={styles.row}>
@@ -85,15 +89,15 @@ export default function BusinessPromotionsScreen() {
               <Switch
                 value={p.isEnabled}
                 onValueChange={() => handleToggle(p.id)}
-                trackColor={{ false: "#334155", true: "#059669" }}
-                thumbColor={p.isEnabled ? "#10b981" : "#94a3b8"}
+                trackColor={{ false: "#334155", true: c.primary }}
+                thumbColor={p.isEnabled ? c.primary : c.textSecondary}
               />
             </View>
 
             <Text style={styles.promoDesc}>{p.description}</Text>
 
             <View style={styles.conditionBox}>
-              <Ionicons name="information-circle-outline" size={16} color="#94a3b8" />
+              <Ionicons name="information-circle-outline" size={16} color={c.textSecondary} />
               <Text style={styles.conditionText}>{p.conditions}</Text>
             </View>
 
@@ -120,7 +124,7 @@ export default function BusinessPromotionsScreen() {
             );
           }}
         >
-          <Ionicons name="add-circle-outline" size={20} color="#10b981" />
+          <Ionicons name="add-circle-outline" size={20} color={c.primary} />
           <Text style={styles.addCustomText}>Создать индивидуальную акцию</Text>
         </Pressable>
       </ScrollView>
@@ -128,7 +132,8 @@ export default function BusinessPromotionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#0d1310",
@@ -146,14 +151,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#17231c",
+    backgroundColor: c.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
   },
   scrollContent: {
     padding: 16,
@@ -175,28 +180,28 @@ const styles = StyleSheet.create({
   infoBannerTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
     marginBottom: 4,
   },
   infoBannerSubtitle: {
     fontSize: 12,
-    color: "#94a3b8",
+    color: c.textSecondary,
     lineHeight: 18,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#64748b",
+    color: c.textMuted,
     letterSpacing: 0.8,
     marginBottom: 12,
   },
   promoCard: {
-    backgroundColor: "#151d18",
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#223127",
+    borderColor: c.surfaceElevated,
   },
   promoHeader: {
     flexDirection: "row",
@@ -221,16 +226,16 @@ const styles = StyleSheet.create({
   promoTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
   },
   promoTagline: {
     fontSize: 12,
-    color: "#10b981",
+    color: c.primary,
     marginTop: 2,
   },
   promoDesc: {
     fontSize: 13,
-    color: "#cbd5e1",
+    color: c.textSecondary,
     lineHeight: 18,
     marginBottom: 10,
   },
@@ -246,7 +251,7 @@ const styles = StyleSheet.create({
   conditionText: {
     flex: 1,
     fontSize: 12,
-    color: "#94a3b8",
+    color: c.textSecondary,
     lineHeight: 16,
   },
   footerRow: {
@@ -261,12 +266,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   badgeText: {
-    color: "#10b981",
+    color: c.primary,
     fontSize: 11,
     fontWeight: "800",
   },
   codeWrap: {
-    backgroundColor: "#17231c",
+    backgroundColor: c.surfaceElevated,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -274,7 +279,7 @@ const styles = StyleSheet.create({
     borderColor: "#2d4234",
   },
   codeText: {
-    color: "#cbd5e1",
+    color: c.textSecondary,
     fontSize: 11,
     fontWeight: "600",
   },
@@ -282,17 +287,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#17231c",
+    backgroundColor: c.surfaceElevated,
     paddingVertical: 14,
     borderRadius: 14,
     gap: 8,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: "#059669",
+    borderColor: c.primary,
     marginTop: 8,
   },
   addCustomText: {
-    color: "#10b981",
+    color: c.primary,
     fontSize: 14,
     fontWeight: "700",
   },

@@ -5,7 +5,9 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { hapticSelection } from "@/lib/haptics";
 import { SUPPORT_EMAIL } from "@/lib/site";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const SECTIONS: { title: string; items: { q: string; a: string }[] }[] = [
   {
@@ -54,6 +56,8 @@ const SECTIONS: { title: string; items: { q: string; a: string }[] }[] = [
 ];
 
 export default function FaqScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [open, setOpen] = useState<string | null>(null);
 
@@ -65,10 +69,12 @@ export default function FaqScreen() {
           hitSlop={10}
           onPress={() => {
             hapticSelection();
-            router.back();
+            // After a reload the stack can be empty; fall back to the parent screen.
+            if (router.canGoBack()) router.back();
+            else router.replace("/settings");
           }}
         >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="chevron-back" size={22} color={c.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Частые вопросы</Text>
       </View>
@@ -95,7 +101,7 @@ export default function FaqScreen() {
                       <Ionicons
                         name={expanded ? "chevron-up" : "chevron-down"}
                         size={18}
-                        color={colors.textSecondary}
+                        color={c.textSecondary}
                       />
                     </View>
                     {expanded ? <Text style={styles.a}>{item.a}</Text> : null}
@@ -111,10 +117,11 @@ export default function FaqScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -129,12 +136,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
   },
   headerTitle: {
     ...typography.sectionTitle,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   scroll: {
     padding: spacing.screenHorizontal,
@@ -143,7 +150,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     ...typography.caption,
     fontWeight: "700",
-    color: colors.textSecondary,
+    color: c.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginTop: spacing.section,
@@ -154,15 +161,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   item: {
     paddingVertical: spacing.md,
   },
   divider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
   },
   qRow: {
     flexDirection: "row",
@@ -171,18 +178,18 @@ const styles = StyleSheet.create({
   },
   q: {
     ...typography.cardTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   a: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
     marginTop: spacing.sm,
   },
   footer: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     textAlign: "center",
     marginTop: spacing.xxl,
   },

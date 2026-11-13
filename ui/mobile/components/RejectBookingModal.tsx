@@ -13,6 +13,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Booking } from "@/lib/sportRentData";
 import { hapticSelection, hapticImpact } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 interface RejectBookingModalProps {
   visible: boolean;
   booking: Booking | null;
@@ -34,6 +36,8 @@ export function RejectBookingModal({
   onClose,
   onConfirm,
 }: RejectBookingModalProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [selectedReason, setSelectedReason] = useState(REASONS[0]);
   const [customComment, setCustomComment] = useState("");
 
@@ -55,7 +59,7 @@ export function RejectBookingModal({
         <SafeAreaView style={styles.sheetContainer}>
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <Ionicons name="close-circle" size={22} color="#EF4444" />
+              <Ionicons name="close-circle" size={22} color={c.error} />
               <Text style={styles.headerTitle}>Отклонить заявку</Text>
             </View>
             <Pressable
@@ -66,7 +70,7 @@ export function RejectBookingModal({
               style={styles.closeBtn}
               hitSlop={8}
             >
-              <Ionicons name="close" size={22} color="#8E9B94" />
+              <Ionicons name="close" size={22} color={c.textSecondary} />
             </Pressable>
           </View>
 
@@ -95,7 +99,7 @@ export function RejectBookingModal({
                     <Ionicons
                       name={active ? "radio-button-on" : "radio-button-off"}
                       size={18}
-                      color={active ? "#EF4444" : "#6B7C72"}
+                      color={active ? c.error : c.textMuted}
                     />
                     <Text style={[styles.reasonText, active && styles.reasonTextActive]}>
                       {r}
@@ -111,7 +115,7 @@ export function RejectBookingModal({
                 value={customComment}
                 onChangeText={setCustomComment}
                 placeholder="Напишите причину для клиента..."
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
                 multiline
               />
             )}
@@ -119,7 +123,7 @@ export function RejectBookingModal({
 
           <View style={styles.footer}>
             <Pressable style={styles.rejectBtn} onPress={handleConfirm}>
-              <Ionicons name="close" size={18} color="#FFFFFF" />
+              <Ionicons name="close" size={18} color={c.textPrimary} />
               <Text style={styles.rejectBtnText}>Отклонить бронь</Text>
             </Pressable>
           </View>
@@ -129,14 +133,15 @@ export function RejectBookingModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.75)",
     justifyContent: "flex-end",
   },
   sheetContainer: {
-    backgroundColor: "#111714",
+    backgroundColor: c.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "85%",
@@ -149,7 +154,7 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#1C2621",
+    borderBottomColor: c.surfaceElevated,
   },
   headerTitleRow: {
     flexDirection: "row",
@@ -157,7 +162,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerTitle: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: "700",
   },
@@ -165,7 +170,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#1A231F",
+    backgroundColor: c.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -176,24 +181,24 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   summaryCard: {
-    backgroundColor: "#161E1A",
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#222D27",
+    borderColor: c.surfaceElevated,
   },
   summaryHall: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 14,
     fontWeight: "700",
   },
   summaryDetails: {
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontSize: 12,
     marginTop: 2,
   },
   sectionLabel: {
-    color: "#B2BFB8",
+    color: c.textSecondary,
     fontSize: 13,
     fontWeight: "600",
   },
@@ -207,7 +212,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: "#141A17",
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: "#1E2722",
   },
@@ -216,20 +221,20 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(239, 68, 68, 0.06)",
   },
   reasonText: {
-    color: "#C4D0C9",
+    color: c.textSecondary,
     fontSize: 13,
   },
   reasonTextActive: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontWeight: "600",
   },
   customInput: {
-    backgroundColor: "#161E1A",
+    backgroundColor: c.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#222D27",
+    borderColor: c.surfaceElevated,
     padding: 12,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 13,
     minHeight: 60,
   },
@@ -238,19 +243,19 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: Platform.OS === "ios" ? 14 : 20,
     borderTopWidth: 1,
-    borderTopColor: "#1C2621",
+    borderTopColor: c.surfaceElevated,
   },
   rejectBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#EF4444",
+    backgroundColor: c.error,
     paddingVertical: 14,
     borderRadius: 14,
   },
   rejectBtnText: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "700",
   },

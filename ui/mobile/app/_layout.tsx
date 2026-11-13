@@ -12,10 +12,11 @@ import { initPushNotifications } from "@/lib/push";
 import { trackFirstLaunchOnce, startOnlineHeartbeat, stopOnlineHeartbeat } from "@/lib/analytics";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
 import { AnimatedSplashScreen } from "@/components/AnimatedSplashScreen";
-import { colors as themeColors } from "@/constants/theme";
+import { usePalette } from "@/theme/palette";
 
 function RootNavigator() {
-  const { colors } = useAppTheme();
+  const { isDark } = useAppTheme();
+  const palette = usePalette();
 
   useEffect(() => {
     let mounted = true;
@@ -34,11 +35,11 @@ function RootNavigator() {
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? "light" : "dark"} />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: themeColors.background },
+          contentStyle: { backgroundColor: palette.background },
         }}
       >
         <Stack.Screen name="(tabs)" />

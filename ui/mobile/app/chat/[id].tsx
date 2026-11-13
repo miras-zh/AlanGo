@@ -29,7 +29,11 @@ import {
 import { processChatBotReply, BOT_QUICK_PROMPTS } from "@/lib/arenaChatBot";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export default function ChatScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const params = useLocalSearchParams<{
     id: string;
@@ -135,7 +139,7 @@ export default function ChatScreen() {
           }}
           hitSlop={10}
         >
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </Pressable>
 
         <View style={styles.headerAvatarWrap}>
@@ -149,14 +153,14 @@ export default function ChatScreen() {
           </Text>
           <View style={styles.botBadgeRow}>
             <View style={styles.botIconWrap}>
-              <Ionicons name="hardware-chip-outline" size={11} color="#22C55E" />
+              <Ionicons name="hardware-chip-outline" size={11} color={c.primary} />
             </View>
             <Text style={styles.botStatusText}>AI-Бот ответит за 1 сек</Text>
           </View>
         </View>
 
         <Pressable style={styles.callBtn} onPress={handleCall} hitSlop={10}>
-          <Ionicons name="call" size={18} color="#22C55E" />
+          <Ionicons name="call" size={18} color={c.primary} />
         </Pressable>
       </View>
 
@@ -168,7 +172,7 @@ export default function ChatScreen() {
         {/* Messages List */}
         {loading ? (
           <View style={styles.centerWrap}>
-            <ActivityIndicator color="#22C55E" size="small" />
+            <ActivityIndicator color={c.primary} size="small" />
           </View>
         ) : (
           <FlatList
@@ -199,7 +203,7 @@ export default function ChatScreen() {
                     <View style={styles.msgAvatarWrap}>
                       {isBot ? (
                         <View style={styles.botAvatar}>
-                          <Ionicons name="sparkles" size={12} color="#22C55E" />
+                          <Ionicons name="sparkles" size={12} color={c.primary} />
                         </View>
                       ) : (
                         <Image
@@ -225,7 +229,7 @@ export default function ChatScreen() {
                         <Text
                           style={[
                             styles.senderName,
-                            isBot && { color: "#22C55E" },
+                            isBot && { color: c.primary },
                           ]}
                         >
                           {item.senderName}
@@ -254,7 +258,7 @@ export default function ChatScreen() {
                           <Ionicons
                             name="calendar-sharp"
                             size={14}
-                            color="#22C55E"
+                            color={c.primary}
                           />
                           <Text style={styles.widgetTitle}>
                             Подтвержденная бронь
@@ -293,7 +297,7 @@ export default function ChatScreen() {
                         <Ionicons
                           name={item.isRead ? "checkmark-done" : "checkmark"}
                           size={14}
-                          color="#22C55E"
+                          color={c.primary}
                           style={{ marginLeft: 3 }}
                         />
                       )}
@@ -306,10 +310,10 @@ export default function ChatScreen() {
               isBotTyping ? (
                 <View style={styles.typingRow}>
                   <View style={styles.botAvatar}>
-                    <Ionicons name="sparkles" size={12} color="#22C55E" />
+                    <Ionicons name="sparkles" size={12} color={c.primary} />
                   </View>
                   <View style={styles.typingBubble}>
-                    <ActivityIndicator size="small" color="#22C55E" />
+                    <ActivityIndicator size="small" color={c.primary} />
                     <Text style={styles.typingText}>Ассистент печатает...</Text>
                   </View>
                 </View>
@@ -337,7 +341,7 @@ export default function ChatScreen() {
                 <Ionicons
                   name={prompt.icon as any}
                   size={13}
-                  color="#22C55E"
+                  color={c.primary}
                   style={{ marginRight: 4 }}
                 />
                 <Text style={styles.promptChipText}>{prompt.label}</Text>
@@ -351,7 +355,7 @@ export default function ChatScreen() {
           <TextInput
             style={styles.textInput}
             placeholder="Задайте вопрос или напишите время..."
-            placeholderTextColor="#6B7C72"
+            placeholderTextColor={c.textMuted}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -369,7 +373,7 @@ export default function ChatScreen() {
             <Ionicons
               name="arrow-up"
               size={18}
-              color={inputText.trim().length > 0 ? "#0B0F0D" : "#4B5563"}
+              color={inputText.trim().length > 0 ? c.background : "#4B5563"}
             />
           </Pressable>
         </View>
@@ -378,19 +382,20 @@ export default function ChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.08)",
+    borderBottomColor: c.subtle,
   },
   backBtn: {
     paddingRight: 10,
@@ -412,9 +417,9 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     borderWidth: 1.5,
-    borderColor: "#131916",
+    borderColor: c.surface,
   },
   headerTitleWrap: {
     flex: 1,
@@ -422,7 +427,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   botBadgeRow: {
     flexDirection: "row",
@@ -437,7 +442,7 @@ const styles = StyleSheet.create({
   },
   botStatusText: {
     fontSize: 11,
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "600",
   },
   callBtn: {
@@ -485,7 +490,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "rgba(34, 197, 94, 0.15)",
     borderWidth: 1,
-    borderColor: "#22C55E",
+    borderColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -503,10 +508,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#18201C",
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   bubbleBot: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: "rgba(34, 197, 94, 0.3)",
@@ -520,7 +525,7 @@ const styles = StyleSheet.create({
   senderName: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   botTag: {
     backgroundColor: "rgba(34, 197, 94, 0.2)",
@@ -531,14 +536,14 @@ const styles = StyleSheet.create({
   botTagText: {
     fontSize: 9,
     fontWeight: "800",
-    color: "#22C55E",
+    color: c.primary,
   },
   msgText: {
     fontSize: 14,
     lineHeight: 20,
   },
   msgTextMe: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   msgTextOther: {
     color: "#F3F4F6",
@@ -560,17 +565,17 @@ const styles = StyleSheet.create({
   widgetTitle: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
     textTransform: "uppercase",
   },
   widgetHall: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   widgetTime: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   widgetFooter: {
@@ -580,12 +585,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingTop: 6,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.08)",
+    borderTopColor: c.subtle,
   },
   widgetPrice: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   confirmedBadge: {
     backgroundColor: "rgba(34, 197, 94, 0.2)",
@@ -596,7 +601,7 @@ const styles = StyleSheet.create({
   confirmedBadgeText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   timeRow: {
     flexDirection: "row",
@@ -611,7 +616,7 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.7)",
   },
   timeTextOther: {
-    color: "#6B7C72",
+    color: c.textMuted,
   },
   typingRow: {
     flexDirection: "row",
@@ -623,7 +628,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
@@ -632,13 +637,13 @@ const styles = StyleSheet.create({
   },
   typingText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontStyle: "italic",
   },
   quickPromptsWrap: {
     paddingVertical: 6,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.04)",
+    borderTopColor: c.hairline,
   },
   quickPromptsScroll: {
     paddingHorizontal: 14,
@@ -664,35 +669,35 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.08)",
+    borderTopColor: c.subtle,
     gap: 8,
   },
   textInput: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
     paddingTop: 8,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 14,
     maxHeight: 100,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
   },
   sendBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: c.subtle,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 2,
   },
   sendBtnActive: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
   },
 });
 

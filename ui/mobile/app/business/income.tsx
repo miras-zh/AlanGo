@@ -20,6 +20,8 @@ import {
 } from "@/lib/businessCrmData";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 const PERIODS: { key: "today" | "week" | "month" | "all"; label: string }[] = [
   { key: "today", label: "Сегодня" },
   { key: "week", label: "7 дней" },
@@ -28,6 +30,8 @@ const PERIODS: { key: "today" | "week" | "month" | "all"; label: string }[] = [
 ];
 
 export default function BusinessIncomeScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { arenaId, loading: arenaLoading } = useMyArenaId();
 
@@ -87,7 +91,7 @@ export default function BusinessIncomeScreen() {
           }}
           hitSlop={10}
         >
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </Pressable>
 
         <View style={{ flex: 1, marginHorizontal: 8 }}>
@@ -96,7 +100,7 @@ export default function BusinessIncomeScreen() {
         </View>
 
         <Pressable style={styles.shareBtn} onPress={handleShareReport} hitSlop={10}>
-          <Ionicons name="share-outline" size={20} color="#22C55E" />
+          <Ionicons name="share-outline" size={20} color={c.primary} />
         </Pressable>
       </View>
 
@@ -123,7 +127,7 @@ export default function BusinessIncomeScreen() {
 
       {loading ? (
         <View style={styles.centerWrap}>
-          <ActivityIndicator color="#22C55E" size="small" />
+          <ActivityIndicator color={c.primary} size="small" />
         </View>
       ) : (
         <ScrollView
@@ -135,7 +139,7 @@ export default function BusinessIncomeScreen() {
                 setRefreshing(true);
                 loadData();
               }}
-              tintColor="#22C55E"
+              tintColor={c.primary}
             />
           }
         >
@@ -148,9 +152,9 @@ export default function BusinessIncomeScreen() {
                   <Ionicons
                     name={stats.growthPercent >= 0 ? "trending-up" : "trending-down"}
                     size={13}
-                    color={stats.growthPercent >= 0 ? "#22C55E" : "#EF4444"}
+                    color={stats.growthPercent >= 0 ? c.primary : c.error}
                   />
-                  <Text style={[styles.growthText, stats.growthPercent < 0 && { color: "#EF4444" }]}>
+                  <Text style={[styles.growthText, stats.growthPercent < 0 && { color: c.error }]}>
                     {stats.growthPercent >= 0 ? "+" : ""}
                     {stats.growthPercent}%
                   </Text>
@@ -173,7 +177,7 @@ export default function BusinessIncomeScreen() {
           <View style={styles.kpiRow}>
             <View style={styles.kpiCard}>
               <View style={[styles.kpiIcon, { backgroundColor: "rgba(34, 197, 94, 0.15)" }]}>
-                <Ionicons name="time" size={16} color="#22C55E" />
+                <Ionicons name="time" size={16} color={c.primary} />
               </View>
               <Text style={styles.kpiValue}>
                 {(stats?.hoursPlayed ?? 0).toLocaleString("ru-RU")} ч
@@ -253,7 +257,7 @@ export default function BusinessIncomeScreen() {
               {stats?.recentTransactions.map((tx) => (
                 <View key={tx.id} style={styles.txItem}>
                   <View style={styles.txIconBox}>
-                    <Ionicons name="card-outline" size={18} color="#22C55E" />
+                    <Ionicons name="card-outline" size={18} color={c.primary} />
                   </View>
 
                   <View style={styles.txInfo}>
@@ -279,10 +283,11 @@ export default function BusinessIncomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -290,7 +295,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   backBtn: {
     paddingRight: 6,
@@ -298,11 +303,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   headerSub: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   shareBtn: {
@@ -320,30 +325,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 8,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   periodChip: {
     flex: 1,
     paddingVertical: 7,
     borderRadius: 16,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   periodChipActive: {
     backgroundColor: "rgba(34, 197, 94, 0.2)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   periodText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   periodTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   centerWrap: {
@@ -356,7 +361,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   heroCard: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
@@ -369,18 +374,18 @@ const styles = StyleSheet.create({
   },
   heroLabel: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontWeight: "600",
     textTransform: "uppercase",
   },
   emptyNote: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
     lineHeight: 19,
   },
   txDate: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   growthBadge: {
@@ -395,18 +400,18 @@ const styles = StyleSheet.create({
   growthText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   heroAmount: {
     fontSize: 32,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginTop: 8,
     letterSpacing: -0.5,
   },
   heroSub: {
     fontSize: 12,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginTop: 4,
   },
   kpiRow: {
@@ -415,11 +420,11 @@ const styles = StyleSheet.create({
   },
   kpiCard: {
     flex: 1,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   kpiIcon: {
     width: 28,
@@ -432,24 +437,24 @@ const styles = StyleSheet.create({
   kpiValue: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   kpiTitle: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   sectionCard: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 14,
   },
   hallsList: {
@@ -466,23 +471,23 @@ const styles = StyleSheet.create({
   hallTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   hallAmount: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#22C55E",
+    color: c.primary,
   },
   progressTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: c.hairline,
     overflow: "hidden",
   },
   progressBar: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
   },
   hallSubRow: {
     flexDirection: "row",
@@ -491,11 +496,11 @@ const styles = StyleSheet.create({
   },
   hallSubText: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   hallPercent: {
     fontSize: 11,
-    color: "#6B7C72",
+    color: c.textMuted,
     fontWeight: "600",
   },
   txList: {
@@ -521,11 +526,11 @@ const styles = StyleSheet.create({
   txClient: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   txMeta: {
     fontSize: 11,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   txAmountWrap: {
@@ -534,10 +539,10 @@ const styles = StyleSheet.create({
   txAmount: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#22C55E",
+    color: c.primary,
   },
   txMethodBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: c.hairline,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -545,7 +550,7 @@ const styles = StyleSheet.create({
   },
   txMethodText: {
     fontSize: 10,
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontWeight: "600",
   },
 });

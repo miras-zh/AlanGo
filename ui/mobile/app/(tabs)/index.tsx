@@ -27,7 +27,9 @@ import {
   SportFilterState,
   DEFAULT_FILTERS,
 } from "@/components/SportSearchFiltersModal";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const { width } = Dimensions.get("window");
 const FAVORITES_STORAGE_KEY = "alango_user_favorites";
@@ -48,6 +50,8 @@ const CATEGORIES: CategoryItem[] = [
 ];
 
 export default function HomeScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [items, setItems] = useState<ItemEntity[]>([]);
   const [arenas, setArenas] = useState<ArenaWithHalls[]>([]);
@@ -249,7 +253,7 @@ export default function HomeScreen() {
               setRefreshing(true);
               loadHalls();
             }}
-            tintColor={colors.primary}
+            tintColor={c.primary}
           />
         }
       >
@@ -273,9 +277,9 @@ export default function HomeScreen() {
               setCityModalVisible(true);
             }}
           >
-            <Ionicons name="location-sharp" size={14} color={colors.primary} />
+            <Ionicons name="location-sharp" size={14} color={c.primary} />
             <Text style={styles.locationText}>{currentCity}</Text>
-            <Ionicons name="chevron-down" size={13} color={colors.textSecondary} />
+            <Ionicons name="chevron-down" size={13} color={c.textSecondary} />
           </Pressable>
         </View>
 
@@ -311,14 +315,14 @@ export default function HomeScreen() {
             <Ionicons
               name="search-outline"
               size={18}
-              color={colors.textSecondary}
+              color={c.textSecondary}
               style={styles.searchIcon}
             />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Поиск залов и площадок..."
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={c.textSecondary}
               style={styles.searchInput}
               returnKeyType="search"
             />
@@ -327,7 +331,7 @@ export default function HomeScreen() {
                 <Ionicons
                   name="close-circle"
                   size={18}
-                  color={colors.textSecondary}
+                  color={c.textSecondary}
                 />
               </Pressable>
             )}
@@ -340,7 +344,7 @@ export default function HomeScreen() {
               router.push("/map");
             }}
           >
-            <Ionicons name="map-outline" size={20} color={colors.primary} />
+            <Ionicons name="map-outline" size={20} color={c.primary} />
           </Pressable>
 
           <Pressable
@@ -356,7 +360,7 @@ export default function HomeScreen() {
             <Ionicons
               name={activeFiltersCount > 0 ? "options" : "options-outline"}
               size={20}
-              color={activeFiltersCount > 0 ? colors.background : colors.primary}
+              color={activeFiltersCount > 0 ? c.background : c.primary}
             />
             {activeFiltersCount > 0 && (
               <View style={styles.filterBadge}>
@@ -376,7 +380,7 @@ export default function HomeScreen() {
         >
           <View style={styles.mapBannerLeft}>
             <View style={styles.mapBannerIconWrap}>
-              <Ionicons name="location" size={20} color={colors.primary} />
+              <Ionicons name="location" size={20} color={c.primary} />
             </View>
             <View style={styles.mapBannerTextWrap}>
               <View style={styles.mapBannerTitleRow}>
@@ -389,7 +393,7 @@ export default function HomeScreen() {
             </View>
           </View>
           <View style={styles.mapBannerArrowBtn}>
-            <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+            <Ionicons name="chevron-forward" size={16} color={c.primary} />
           </View>
         </Pressable>
 
@@ -415,7 +419,7 @@ export default function HomeScreen() {
                   <Ionicons
                     name={cat.icon}
                     size={22}
-                    color={isSelected ? colors.primary : colors.textSecondary}
+                    color={isSelected ? c.primary : c.textSecondary}
                   />
                 </View>
                 <Text
@@ -451,7 +455,7 @@ export default function HomeScreen() {
                 style={styles.seeAllBtn}
               >
                 <Text style={styles.seeAllText}>Все ({filteredArenas.length})</Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                <Ionicons name="chevron-forward" size={14} color={c.primary} />
               </Pressable>
             </View>
 
@@ -475,13 +479,13 @@ export default function HomeScreen() {
                       style={styles.arenaImage}
                     />
                     <View style={styles.arenaBadge}>
-                      <Ionicons name="business" size={11} color={colors.primary} />
+                      <Ionicons name="business" size={11} color={c.primary} />
                       <Text style={styles.arenaBadgeText}>
                         {arena.category || "Спорткомплекс"}
                       </Text>
                     </View>
                     <View style={styles.arenaRating}>
-                      <Ionicons name="star" size={11} color={colors.primary} />
+                      <Ionicons name="star" size={11} color={c.primary} />
                       <Text style={styles.arenaRatingText}>{arena.rating}</Text>
                     </View>
                   </View>
@@ -494,7 +498,7 @@ export default function HomeScreen() {
                       <Ionicons
                         name="location-sharp"
                         size={12}
-                        color={colors.primary}
+                        color={c.primary}
                       />
                       <Text style={styles.arenaLocationText} numberOfLines={1}>
                         {arena.address}
@@ -524,7 +528,7 @@ export default function HomeScreen() {
           </View>
         ) : (
           <View style={styles.emptyFilteredBox}>
-            <Ionicons name="football-outline" size={32} color={colors.border} />
+            <Ionicons name="football-outline" size={32} color={c.border} />
             <Text style={styles.emptyFilteredTitle}>Площадки не найдены</Text>
             <Text style={styles.emptyFilteredText}>
               В г. {currentCity} нет доступных площадок с выбранными параметрами.
@@ -565,7 +569,7 @@ export default function HomeScreen() {
               style={styles.seeAllBtn}
             >
               <Text style={styles.seeAllText}>Все залы</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+              <Ionicons name="chevron-forward" size={14} color={c.primary} />
             </Pressable>
           </View>
 
@@ -585,7 +589,7 @@ export default function HomeScreen() {
                     <Image source={{ uri: hall.image_url }} style={styles.popularImage} />
                   ) : (
                     <View style={[styles.popularImage, styles.popularImageEmpty]}>
-                      <Ionicons name="layers-outline" size={22} color={colors.textSecondary} />
+                      <Ionicons name="layers-outline" size={22} color={c.textSecondary} />
                     </View>
                   )}
                   <Pressable
@@ -600,7 +604,7 @@ export default function HomeScreen() {
                     <Ionicons
                       name={isFav ? "heart" : "heart-outline"}
                       size={14}
-                      color={isFav ? colors.accent : colors.textPrimary}
+                      color={isFav ? c.accent : c.textPrimary}
                     />
                   </Pressable>
                   <View style={styles.popularBody}>
@@ -631,7 +635,7 @@ export default function HomeScreen() {
           }}
         >
           <View style={styles.eventsTrophyWrap}>
-            <Ionicons name="trophy-outline" size={26} color={colors.primary} />
+            <Ionicons name="trophy-outline" size={26} color={c.primary} />
           </View>
 
           <View style={styles.eventsTextWrap}>
@@ -655,7 +659,7 @@ export default function HomeScreen() {
           }}
         >
           <View style={styles.promoActionIconWrap}>
-            <Ionicons name="ticket" size={20} color={colors.primary} />
+            <Ionicons name="ticket" size={20} color={c.primary} />
           </View>
           <View style={styles.promoActionTextWrap}>
             <Text style={styles.promoActionTitle}>Абонементы и Пакеты игр</Text>
@@ -696,7 +700,7 @@ export default function HomeScreen() {
                 onPress={() => setSelectedHall(null)}
                 style={styles.modalCloseBtn}
               >
-                <Ionicons name="close" size={18} color={colors.textPrimary} />
+                <Ionicons name="close" size={18} color={c.textPrimary} />
               </Pressable>
             </View>
 
@@ -804,7 +808,8 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   popularGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -815,8 +820,8 @@ const styles = StyleSheet.create({
     width: "48.3%",
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
     overflow: "hidden",
   },
   popularImage: {
@@ -826,7 +831,7 @@ const styles = StyleSheet.create({
   popularImageEmpty: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   popularFav: {
     position: "absolute",
@@ -846,21 +851,21 @@ const styles = StyleSheet.create({
   popularTitle: {
     ...typography.body,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   popularMeta: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   popularPrice: {
     ...typography.body,
     fontWeight: "800",
-    color: colors.primary,
+    color: c.primary,
     marginTop: 2,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.background, // #080D0B
+    backgroundColor: c.background, // #080D0B
   },
   scrollContent: {
     paddingHorizontal: spacing.screenHorizontal, // 16px
@@ -887,19 +892,19 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 22,
     fontWeight: "900",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     letterSpacing: -0.5,
   },
   logoTextAccent: {
-    color: colors.accent, // #F04452
+    color: c.accent, // #F04452
   },
   locationPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: c.glassBorder,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: radii.smallChip, // 12px
@@ -907,15 +912,15 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // Hero Card
   heroCard: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderRadius: radii.card, // 18px
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     flexDirection: "row",
     alignItems: "center",
     paddingLeft: spacing.lg,
@@ -932,16 +937,16 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 31,
     fontWeight: "900",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     letterSpacing: -0.5,
   },
   heroTitlePrimary: {
-    color: colors.primary, // #00C968
+    color: c.primary, // #00C968
   },
   heroSubtitle: {
     fontSize: 12,
     lineHeight: 16,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: spacing.xs + 2,
   },
   heroRight: {
@@ -961,11 +966,11 @@ const styles = StyleSheet.create({
   promoActionCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radii.card, // 18px
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     gap: spacing.md,
     marginBottom: spacing.card,
   },
@@ -983,21 +988,21 @@ const styles = StyleSheet.create({
   promoActionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   promoActionSub: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   promoBadge: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
   promoBadgeText: {
-    color: colors.background,
+    color: c.background,
     fontSize: 12,
     fontWeight: "800",
   },
@@ -1012,10 +1017,10 @@ const styles = StyleSheet.create({
   searchBar: {
     flex: 1,
     height: 48,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radii.button, // 14px
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing.md,
@@ -1026,15 +1031,15 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   mapBtn: {
     width: 48,
     height: 48,
     borderRadius: radii.button, // 14px
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1042,41 +1047,41 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: radii.button, // 14px
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
   filterBtnActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   filterBadge: {
     position: "absolute",
     top: -4,
     right: -4,
-    backgroundColor: colors.accent,
+    backgroundColor: c.accent,
     width: 18,
     height: 18,
     borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: colors.background,
+    borderColor: c.background,
   },
   filterBadgeText: {
-    color: colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 10,
     fontWeight: "700",
   },
 
   // Nearby Venues Map Banner
   mapBannerCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     borderRadius: radii.card, // 18px
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 4,
@@ -1113,17 +1118,17 @@ const styles = StyleSheet.create({
   mapBannerTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   livePulseDot: {
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   mapBannerSub: {
     fontSize: 11,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   mapBannerArrowBtn: {
@@ -1150,27 +1155,27 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 6,
   },
   categorySquircleSelected: {
     backgroundColor: "rgba(0, 201, 104, 0.15)",
-    borderColor: colors.primary,
+    borderColor: c.primary,
     borderWidth: 1.5,
   },
   categoryLabel: {
     fontSize: 11,
     lineHeight: 14,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     textAlign: "center",
     fontWeight: "500",
   },
   categoryLabelSelected: {
-    color: colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: "700",
   },
 
@@ -1187,12 +1192,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 19,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   seeAllBtn: {
@@ -1203,7 +1208,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.primary,
+    color: c.primary,
   },
 
   // Arenas Scroll
@@ -1213,10 +1218,10 @@ const styles = StyleSheet.create({
   },
   arenaCard: {
     width: 250,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radii.card, // 18px
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     overflow: "hidden",
   },
   arenaImageWrap: {
@@ -1235,7 +1240,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(8, 13, 11, 0.85)",
+    backgroundColor: c.glassBackground,
     paddingVertical: 3,
     paddingHorizontal: 7,
     borderRadius: 8,
@@ -1245,7 +1250,7 @@ const styles = StyleSheet.create({
   arenaBadgeText: {
     fontSize: 10,
     fontWeight: "700",
-    color: colors.primary,
+    color: c.primary,
   },
   arenaRating: {
     position: "absolute",
@@ -1254,7 +1259,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    backgroundColor: "rgba(8, 13, 11, 0.85)",
+    backgroundColor: c.glassBackground,
     paddingVertical: 3,
     paddingHorizontal: 7,
     borderRadius: 8,
@@ -1262,7 +1267,7 @@ const styles = StyleSheet.create({
   arenaRatingText: {
     fontSize: 11,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   arenaBody: {
     padding: spacing.md,
@@ -1270,7 +1275,7 @@ const styles = StyleSheet.create({
   arenaTitle: {
     fontSize: 15,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   arenaLocationRow: {
@@ -1281,7 +1286,7 @@ const styles = StyleSheet.create({
   },
   arenaLocationText: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
   },
   arenaSportsRow: {
@@ -1290,7 +1295,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   arenaSportPill: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     paddingVertical: 2,
     paddingHorizontal: 7,
     borderRadius: 6,
@@ -1298,7 +1303,7 @@ const styles = StyleSheet.create({
   arenaSportText: {
     fontSize: 10,
     fontWeight: "600",
-    color: colors.primary,
+    color: c.primary,
   },
   arenaFooter: {
     flexDirection: "row",
@@ -1306,17 +1311,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
   },
   arenaHallsCount: {
     fontSize: 12,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   arenaPrice: {
     fontSize: 13,
     fontWeight: "800",
-    color: colors.primary,
+    color: c.primary,
   },
 
   // Halls List (VenueCards vertical layout)
@@ -1329,20 +1334,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: spacing.xl,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     marginVertical: spacing.md,
     gap: spacing.sm,
   },
   emptyFilteredTitle: {
-    color: colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: "700",
   },
   emptyFilteredText: {
-    color: colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 13,
     textAlign: "center",
     lineHeight: 18,
@@ -1354,20 +1359,20 @@ const styles = StyleSheet.create({
     borderRadius: radii.smallChip,
     backgroundColor: "rgba(0, 201, 104, 0.15)",
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   resetFiltersBtnText: {
-    color: colors.primary,
+    color: c.primary,
     fontSize: 13,
     fontWeight: "600",
   },
 
   // Events Banner
   eventsBanner: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderRadius: radii.card, // 18px
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     flexDirection: "row",
     alignItems: "center",
     padding: spacing.lg,
@@ -1388,15 +1393,15 @@ const styles = StyleSheet.create({
   eventsTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   eventsSubtitle: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   eventsActionBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: radii.button,
@@ -1404,7 +1409,7 @@ const styles = StyleSheet.create({
   eventsActionBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: colors.background,
+    color: c.background,
   },
 
   // Modal
@@ -1417,11 +1422,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.7)",
   },
   modalContent: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     borderTopLeftRadius: radii.modal, // 24px
     borderTopRightRadius: radii.modal, // 24px
     borderTopWidth: 1,
-    borderTopColor: colors.glassBorder,
+    borderTopColor: c.glassBorder,
     padding: spacing.xl,
     paddingBottom: 40,
   },
@@ -1434,25 +1439,25 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   modalSubtitle: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
   },
   modalCloseBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   modalSectionLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: spacing.sm,
     marginTop: spacing.xs,
   },
@@ -1466,21 +1471,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: radii.smallChip, // 12px
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   slotChipActive: {
     backgroundColor: "rgba(0, 201, 104, 0.15)",
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   slotChipText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "500",
   },
   slotChipTextActive: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: "700",
   },
   modalFooter: {
@@ -1490,19 +1495,19 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
   },
   modalTotalLabel: {
     fontSize: 11,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   modalTotalPrice: {
     fontSize: 18,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   modalBookBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: radii.button, // 14px
@@ -1510,6 +1515,6 @@ const styles = StyleSheet.create({
   modalBookBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: colors.background,
+    color: c.background,
   },
 });

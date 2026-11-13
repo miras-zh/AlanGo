@@ -11,11 +11,15 @@ import {
 } from "@/lib/business";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 // Profile card that opens, disables and re-enables the business account
 // (same three states as Vison's AccountSettings business block).
 export function BusinessAccountCard() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [state, setState] = useState<BusinessState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,7 +91,7 @@ export function BusinessAccountCard() {
   if (loading) {
     return (
       <View style={[styles.card, styles.center]}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={c.primary} />
       </View>
     );
   }
@@ -103,7 +107,7 @@ export function BusinessAccountCard() {
       >
         <View style={styles.row}>
           <View style={styles.iconWrap}>
-            <Ionicons name="briefcase-outline" size={20} color={colors.primary} />
+            <Ionicons name="briefcase-outline" size={20} color={c.primary} />
           </View>
           <View style={styles.texts}>
             <Text style={styles.title}>Бизнес-аккаунт</Text>
@@ -111,7 +115,7 @@ export function BusinessAccountCard() {
               Сдавайте спорткомплекс, зал или площадку в аренду и принимайте брони
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+          <Ionicons name="chevron-forward" size={18} color={c.primary} />
         </View>
         <View style={styles.primaryBtn}>
           <Text style={styles.primaryBtnText}>Создать бизнес-аккаунт</Text>
@@ -130,7 +134,7 @@ export function BusinessAccountCard() {
           <Ionicons
             name={active ? "checkmark-circle" : "pause-circle-outline"}
             size={20}
-            color={active ? colors.primary : colors.textSecondary}
+            color={active ? c.primary : c.textSecondary}
           />
         </View>
         <View style={styles.texts}>
@@ -162,7 +166,7 @@ export function BusinessAccountCard() {
             disabled={busy}
           >
             {busy ? (
-              <ActivityIndicator color={colors.error} />
+              <ActivityIndicator color={c.error} />
             ) : (
               <Text style={styles.dangerText}>Отключить бизнес-аккаунт</Text>
             )}
@@ -175,7 +179,7 @@ export function BusinessAccountCard() {
           disabled={busy}
         >
           {busy ? (
-            <ActivityIndicator color={colors.background} />
+            <ActivityIndicator color={c.background} />
           ) : (
             <Text style={styles.primaryBtnText}>Включить бизнес-аккаунт</Text>
           )}
@@ -185,18 +189,19 @@ export function BusinessAccountCard() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     padding: spacing.lg,
     marginBottom: spacing.card,
     gap: spacing.md,
   },
   cardAccent: {
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   center: {
     alignItems: "center",
@@ -214,10 +219,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   iconWrapMuted: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   texts: {
     flex: 1,
@@ -225,11 +230,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.cardTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   subtitle: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 17,
   },
   primaryBtn: {
@@ -237,11 +242,11 @@ const styles = StyleSheet.create({
     borderRadius: radii.button,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   primaryBtnText: {
     ...typography.button,
-    color: colors.background,
+    color: c.background,
   },
   secondaryBtn: {
     height: 46,
@@ -249,11 +254,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
   },
   dangerText: {
     ...typography.button,
-    color: colors.error,
+    color: c.error,
   },
   pressed: {
     opacity: 0.7,

@@ -5,7 +5,9 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { useAppleSignIn } from "@/lib/appleAuth";
 import { useGoogleSignIn } from "@/lib/googleAuth";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 type Props = {
   mode?: "signin" | "signup";
@@ -15,6 +17,8 @@ type Props = {
 // Each button renders only when its native module and config are present,
 // so Expo Go / an unconfigured build simply shows fewer options.
 export function SocialAuthButtons({ mode = "signin" }: Props) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const apple = useAppleSignIn();
   const google = useGoogleSignIn();
@@ -86,10 +90,10 @@ export function SocialAuthButtons({ mode = "signin" }: Props) {
           ]}
         >
           {google.loading ? (
-            <ActivityIndicator color={colors.textPrimary} />
+            <ActivityIndicator color={c.textPrimary} />
           ) : (
             <>
-              <Ionicons name="logo-google" size={18} color={colors.textPrimary} />
+              <Ionicons name="logo-google" size={18} color={c.textPrimary} />
               <Text style={styles.googleText}>
                 {mode === "signup" ? "Продолжить с Google" : "Войти через Google"}
               </Text>
@@ -103,7 +107,8 @@ export function SocialAuthButtons({ mode = "signin" }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   wrap: {
     marginTop: spacing.lg,
     gap: spacing.md,
@@ -116,11 +121,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border,
+    backgroundColor: c.border,
   },
   dividerText: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   button: {
     width: "100%",
@@ -133,19 +138,19 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderRadius: radii.button,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   googleText: {
     ...typography.button,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   dimmed: {
     opacity: 0.6,
   },
   error: {
     ...typography.caption,
-    color: colors.error,
+    color: c.error,
     textAlign: "center",
   },
 });

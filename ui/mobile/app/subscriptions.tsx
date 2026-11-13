@@ -22,7 +22,11 @@ import {
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 import * as Haptics from "expo-haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export default function SubscriptionsScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"catalog" | "my">("catalog");
   const [userSubs, setUserSubs] = useState<UserSubscription[]>([]);
@@ -78,7 +82,7 @@ export default function SubscriptionsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#f8fafc" />
+          <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>Абонементы и Пакеты</Text>
         <View style={{ width: 40 }} />
@@ -137,7 +141,7 @@ export default function SubscriptionsScreen() {
             {/* Promo Banner */}
             <View style={styles.heroPromo}>
               <View style={styles.heroPromoIcon}>
-                <Ionicons name="sparkles" size={24} color="#10b981" />
+                <Ionicons name="sparkles" size={24} color={c.primary} />
               </View>
               <View style={styles.heroPromoText}>
                 <Text style={styles.heroPromoTitle}>Экономия до 25% на играх</Text>
@@ -152,14 +156,14 @@ export default function SubscriptionsScreen() {
               <View key={pkg.id} style={styles.packageCard}>
                 {pkg.popular && (
                   <View style={styles.popularBadge}>
-                    <Ionicons name="flame" size={12} color="#052e16" />
+                    <Ionicons name="flame" size={12} color={c.onPrimary} />
                     <Text style={styles.popularBadgeText}>ХИТ СЕЗОНА</Text>
                   </View>
                 )}
 
                 <View style={styles.packageHeader}>
                   <View style={[styles.packageIconWrap, { backgroundColor: pkg.gradient[0] }]}>
-                    <Ionicons name={pkg.icon as any} size={24} color="#fff" />
+                    <Ionicons name={pkg.icon as any} size={24} color={c.textPrimary} />
                   </View>
                   <View style={styles.packageHeaderMeta}>
                     <Text style={styles.packageTitle}>{pkg.title}</Text>
@@ -174,7 +178,7 @@ export default function SubscriptionsScreen() {
                 <View style={styles.featuresList}>
                   {pkg.features.map((feat, idx) => (
                     <View key={idx} style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+                      <Ionicons name="checkmark-circle" size={16} color={c.primary} />
                       <Text style={styles.featureText}>{feat}</Text>
                     </View>
                   ))}
@@ -196,7 +200,7 @@ export default function SubscriptionsScreen() {
                     onPress={() => handleSelectToBuy(pkg)}
                   >
                     <Text style={styles.buyBtnText}>Оформить</Text>
-                    <Ionicons name="arrow-forward" size={16} color="#052e16" />
+                    <Ionicons name="arrow-forward" size={16} color={c.onPrimary} />
                   </Pressable>
                 </View>
               </View>
@@ -206,7 +210,7 @@ export default function SubscriptionsScreen() {
           /* My Subscriptions Tab */
           <View>
             {loading ? (
-              <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />
+              <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 40 }} />
             ) : userSubs.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="ticket-outline" size={56} color="#475569" />
@@ -287,7 +291,7 @@ export default function SubscriptionsScreen() {
                         style={styles.qrBtn}
                         onPress={() => handleShowQr(sub)}
                       >
-                        <Ionicons name="qr-code" size={18} color="#10b981" />
+                        <Ionicons name="qr-code" size={18} color={c.primary} />
                         <Text style={styles.qrBtnText}>Показать QR</Text>
                       </Pressable>
                     </View>
@@ -314,7 +318,7 @@ export default function SubscriptionsScreen() {
                 onPress={() => setBuyModalVisible(false)}
                 style={styles.closeBtn}
               >
-                <Ionicons name="close" size={24} color="#94a3b8" />
+                <Ionicons name="close" size={24} color={c.textSecondary} />
               </Pressable>
             </View>
 
@@ -334,7 +338,7 @@ export default function SubscriptionsScreen() {
 
                 {processing ? (
                   <View style={styles.processingWrap}>
-                    <ActivityIndicator size="large" color="#10b981" />
+                    <ActivityIndicator size="large" color={c.primary} />
                     <Text style={styles.processingText}>
                       Оформление подписки и генерация пропуска...
                     </Text>
@@ -355,7 +359,7 @@ export default function SubscriptionsScreen() {
                       style={styles.cardPayBtn}
                       onPress={() => handleConfirmBuy("card")}
                     >
-                      <Ionicons name="card-outline" size={22} color="#f8fafc" />
+                      <Ionicons name="card-outline" size={22} color={c.textPrimary} />
                       <Text style={styles.cardPayText}>Банковской картой</Text>
                     </Pressable>
                   </View>
@@ -379,17 +383,17 @@ export default function SubscriptionsScreen() {
               onPress={() => setQrModalVisible(false)}
               style={styles.qrCloseBtn}
             >
-              <Ionicons name="close" size={24} color="#94a3b8" />
+              <Ionicons name="close" size={24} color={c.textSecondary} />
             </Pressable>
 
             {activeQrSub && (
               <View style={styles.qrCenter}>
-                <Ionicons name="shield-checkmark" size={32} color="#10b981" />
+                <Ionicons name="shield-checkmark" size={32} color={c.primary} />
                 <Text style={styles.qrTitle}>Электронный абонемент</Text>
                 <Text style={styles.qrSubName}>{activeQrSub.title}</Text>
 
                 <View style={styles.qrMockCard}>
-                  <Ionicons name="qr-code-outline" size={180} color="#052e16" />
+                  <Ionicons name="qr-code-outline" size={180} color={c.onPrimary} />
                   <Text style={styles.qrTokenText}>{activeQrSub.qrCodeToken}</Text>
                 </View>
 
@@ -411,7 +415,8 @@ export default function SubscriptionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#0d1310",
@@ -429,14 +434,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#17231c",
+    backgroundColor: c.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
   },
   tabBar: {
     flexDirection: "row",
@@ -448,20 +453,20 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: "#17231c",
+    backgroundColor: c.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
   tabBtnActive: {
-    backgroundColor: "#10b981",
+    backgroundColor: c.primary,
   },
   tabBtnText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#94a3b8",
+    color: c.textSecondary,
   },
   tabBtnTextActive: {
-    color: "#052e16",
+    color: c.onPrimary,
   },
   row: {
     flexDirection: "row",
@@ -469,13 +474,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   badgeCount: {
-    backgroundColor: "#052e16",
+    backgroundColor: c.onPrimary,
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   badgeCountText: {
-    color: "#10b981",
+    color: c.primary,
     fontSize: 11,
     fontWeight: "800",
   },
@@ -491,7 +496,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#059669",
+    borderColor: c.primary,
     gap: 14,
   },
   heroPromoIcon: {
@@ -508,7 +513,7 @@ const styles = StyleSheet.create({
   heroPromoTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
     marginBottom: 2,
   },
   heroPromoSubtitle: {
@@ -517,19 +522,19 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   packageCard: {
-    backgroundColor: "#151d18",
+    backgroundColor: c.surface,
     borderRadius: 18,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#223127",
+    borderColor: c.surfaceElevated,
     position: "relative",
   },
   popularBadge: {
     position: "absolute",
     top: -10,
     right: 18,
-    backgroundColor: "#10b981",
+    backgroundColor: c.primary,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
@@ -538,7 +543,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   popularBadgeText: {
-    color: "#052e16",
+    color: c.onPrimary,
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 0.5,
@@ -562,11 +567,11 @@ const styles = StyleSheet.create({
   packageTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
   },
   packageSport: {
     fontSize: 13,
-    color: "#94a3b8",
+    color: c.textSecondary,
     marginTop: 2,
   },
   discountBadge: {
@@ -576,7 +581,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   discountBadgeText: {
-    color: "#10b981",
+    color: c.primary,
     fontSize: 11,
     fontWeight: "700",
   },
@@ -586,7 +591,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#223127",
+    borderColor: c.surfaceElevated,
   },
   featureItem: {
     flexDirection: "row",
@@ -595,7 +600,7 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 13,
-    color: "#cbd5e1",
+    color: c.textSecondary,
   },
   packageFooter: {
     flexDirection: "row",
@@ -604,23 +609,23 @@ const styles = StyleSheet.create({
   },
   regularPriceText: {
     fontSize: 12,
-    color: "#64748b",
+    color: c.textMuted,
     textDecorationLine: "line-through",
   },
   priceText: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#f8fafc",
+    color: c.textPrimary,
   },
   priceCurrency: {
     fontSize: 16,
-    color: "#10b981",
+    color: c.primary,
   },
   buyBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#10b981",
+    backgroundColor: c.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -628,7 +633,7 @@ const styles = StyleSheet.create({
   buyBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#052e16",
+    color: c.onPrimary,
   },
   emptyState: {
     alignItems: "center",
@@ -639,34 +644,34 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: "#94a3b8",
+    color: c.textSecondary,
     textAlign: "center",
     maxWidth: 280,
     lineHeight: 20,
   },
   emptyBtn: {
-    backgroundColor: "#10b981",
+    backgroundColor: c.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
     marginTop: 10,
   },
   emptyBtnText: {
-    color: "#052e16",
+    color: c.onPrimary,
     fontSize: 14,
     fontWeight: "700",
   },
   mySubCard: {
-    backgroundColor: "#151d18",
+    backgroundColor: c.surface,
     borderRadius: 18,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#223127",
+    borderColor: c.surfaceElevated,
   },
   mySubHeader: {
     flexDirection: "row",
@@ -677,11 +682,11 @@ const styles = StyleSheet.create({
   mySubTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
   },
   mySubSport: {
     fontSize: 13,
-    color: "#94a3b8",
+    color: c.textSecondary,
     marginTop: 2,
   },
   statusBadge: {
@@ -700,10 +705,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   statusTextActive: {
-    color: "#34d399",
+    color: c.primaryGlow,
   },
   statusTextDepleted: {
-    color: "#94a3b8",
+    color: c.textSecondary,
   },
   progressContainer: {
     marginBottom: 16,
@@ -715,25 +720,25 @@ const styles = StyleSheet.create({
   },
   progressLabelLeft: {
     fontSize: 13,
-    color: "#94a3b8",
+    color: c.textSecondary,
   },
   progressLabelRight: {
     fontSize: 13,
-    color: "#cbd5e1",
+    color: c.textSecondary,
   },
   progressBold: {
-    color: "#10b981",
+    color: c.primary,
     fontWeight: "800",
   },
   progressBarTrack: {
     height: 8,
-    backgroundColor: "#223127",
+    backgroundColor: c.surfaceElevated,
     borderRadius: 4,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: "#10b981",
+    backgroundColor: c.primary,
     borderRadius: 4,
   },
   mySubFooter: {
@@ -741,17 +746,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderTopWidth: 1,
-    borderColor: "#223127",
+    borderColor: c.surfaceElevated,
     paddingTop: 12,
   },
   metaLabel: {
     fontSize: 11,
-    color: "#64748b",
+    color: c.textMuted,
   },
   metaValue: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#cbd5e1",
+    color: c.textSecondary,
     marginTop: 2,
   },
   qrBtn: {
@@ -763,12 +768,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#059669",
+    borderColor: c.primary,
   },
   qrBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#10b981",
+    color: c.primary,
   },
   modalOverlay: {
     flex: 1,
@@ -776,13 +781,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContainer: {
-    backgroundColor: "#151d18",
+    backgroundColor: c.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 40,
     borderTopWidth: 1,
-    borderColor: "#223127",
+    borderColor: c.surfaceElevated,
   },
   modalHeader: {
     flexDirection: "row",
@@ -793,7 +798,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
   },
   closeBtn: {
     padding: 4,
@@ -807,23 +812,23 @@ const styles = StyleSheet.create({
   modalPkgTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
   },
   modalPkgDetails: {
     fontSize: 13,
-    color: "#94a3b8",
+    color: c.textSecondary,
     marginVertical: 4,
   },
   modalPkgPrice: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#10b981",
+    color: c.primary,
     marginTop: 4,
   },
   paymentMethodTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#cbd5e1",
+    color: c.textSecondary,
     marginBottom: 12,
   },
   paymentMethods: {
@@ -839,7 +844,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   kaspiBadge: {
-    backgroundColor: "#fff",
+    backgroundColor: c.textPrimary,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -850,7 +855,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
   kaspiPayText: {
-    color: "#fff",
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "700",
   },
@@ -866,7 +871,7 @@ const styles = StyleSheet.create({
     borderColor: "#2d4234",
   },
   cardPayText: {
-    color: "#f8fafc",
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "600",
   },
@@ -876,18 +881,18 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   processingText: {
-    color: "#94a3b8",
+    color: c.textSecondary,
     fontSize: 14,
   },
   qrModalContainer: {
-    backgroundColor: "#151d18",
+    backgroundColor: c.surface,
     marginHorizontal: 20,
     marginTop: "auto",
     marginBottom: "auto",
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: "#223127",
+    borderColor: c.surfaceElevated,
     position: "relative",
   },
   qrCloseBtn: {
@@ -903,16 +908,16 @@ const styles = StyleSheet.create({
   qrTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#f8fafc",
+    color: c.textPrimary,
     marginTop: 8,
   },
   qrSubName: {
     fontSize: 14,
-    color: "#94a3b8",
+    color: c.textSecondary,
     marginBottom: 20,
   },
   qrMockCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: c.textPrimary,
     borderRadius: 20,
     padding: 16,
     alignItems: "center",
@@ -920,7 +925,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   qrTokenText: {
-    color: "#052e16",
+    color: c.onPrimary,
     fontSize: 13,
     fontWeight: "800",
     letterSpacing: 1,
@@ -928,7 +933,7 @@ const styles = StyleSheet.create({
   },
   qrInstructions: {
     fontSize: 12,
-    color: "#94a3b8",
+    color: c.textSecondary,
     textAlign: "center",
     lineHeight: 18,
     marginBottom: 16,
@@ -942,6 +947,6 @@ const styles = StyleSheet.create({
   qrMetaText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#10b981",
+    color: c.primary,
   },
 });

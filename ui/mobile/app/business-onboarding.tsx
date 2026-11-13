@@ -24,7 +24,9 @@ import {
 import { KZ_CITIES, TOP_CITIES, getSelectedCity } from "@/lib/cities";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const TOTAL_STEPS = 5;
 const MAX_TITLE = 120;
@@ -40,6 +42,8 @@ const TITLE_PLACEHOLDER: Record<VenueType, string> = {
 // Everything else (address, halls, prices, schedule) is filled later in
 // the cabinet's settings.
 export default function BusinessOnboardingScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [venueType, setVenueType] = useState<VenueType | null>(null);
@@ -107,12 +111,12 @@ export default function BusinessOnboardingScreen() {
     return (
       <SafeAreaView style={[styles.container, styles.congrats]}>
         <Animated.View style={[styles.congratsIcon, { transform: [{ scale: congratsScale }] }]}>
-          <Ionicons name="trophy" size={44} color={colors.background} />
+          <Ionicons name="trophy" size={44} color={c.background} />
         </Animated.View>
         <Text style={styles.congratsTitle}>Поздравляем!</Text>
         <Text style={styles.congratsText}>Вы открыли бизнес-аккаунт «{title.trim()}»</Text>
         <Text style={styles.congratsHint}>Открываем бизнес-кабинет…</Text>
-        <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} />
+        <ActivityIndicator color={c.primary} style={{ marginTop: spacing.lg }} />
       </SafeAreaView>
     );
   }
@@ -128,7 +132,7 @@ export default function BusinessOnboardingScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={goBack} style={styles.backBtn} hitSlop={12}>
-            <Ionicons name={step > 1 ? "chevron-back" : "close"} size={22} color={colors.textPrimary} />
+            <Ionicons name={step > 1 ? "chevron-back" : "close"} size={22} color={c.textPrimary} />
           </Pressable>
           <Text style={styles.stepLabel}>
             Шаг {step} из {TOTAL_STEPS}
@@ -159,7 +163,7 @@ export default function BusinessOnboardingScreen() {
                       <Ionicons
                         name={v.icon}
                         size={22}
-                        color={selected ? colors.background : colors.primary}
+                        color={selected ? c.background : c.primary}
                       />
                     </View>
                     <View style={{ flex: 1 }}>
@@ -169,7 +173,7 @@ export default function BusinessOnboardingScreen() {
                     <Ionicons
                       name={selected ? "radio-button-on" : "radio-button-off"}
                       size={22}
-                      color={selected ? colors.primary : colors.textSecondary}
+                      color={selected ? c.primary : c.textSecondary}
                     />
                   </Pressable>
                 );
@@ -185,7 +189,7 @@ export default function BusinessOnboardingScreen() {
                 value={title}
                 onChangeText={(t) => setTitle(t.slice(0, MAX_TITLE))}
                 placeholder={venueType ? TITLE_PLACEHOLDER[venueType] : "Название"}
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={c.textSecondary}
                 style={styles.input}
                 autoFocus
                 returnKeyType="next"
@@ -211,7 +215,7 @@ export default function BusinessOnboardingScreen() {
                       style={[styles.chip, selected && styles.chipSelected]}
                     >
                       {selected ? (
-                        <Ionicons name="checkmark" size={14} color={colors.background} />
+                        <Ionicons name="checkmark" size={14} color={c.background} />
                       ) : null}
                       <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{sport}</Text>
                     </Pressable>
@@ -226,12 +230,12 @@ export default function BusinessOnboardingScreen() {
               <Text style={styles.title}>В каком городе?</Text>
               <Text style={styles.subtitle}>Адрес и район можно указать позже в настройках.</Text>
               <View style={styles.searchBox}>
-                <Ionicons name="search" size={18} color={colors.textSecondary} />
+                <Ionicons name="search" size={18} color={c.textSecondary} />
                 <TextInput
                   value={citySearch}
                   onChangeText={setCitySearch}
                   placeholder="Найти город"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={c.textSecondary}
                   style={styles.searchInput}
                 />
               </View>
@@ -288,7 +292,7 @@ export default function BusinessOnboardingScreen() {
               style={[styles.primaryBtn, submitting && styles.disabled]}
             >
               {submitting ? (
-                <ActivityIndicator color={colors.background} />
+                <ActivityIndicator color={c.background} />
               ) : (
                 <Text style={styles.primaryBtnText}>Подтвердить и переключиться</Text>
               )}
@@ -311,21 +315,24 @@ function SummaryRow({
   onEdit: () => void;
   last?: boolean;
 }) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable onPress={onEdit} style={[styles.summaryRow, !last && styles.summaryDivider]}>
       <View style={{ flex: 1 }}>
         <Text style={styles.summaryLabel}>{label}</Text>
         <Text style={styles.summaryValue}>{value}</Text>
       </View>
-      <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
+      <Ionicons name="create-outline" size={18} color={c.textSecondary} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -340,26 +347,26 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
   },
   backBtnSpacer: {
     width: 40,
   },
   stepLabel: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   progressTrack: {
     height: 4,
     marginHorizontal: spacing.screenHorizontal,
     borderRadius: 2,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     overflow: "hidden",
   },
   progressFill: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   content: {
     padding: spacing.screenHorizontal,
@@ -370,11 +377,11 @@ const styles = StyleSheet.create({
   title: {
     ...typography.screenTitle,
     fontSize: 26,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   subtitle: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: spacing.sm,
   },
   option: {
@@ -384,12 +391,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   optionSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.surfaceElevated,
+    borderColor: c.primary,
+    backgroundColor: c.surfaceElevated,
   },
   optionIcon: {
     width: 44,
@@ -397,18 +404,18 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   optionIconSelected: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   optionTitle: {
     ...typography.cardTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   optionDesc: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: spacing.xs,
     lineHeight: 17,
   },
@@ -416,15 +423,15 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: radii.button,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
     paddingHorizontal: spacing.lg,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
   },
   counter: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     textAlign: "right",
   },
   chips: {
@@ -440,19 +447,19 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radii.smallChip,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   chipSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
+    borderColor: c.primary,
+    backgroundColor: c.primary,
   },
   chipText: {
     ...typography.body,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   chipTextSelected: {
-    color: colors.background,
+    color: c.background,
     fontWeight: "600",
   },
   searchBox: {
@@ -462,20 +469,20 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: radii.button,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
     paddingHorizontal: spacing.md,
   },
   searchInput: {
     flex: 1,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
   },
   summary: {
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
     paddingHorizontal: spacing.lg,
   },
   summaryRow: {
@@ -486,15 +493,15 @@ const styles = StyleSheet.create({
   },
   summaryDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
   },
   summaryLabel: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   summaryValue: {
     ...typography.cardTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     marginTop: spacing.xs,
   },
   footer: {
@@ -507,12 +514,12 @@ const styles = StyleSheet.create({
     borderRadius: radii.button,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   primaryBtnText: {
     ...typography.button,
     fontSize: 16,
-    color: colors.background,
+    color: c.background,
   },
   disabled: {
     opacity: 0.45,
@@ -528,23 +535,23 @@ const styles = StyleSheet.create({
     borderRadius: 48,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     marginBottom: spacing.xxl,
   },
   congratsTitle: {
     ...typography.screenTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   congratsText: {
     ...typography.body,
     fontSize: 16,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     textAlign: "center",
     marginTop: spacing.sm,
   },
   congratsHint: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
     marginTop: spacing.xl,
   },
 });

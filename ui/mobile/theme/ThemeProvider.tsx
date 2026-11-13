@@ -8,7 +8,7 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { useColorScheme } from "react-native";
+import { Appearance, useColorScheme } from "react-native";
 import {
   colors as tokenColors,
   type ThemeColors,
@@ -87,6 +87,16 @@ export function ThemeProvider({ children }: PropsWithChildren) {
       isMounted = false;
     };
   }, []);
+
+  // Push the choice to UIKit so native UI (tab bar, alerts, keyboard, date
+  // pickers) follows the app theme; "system" clears the override.
+  useEffect(() => {
+    try {
+      Appearance.setColorScheme(mode === "system" ? "unspecified" : mode);
+    } catch {
+      // older runtimes without setColorScheme
+    }
+  }, [mode]);
 
   const themeName: ThemeName = useMemo(() => {
     if (mode === "light") return "light";

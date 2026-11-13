@@ -8,7 +8,9 @@ import {
   StyleProp,
   UIManager,
 } from "react-native";
-import { colors, radii } from "@/constants/theme";
+import { radii } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 function isBlurSupported(): boolean {
   if (Platform.OS === "web") return false;
@@ -42,6 +44,8 @@ export function GlassSurface({
   glow = false,
   pointerEvents,
 }: GlassSurfaceProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const canBlur = isBlurSupported();
   const isSelected = variant === "selected";
 
@@ -80,8 +84,8 @@ export function GlassSurface({
               backgroundColor: isSelected
                 ? "rgba(0, 201, 104, 0.16)"
                 : canBlur
-                ? "rgba(18, 26, 22, 0.65)"
-                : "rgba(18, 26, 22, 0.88)",
+                ? c.glassBackground
+                : c.glassBackground,
             },
           ]}
         />
@@ -95,7 +99,7 @@ export function GlassSurface({
               borderRadius,
               borderColor: isSelected
                 ? "rgba(0, 201, 104, 0.45)"
-                : "rgba(255, 255, 255, 0.12)",
+                : c.subtle,
             },
           ]}
         />
@@ -106,18 +110,19 @@ export function GlassSurface({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     position: "relative",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
     backgroundColor: "transparent",
   },
   containerSelected: {
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
   glowEffect: {
-    shadowColor: colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 10,

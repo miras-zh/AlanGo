@@ -11,7 +11,9 @@ import {
   View,
 } from "react-native";
 import type { PickedPhoto } from "@/lib/pickImage";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const OUTPUT_SIZE = 640; // px, the exported square avatar's side
 const MAX_ZOOM = 3; // multiple of the "cover" fit scale
@@ -27,6 +29,8 @@ type Props = {
 // the circular viewport, zoom with the slider, then crop exactly what's
 // visible via expo-image-manipulator. Output is a square JPEG for uploadAvatar.
 export function AvatarCropModal({ source, onCancel, onSave }: Props) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const viewport = Math.min(280, Dimensions.get("window").width - spacing.lg * 2 - 40);
 
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
@@ -231,7 +235,8 @@ export function AvatarCropModal({ source, onCancel, onSave }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
@@ -243,24 +248,24 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 360,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: c.glassBorder,
     borderRadius: radii.modal,
     padding: spacing.xl,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
   },
   title: {
     ...typography.sectionTitle,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   hint: {
     ...typography.caption,
     marginTop: spacing.sm,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   loadError: {
     ...typography.caption,
     marginTop: spacing.sm,
-    color: colors.error,
+    color: c.error,
   },
   viewportRow: {
     marginTop: spacing.xl,
@@ -269,22 +274,22 @@ const styles = StyleSheet.create({
   viewport: {
     overflow: "hidden",
     borderWidth: 2,
-    borderColor: colors.primary,
-    backgroundColor: colors.surfaceElevated,
+    borderColor: c.primary,
+    backgroundColor: c.surfaceElevated,
   },
   gridV: {
     position: "absolute",
     top: 0,
     bottom: 0,
     width: StyleSheet.hairlineWidth,
-    backgroundColor: colors.glassBorder,
+    backgroundColor: c.glassBorder,
   },
   gridH: {
     position: "absolute",
     left: 0,
     right: 0,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.glassBorder,
+    backgroundColor: c.glassBorder,
   },
   sliderRow: {
     marginTop: spacing.xl,
@@ -297,7 +302,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     width: 16,
     textAlign: "center",
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   track: {
     flex: 1,
@@ -310,14 +315,14 @@ const styles = StyleSheet.create({
     right: 0,
     height: 4,
     borderRadius: 999,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   trackFill: {
     position: "absolute",
     left: 0,
     height: 4,
     borderRadius: 999,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   thumb: {
     position: "absolute",
@@ -325,7 +330,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     marginLeft: -10,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   actions: {
     marginTop: spacing.xxl,
@@ -338,12 +343,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     borderRadius: radii.button,
   },
   cancelText: {
     ...typography.button,
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   saveBtn: {
     flex: 1,
@@ -351,11 +356,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radii.button,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   saveText: {
     ...typography.button,
-    color: colors.background,
+    color: c.background,
   },
   pressed: {
     opacity: 0.6,

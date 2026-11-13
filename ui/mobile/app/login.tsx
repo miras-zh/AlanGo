@@ -19,7 +19,11 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export default function LoginScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const { colors } = useAppTheme();
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -57,7 +61,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: "#0B0F0D" }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: c.background }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Top Bar with Back button */}
         <View style={styles.topBar}>
@@ -66,7 +70,7 @@ export default function LoginScreen() {
             style={styles.backBtn}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+            <Ionicons name="chevron-back" size={24} color={c.textPrimary} />
           </Pressable>
         </View>
 
@@ -88,7 +92,7 @@ export default function LoginScreen() {
           <Text style={styles.label}>Email</Text>
           <TextInput
             placeholder="name@example.com"
-            placeholderTextColor="#6B7C72"
+            placeholderTextColor={c.textMuted}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -99,7 +103,7 @@ export default function LoginScreen() {
           <Text style={styles.label}>Пароль</Text>
           <PasswordInput
             placeholder="Введите пароль"
-            placeholderTextColor="#6B7C72"
+            placeholderTextColor={c.textMuted}
             value={password}
             onChangeText={setPassword}
           />
@@ -131,7 +135,8 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -149,7 +154,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#161D19",
+    backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -167,7 +172,7 @@ const styles = StyleSheet.create({
   skipGuestText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   header: {
     marginBottom: 24,
@@ -180,19 +185,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 6,
     lineHeight: 20,
   },
 
   // Dev Quick Login Card
   devCard: {
-    backgroundColor: "#141A17",
+    backgroundColor: c.surface,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#1E2A22",
@@ -208,11 +213,11 @@ const styles = StyleSheet.create({
   devCardTitle: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   devCardSub: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginBottom: 12,
   },
   devBtnCol: {
@@ -243,11 +248,11 @@ const styles = StyleSheet.create({
   devBtnName: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   devBtnDesc: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 1,
   },
 
@@ -261,12 +266,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#1F2823",
+    backgroundColor: c.border,
   },
   dividerText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#6B7C72",
+    color: c.textMuted,
     letterSpacing: 0.5,
   },
 
@@ -277,22 +282,22 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 4,
   },
   input: {
     height: 48,
-    backgroundColor: "#161D19",
+    backgroundColor: c.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#232F28",
+    borderColor: c.border,
     paddingHorizontal: 14,
     fontSize: 14,
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   primaryBtn: {
     height: 50,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
@@ -301,14 +306,14 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#0B0F0D",
+    color: c.background,
   },
   guestOutlineBtn: {
     height: 50,
     backgroundColor: "transparent",
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: "#22C55E",
+    borderColor: c.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -318,7 +323,7 @@ const styles = StyleSheet.create({
   guestOutlineBtnText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   registerLinkWrap: {
     marginTop: 18,
@@ -327,10 +332,10 @@ const styles = StyleSheet.create({
   },
   registerLinkText: {
     fontSize: 14,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   registerLinkAccent: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
 });

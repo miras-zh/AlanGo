@@ -3,7 +3,9 @@ import { Ionicons } from "@expo/vector-icons";
 import type { ArenaWithHalls, Hall } from "@/lib/sportRentData";
 import { plural } from "@/lib/plural";
 import { hapticSelection } from "@/lib/haptics";
-import { colors, radii, spacing, typography } from "@/constants/theme";
+import { radii, spacing, typography } from "@/constants/theme";
+
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 const VENUE_LABEL: Record<string, string> = {
   complex: "Спорткомплекс",
@@ -26,6 +28,8 @@ export function arenaMinPrice(arena: ArenaWithHalls): number | null {
 // Large sports-complex card: cover, type badge, rating, address, hours and a
 // strip of the halls inside — a complex is a set of halls, not one venue.
 export function ArenaCard({ arena, onPress, onHallPress }: Props) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const minPrice = arenaMinPrice(arena);
   const hallsCount = arena.halls.length;
   const cover = arena.imageUrl || arena.halls.find((h) => h.imageUrl)?.imageUrl || "";
@@ -44,20 +48,20 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
           <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} />
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.coverEmpty]}>
-            <Ionicons name="business-outline" size={44} color={colors.textSecondary} />
+            <Ionicons name="business-outline" size={44} color={c.textSecondary} />
           </View>
         )}
         <View style={styles.coverShade} />
         <View style={styles.badgeRow}>
           <View style={styles.typeBadge}>
-            <Ionicons name="business" size={12} color={colors.primary} />
+            <Ionicons name="business" size={12} color={c.primary} />
             <Text style={styles.typeBadgeText}>
               {VENUE_LABEL[arena.venueType ?? "complex"] ?? arena.category ?? "Спорткомплекс"}
             </Text>
           </View>
           {arena.rating > 0 ? (
             <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={12} color={colors.primary} />
+              <Ionicons name="star" size={12} color={c.primary} />
               <Text style={styles.ratingText}>{arena.rating.toFixed(1)}</Text>
             </View>
           ) : null}
@@ -73,7 +77,7 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
           </View>
           {arena.address || arena.city ? (
             <View style={styles.metaRow}>
-              <Ionicons name="location" size={13} color={colors.primary} />
+              <Ionicons name="location" size={13} color={c.primary} />
               <Text style={styles.metaText} numberOfLines={1}>
                 {[arena.city, arena.address].filter(Boolean).join(", ")}
               </Text>
@@ -85,7 +89,7 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
       <View style={styles.body}>
         {arena.workingHours ? (
           <View style={styles.metaRow}>
-            <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+            <Ionicons name="time-outline" size={14} color={c.textSecondary} />
             <Text style={styles.hoursText}>{arena.workingHours}</Text>
           </View>
         ) : null}
@@ -120,7 +124,7 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
                   <Image source={{ uri: h.imageUrl }} style={styles.hallImage} />
                 ) : (
                   <View style={[styles.hallImage, styles.coverEmpty]}>
-                    <Ionicons name="layers-outline" size={22} color={colors.textSecondary} />
+                    <Ionicons name="layers-outline" size={22} color={c.textSecondary} />
                   </View>
                 )}
                 <Text style={styles.hallTitle} numberOfLines={1}>
@@ -150,7 +154,7 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
           </View>
           <View style={styles.cta}>
             <Text style={styles.ctaText}>Смотреть комплекс</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.background} />
+            <Ionicons name="arrow-forward" size={16} color={c.background} />
           </View>
         </View>
       </View>
@@ -158,12 +162,13 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   card: {
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
     overflow: "hidden",
   },
   pressed: {
@@ -172,12 +177,12 @@ const styles = StyleSheet.create({
   cover: {
     height: 200,
     justifyContent: "space-between",
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   coverEmpty: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   coverShade: {
     position: "absolute",
@@ -199,14 +204,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radii.smallChip,
-    backgroundColor: colors.glassBackground,
+    backgroundColor: c.glassBackground,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: c.glassBorder,
   },
   typeBadgeText: {
     ...typography.caption,
     fontWeight: "700",
-    color: colors.primary,
+    color: c.primary,
   },
   ratingBadge: {
     flexDirection: "row",
@@ -215,12 +220,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radii.smallChip,
-    backgroundColor: colors.glassBackground,
+    backgroundColor: c.glassBackground,
   },
   ratingText: {
     ...typography.caption,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   coverBottom: {
     padding: spacing.lg,
@@ -236,13 +241,13 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
-    backgroundColor: colors.surfaceElevated,
+    borderColor: c.glassBorder,
+    backgroundColor: c.surfaceElevated,
   },
   title: {
     fontSize: 22,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   metaRow: {
     flexDirection: "row",
@@ -251,7 +256,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     ...typography.body,
-    color: colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   body: {
@@ -260,7 +265,7 @@ const styles = StyleSheet.create({
   },
   hoursText: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   sportsRow: {
     flexDirection: "row",
@@ -271,17 +276,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radii.smallChip,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
   },
   sportText: {
     ...typography.caption,
     fontWeight: "600",
-    color: colors.primary,
+    color: c.primary,
   },
   sectionLabel: {
     ...typography.caption,
     fontWeight: "700",
-    color: colors.textSecondary,
+    color: c.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -300,11 +305,11 @@ const styles = StyleSheet.create({
   hallTitle: {
     ...typography.body,
     fontWeight: "600",
-    color: colors.textPrimary,
+    color: c.textPrimary,
   },
   hallMeta: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   footer: {
     flexDirection: "row",
@@ -312,20 +317,20 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingTop: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
   },
   priceLabel: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   price: {
     ...typography.cardTitle,
     fontWeight: "800",
-    color: colors.primary,
+    color: c.primary,
   },
   priceSub: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: c.textSecondary,
   },
   cta: {
     flexDirection: "row",
@@ -334,10 +339,10 @@ const styles = StyleSheet.create({
     height: 42,
     paddingHorizontal: spacing.lg,
     borderRadius: radii.button,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   ctaText: {
     ...typography.button,
-    color: colors.background,
+    color: c.background,
   },
 });

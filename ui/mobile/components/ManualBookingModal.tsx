@@ -24,6 +24,8 @@ import {
 import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 interface ManualBookingModalProps {
   visible: boolean;
   halls: Hall[];
@@ -52,6 +54,8 @@ export function ManualBookingModal({
   onClose,
   onCreated,
 }: ManualBookingModalProps) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [selectedHallId, setSelectedHallId] = useState<number | null>(null);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("+7 ");
@@ -140,7 +144,7 @@ export function ManualBookingModal({
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <View style={styles.iconWrap}>
-                <Ionicons name="call" size={16} color="#22C55E" />
+                <Ionicons name="call" size={16} color={c.primary} />
               </View>
               <View>
                 <Text style={styles.headerTitle}>Быстрая запись</Text>
@@ -155,7 +159,7 @@ export function ManualBookingModal({
               style={styles.closeBtn}
               hitSlop={8}
             >
-              <Ionicons name="close" size={22} color="#8E9B94" />
+              <Ionicons name="close" size={22} color={c.textSecondary} />
             </Pressable>
           </View>
 
@@ -178,7 +182,7 @@ export function ManualBookingModal({
                     <Ionicons
                       name="football-outline"
                       size={14}
-                      color={active ? "#22C55E" : "#8E9B94"}
+                      color={active ? c.primary : c.textSecondary}
                     />
                     <Text style={[styles.hallChipText, active && styles.hallChipTextActive]}>
                       {h.title}
@@ -234,7 +238,7 @@ export function ManualBookingModal({
             ) : null}
             <Text style={styles.sectionLabel}>Слот времени</Text>
             {!availability ? (
-              <ActivityIndicator color="#22C55E" style={{ marginVertical: 12 }} />
+              <ActivityIndicator color={c.primary} style={{ marginVertical: 12 }} />
             ) : availability.isClosed || availability.slots.length === 0 ? (
               <Text style={styles.closedNote}>Зал не работает в этот день</Text>
             ) : (
@@ -265,24 +269,24 @@ export function ManualBookingModal({
             <Text style={styles.sectionLabel}>Данные клиента</Text>
             <View style={styles.inputGroup}>
               <View style={styles.inputWrap}>
-                <Ionicons name="person-outline" size={18} color="#6B7C72" style={styles.inputIcon} />
+                <Ionicons name="person-outline" size={18} color={c.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   value={clientName}
                   onChangeText={setClientName}
                   placeholder="Имя клиента (например, Азамат)"
-                  placeholderTextColor="#6B7C72"
+                  placeholderTextColor={c.textMuted}
                 />
               </View>
 
               <View style={styles.inputWrap}>
-                <Ionicons name="call-outline" size={18} color="#6B7C72" style={styles.inputIcon} />
+                <Ionicons name="call-outline" size={18} color={c.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   value={clientPhone}
                   onChangeText={setClientPhone}
                   placeholder="+7 (777) 000-00-00"
-                  placeholderTextColor="#6B7C72"
+                  placeholderTextColor={c.textMuted}
                   keyboardType="phone-pad"
                 />
               </View>
@@ -295,7 +299,7 @@ export function ManualBookingModal({
               value={notes}
               onChangeText={setNotes}
               placeholder="Например, нужен комплект манишек"
-              placeholderTextColor="#6B7C72"
+              placeholderTextColor={c.textMuted}
             />
             {availability ? (
               <Text style={styles.priceNote}>
@@ -312,10 +316,10 @@ export function ManualBookingModal({
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color="#0B0F0D" />
+                <ActivityIndicator color={c.background} />
               ) : (
                 <>
-                  <Ionicons name="checkmark-done" size={20} color="#0B0F0D" />
+                  <Ionicons name="checkmark-done" size={20} color={c.background} />
                   <Text style={styles.submitBtnText}>Зафиксировать бронь</Text>
                 </>
               )}
@@ -327,15 +331,16 @@ export function ManualBookingModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   closedNote: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginBottom: 12,
   },
   priceNote: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 10,
   },
   overlay: {
@@ -344,7 +349,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   sheetContainer: {
-    backgroundColor: "#111714",
+    backgroundColor: c.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     height: "90%",
@@ -357,7 +362,7 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#1C2621",
+    borderBottomColor: c.surfaceElevated,
   },
   headerTitleRow: {
     flexDirection: "row",
@@ -373,12 +378,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: {
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: "700",
   },
   headerSub: {
-    color: "#8E9B94",
+    color: c.textSecondary,
     fontSize: 11,
     marginTop: 2,
   },
@@ -386,7 +391,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#1A231F",
+    backgroundColor: c.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -400,7 +405,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionLabel: {
-    color: "#B2BFB8",
+    color: c.textSecondary,
     fontSize: 13,
     fontWeight: "600",
     marginTop: 4,
@@ -416,21 +421,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 12,
-    backgroundColor: "#17211C",
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: "#223129",
+    borderColor: c.surfaceElevated,
   },
   hallChipActive: {
     backgroundColor: "rgba(34, 197, 94, 0.15)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   hallChipText: {
-    color: "#C2CEC7",
+    color: c.textSecondary,
     fontSize: 13,
     fontWeight: "500",
   },
   hallChipTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   chipsRow: {
@@ -441,21 +446,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "#17211C",
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: "#223129",
+    borderColor: c.surfaceElevated,
   },
   dateChipActive: {
-    backgroundColor: "#22C55E",
-    borderColor: "#22C55E",
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   dateChipText: {
-    color: "#C2CEC7",
+    color: c.textSecondary,
     fontSize: 13,
     fontWeight: "600",
   },
   dateChipTextActive: {
-    color: "#0B0F0D",
+    color: c.background,
     fontWeight: "700",
   },
   slotsWrap: {
@@ -467,21 +472,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 10,
-    backgroundColor: "#161E1A",
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: "#202C26",
   },
   slotChipActive: {
     backgroundColor: "rgba(34, 197, 94, 0.15)",
-    borderColor: "#22C55E",
+    borderColor: c.primary,
   },
   slotChipText: {
-    color: "#D4DDD7",
+    color: c.textSecondary,
     fontSize: 12,
     fontWeight: "500",
   },
   slotChipTextActive: {
-    color: "#22C55E",
+    color: c.primary,
     fontWeight: "700",
   },
   inputGroup: {
@@ -490,10 +495,10 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#161E1A",
+    backgroundColor: c.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#222D27",
+    borderColor: c.surfaceElevated,
     paddingHorizontal: 12,
     height: 48,
   },
@@ -502,7 +507,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 14,
   },
   priceRow: {
@@ -510,24 +515,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   priceInput: {
-    backgroundColor: "#161E1A",
+    backgroundColor: c.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#222D27",
+    borderColor: c.surfaceElevated,
     paddingHorizontal: 12,
     height: 48,
-    color: "#22C55E",
+    color: c.primary,
     fontSize: 16,
     fontWeight: "700",
   },
   notesInput: {
-    backgroundColor: "#161E1A",
+    backgroundColor: c.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#222D27",
+    borderColor: c.surfaceElevated,
     paddingHorizontal: 12,
     height: 48,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 13,
   },
   quickPaymentRow: {
@@ -546,27 +551,27 @@ const styles = StyleSheet.create({
   quickFillText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#22C55E",
+    color: c.primary,
   },
   bottomBar: {
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: Platform.OS === "ios" ? 14 : 20,
     borderTopWidth: 1,
-    borderTopColor: "#1C2621",
-    backgroundColor: "#111714",
+    borderTopColor: c.surfaceElevated,
+    backgroundColor: c.surface,
   },
   submitBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     paddingVertical: 15,
     borderRadius: 16,
   },
   submitBtnText: {
-    color: "#0B0F0D",
+    color: c.background,
     fontSize: 16,
     fontWeight: "700",
   },

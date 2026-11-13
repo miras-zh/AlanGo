@@ -19,7 +19,7 @@ import { resolveMyArenaId } from "@/lib/business";
 import { Ionicons } from "@expo/vector-icons";
 import { BusinessAccountCard } from "@/components/BusinessAccountCard";
 import { AvatarCropModal } from "@/components/AvatarCropModal";
-import { colors, radii, spacing } from "@/constants/theme";
+import { radii, spacing } from "@/constants/theme";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
 import { clearSession, getSessionUser } from "@/lib/auth";
@@ -33,7 +33,11 @@ import {
 } from "@/lib/sportRentData";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 export default function BusinessProfileScreen() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [user, setUser] = useState(getSessionUser());
   const [arena, setArena] = useState<Arena | null>(null);
@@ -205,7 +209,7 @@ export default function BusinessProfileScreen() {
           style={styles.editBtn}
           onPress={openEditModal}
         >
-          <Ionicons name="create-outline" size={18} color="#22C55E" />
+          <Ionicons name="create-outline" size={18} color={c.primary} />
           <Text style={styles.editBtnText}>Изменить</Text>
         </Pressable>
       </View>
@@ -237,11 +241,11 @@ export default function BusinessProfileScreen() {
                 )}
                 {uploadingLogo ? (
                   <View style={[styles.logo, styles.logoOverlay]}>
-                    <ActivityIndicator color={colors.textPrimary} />
+                    <ActivityIndicator color={c.textPrimary} />
                   </View>
                 ) : null}
                 <View style={styles.logoEditBadge}>
-                  <Ionicons name="camera" size={12} color={colors.background} />
+                  <Ionicons name="camera" size={12} color={c.background} />
                 </View>
               </Pressable>
               <View style={styles.arenaIdentityText}>
@@ -259,7 +263,7 @@ export default function BusinessProfileScreen() {
         {/* Info Grid */}
         <View style={styles.infoGrid}>
           <View style={styles.infoTile}>
-            <Ionicons name="call-outline" size={18} color="#22C55E" />
+            <Ionicons name="call-outline" size={18} color={c.primary} />
             <Text style={styles.infoTileLabel}>Телефон администратора</Text>
             <Text style={styles.infoTileValue}>{arena?.phone || "+7 (701) 111-22-33"}</Text>
           </View>
@@ -277,7 +281,7 @@ export default function BusinessProfileScreen() {
           </View>
 
           <View style={styles.infoTile}>
-            <Ionicons name="star" size={18} color="#22C55E" />
+            <Ionicons name="star" size={18} color={c.primary} />
             <Text style={styles.infoTileLabel}>Рейтинг арены</Text>
             <Text style={styles.infoTileValue}>
               ★ {arena?.rating} ({arena?.reviewsCount} отзывов)
@@ -290,7 +294,7 @@ export default function BusinessProfileScreen() {
         <View style={styles.featuresWrap}>
           {arena?.features.map((feat, i) => (
             <View key={i} style={styles.featurePill}>
-              <Ionicons name="checkmark-sharp" size={14} color="#22C55E" />
+              <Ionicons name="checkmark-sharp" size={14} color={c.primary} />
               <Text style={styles.featureText}>{feat}</Text>
             </View>
           ))}
@@ -306,17 +310,17 @@ export default function BusinessProfileScreen() {
             router.replace("/(tabs)");
           }}
         >
-          <Ionicons name="person-outline" size={18} color="#22C55E" />
+          <Ionicons name="person-outline" size={18} color={c.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.switchBtnTitle, { color: "#22C55E" }]}>Открыть приложение как клиент</Text>
+            <Text style={[styles.switchBtnTitle, { color: c.primary }]}>Открыть приложение как клиент</Text>
             <Text style={styles.switchBtnSub}>Бронировать залы и смотреть события</Text>
           </View>
-          <Ionicons name="arrow-forward" size={18} color="#22C55E" />
+          <Ionicons name="arrow-forward" size={18} color={c.primary} />
         </Pressable>
 
         {/* Logout */}
         <Pressable style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+          <Ionicons name="log-out-outline" size={20} color={c.error} />
           <Text style={styles.logoutBtnText}>Выйти из аккаунта</Text>
         </Pressable>
 
@@ -333,7 +337,7 @@ export default function BusinessProfileScreen() {
                 onPress={() => setModalVisible(false)}
                 hitSlop={10}
               >
-                <Ionicons name="close" size={24} color="#FFFFFF" />
+                <Ionicons name="close" size={24} color={c.textPrimary} />
               </Pressable>
             </View>
 
@@ -344,7 +348,7 @@ export default function BusinessProfileScreen() {
                 value={title}
                 onChangeText={setTitle}
                 placeholder="Astana Arena Sport"
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
               />
 
               <View style={styles.inputRow}>
@@ -355,7 +359,7 @@ export default function BusinessProfileScreen() {
                     value={city}
                     onChangeText={setCity}
                     placeholder="Астана"
-                    placeholderTextColor="#6B7C72"
+                    placeholderTextColor={c.textMuted}
                   />
                 </View>
 
@@ -366,7 +370,7 @@ export default function BusinessProfileScreen() {
                     value={phone}
                     onChangeText={setPhone}
                     placeholder="+7 (701) 111-22-33"
-                    placeholderTextColor="#6B7C72"
+                    placeholderTextColor={c.textMuted}
                   />
                 </View>
               </View>
@@ -377,7 +381,7 @@ export default function BusinessProfileScreen() {
                 value={address}
                 onChangeText={setAddress}
                 placeholder="ул. Нур-Султан 12"
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
               />
 
               <Text style={styles.inputLabel}>Описание</Text>
@@ -388,7 +392,7 @@ export default function BusinessProfileScreen() {
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Описание спорткомплекса..."
-                placeholderTextColor="#6B7C72"
+                placeholderTextColor={c.textMuted}
               />
 
               <Pressable
@@ -416,10 +420,11 @@ export default function BusinessProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
   },
   header: {
     paddingHorizontal: 16,
@@ -429,12 +434,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: c.hairline,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   editBtn: {
     flexDirection: "row",
@@ -450,7 +455,7 @@ const styles = StyleSheet.create({
   editBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   scroll: {
     padding: 16,
@@ -461,7 +466,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 16,
     position: "relative",
-    backgroundColor: "#161D19",
+    backgroundColor: c.surface,
   },
   arenaCover: {
     width: "100%",
@@ -474,7 +479,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   arenaOverlayPlain: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
   },
   arenaIdentity: {
     flexDirection: "row",
@@ -489,17 +494,17 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     borderWidth: 2,
-    borderColor: colors.glassBorder,
+    borderColor: c.glassBorder,
   },
   logoFallback: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: c.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
   },
   logoLetter: {
     fontSize: 28,
     fontWeight: "800",
-    color: colors.primary,
+    color: c.primary,
   },
   logoOverlay: {
     position: "absolute",
@@ -516,9 +521,9 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: radii.smallChip,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     borderWidth: 2,
-    borderColor: colors.background,
+    borderColor: c.background,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -537,21 +542,21 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
   },
   statusText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#22C55E",
+    color: c.primary,
   },
   arenaName: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   arenaAddress: {
     fontSize: 13,
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginTop: 2,
   },
   infoGrid: {
@@ -559,27 +564,27 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   infoTile: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.hairline,
   },
   infoTileLabel: {
     fontSize: 11,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginTop: 4,
   },
   infoTileValue: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginTop: 2,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
     marginBottom: 10,
   },
   featuresWrap: {
@@ -592,26 +597,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   featureText: {
     fontSize: 12,
-    color: "#8E9B94",
+    color: c.textSecondary,
   },
   switchBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: c.subtle,
   },
   switchBtnClient: {
     borderColor: "rgba(34, 197, 94, 0.4)",
@@ -620,11 +625,11 @@ const styles = StyleSheet.create({
   switchBtnTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   switchBtnSub: {
     fontSize: 11,
-    color: "#6B7C72",
+    color: c.textMuted,
     marginTop: 2,
   },
   logoutBtn: {
@@ -641,7 +646,7 @@ const styles = StyleSheet.create({
   logoutBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#EF4444",
+    color: c.error,
   },
   modalOverlay: {
     flex: 1,
@@ -649,12 +654,12 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#131916",
+    backgroundColor: c.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "85%",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
   },
   modalHeader: {
     flexDirection: "row",
@@ -663,12 +668,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.08)",
+    borderBottomColor: c.subtle,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: c.textPrimary,
   },
   modalScroll: {
     padding: 20,
@@ -676,18 +681,18 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#8E9B94",
+    color: c.textSecondary,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: "#0B0F0D",
+    backgroundColor: c.background,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: "#FFFFFF",
+    color: c.textPrimary,
     fontSize: 14,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: c.subtle,
     marginBottom: 14,
   },
   inputRow: {
@@ -698,7 +703,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   saveModalBtn: {
-    backgroundColor: "#22C55E",
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
@@ -708,6 +713,6 @@ const styles = StyleSheet.create({
   saveModalBtnText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#0B0F0D",
+    color: c.background,
   },
 });

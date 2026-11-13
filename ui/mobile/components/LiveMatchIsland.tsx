@@ -18,6 +18,8 @@ import { hapticImpact, hapticSelection } from "@/lib/haptics";
 import { getAccessToken } from "@/lib/auth";
 import { getMyActiveBooking, type ActiveBooking } from "@/lib/sportRentData";
 
+import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+
 const { width } = Dimensions.get("window");
 
 export interface LiveMatchData {
@@ -58,6 +60,8 @@ function toMatch(b: ActiveBooking): LiveMatchData {
 // Home banner for the user's real booking today (ongoing or starting within
 // 3 h). Hidden when there is none; the × hides it for that booking only.
 export function LiveMatchIsland() {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [match, setMatch] = useState<LiveMatchData | null>(null);
   const [dismissed, setDismissed] = useState<string | null>(null);
 
@@ -101,6 +105,8 @@ export function LiveMatchIsland() {
 }
 
 function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
+  const c = usePalette();
+  const styles = useThemedStyles(createStyles);
   const [expanded, setExpanded] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [pulse, setPulse] = useState(false);
@@ -151,7 +157,7 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
           <View style={styles.islandLeft}>
             <View style={[styles.pulseDot, pulse && styles.pulseDotActive]} />
             <View style={styles.sportIconWrap}>
-              <Ionicons name="football" size={16} color="#10b981" />
+              <Ionicons name="football" size={16} color={c.primary} />
             </View>
           </View>
 
@@ -168,7 +174,7 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
           {/* Right: Countdown Pill */}
           <View style={styles.islandRight}>
             <View style={styles.countdownBadge}>
-              <Ionicons name="timer-outline" size={12} color="#10b981" />
+              <Ionicons name="timer-outline" size={12} color={c.primary} />
               <Text style={styles.countdownText}>
                 {match.started ? `ещё ${match.minutesLeft} мин` : `через ${match.minutesLeft} мин`}
               </Text>
@@ -183,10 +189,10 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
                   onClose();
                 }}
               >
-                <Ionicons name="close" size={16} color="#94a3b8" />
+                <Ionicons name="close" size={16} color={c.textSecondary} />
               </Pressable>
             ) : (
-              <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={16} color="#64748b" />
+              <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={16} color={c.textMuted} />
             )}
           </View>
         </View>
@@ -215,7 +221,7 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
                 style={styles.actionNavBtn}
                 onPress={handleOpenMaps}
               >
-                <Ionicons name="navigate-outline" size={16} color="#052e16" />
+                <Ionicons name="navigate-outline" size={16} color={c.onPrimary} />
                 <Text style={styles.actionNavText}>Маршрут в 2GIS</Text>
               </Pressable>
 
@@ -223,7 +229,7 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
                 style={styles.actionQrBtn}
                 onPress={handleShowQr}
               >
-                <Ionicons name="qr-code-outline" size={16} color="#10b981" />
+                <Ionicons name="qr-code-outline" size={16} color={c.primary} />
                 <Text style={styles.actionQrText}>QR пропуск</Text>
               </Pressable>
             </View>
@@ -244,16 +250,16 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
               style={styles.qrClose}
               onPress={() => setQrModalVisible(false)}
             >
-              <Ionicons name="close" size={24} color="#94a3b8" />
+              <Ionicons name="close" size={24} color={c.textSecondary} />
             </Pressable>
 
-            <Ionicons name="shield-checkmark" size={36} color="#10b981" />
+            <Ionicons name="shield-checkmark" size={36} color={c.primary} />
             <Text style={styles.qrModalTitle}>Пропуск на матч</Text>
             <Text style={styles.qrModalArena}>{match.arenaName}</Text>
             <Text style={styles.qrModalHall}>{match.hallName}</Text>
 
             <View style={styles.qrWhiteBox}>
-              <Ionicons name="qr-code" size={170} color="#052e16" />
+              <Ionicons name="qr-code" size={170} color={c.onPrimary} />
               <Text style={styles.qrCodeString}>{match.qrCode}</Text>
             </View>
 
@@ -267,7 +273,8 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
   closeBtn: {
     width: 26,
     height: 26,
@@ -295,7 +302,7 @@ const styles = StyleSheet.create({
   },
   islandPillExpanded: {
     paddingBottom: 16,
-    borderColor: "#059669",
+    borderColor: c.primary,
     backgroundColor: "#111a14",
   },
   pillRow: {
@@ -311,10 +318,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#059669",
+    backgroundColor: c.primary,
   },
   pulseDotActive: {
-    backgroundColor: "#10b981",
+    backgroundColor: c.primary,
     transform: [{ scale: 1.3 }],
   },
   sportIconWrap: {
@@ -332,11 +339,11 @@ const styles = StyleSheet.create({
   islandTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#f8fafc",
+    color: c.textPrimary,
   },
   islandSub: {
     fontSize: 11,
-    color: "#94a3b8",
+    color: c.textSecondary,
     marginTop: 1,
   },
   islandRight: {
@@ -353,10 +360,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#059669",
+    borderColor: c.primary,
   },
   countdownText: {
-    color: "#10b981",
+    color: c.primary,
     fontSize: 11,
     fontWeight: "800",
   },
@@ -383,14 +390,14 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#64748b",
+    color: c.textMuted,
     letterSpacing: 0.8,
     marginBottom: 3,
   },
   detailValue: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#e2e8f0",
+    color: c.textPrimary,
   },
   actionsRow: {
     flexDirection: "row",
@@ -401,13 +408,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#10b981",
+    backgroundColor: c.primary,
     paddingVertical: 10,
     borderRadius: 12,
     gap: 6,
   },
   actionNavText: {
-    color: "#052e16",
+    color: c.onPrimary,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -421,10 +428,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 6,
     borderWidth: 1,
-    borderColor: "#059669",
+    borderColor: c.primary,
   },
   actionQrText: {
-    color: "#10b981",
+    color: c.primary,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -437,12 +444,12 @@ const styles = StyleSheet.create({
   },
   qrModalCard: {
     width: "100%",
-    backgroundColor: "#151d18",
+    backgroundColor: c.surface,
     borderRadius: 24,
     padding: 24,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#223127",
+    borderColor: c.surfaceElevated,
     position: "relative",
   },
   qrClose: {
@@ -453,29 +460,29 @@ const styles = StyleSheet.create({
   qrModalTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#f8fafc",
+    color: c.textPrimary,
     marginTop: 8,
   },
   qrModalArena: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#10b981",
+    color: c.primary,
     marginTop: 4,
   },
   qrModalHall: {
     fontSize: 12,
-    color: "#94a3b8",
+    color: c.textSecondary,
     marginBottom: 16,
   },
   qrWhiteBox: {
-    backgroundColor: "#fff",
+    backgroundColor: c.textPrimary,
     borderRadius: 18,
     padding: 16,
     alignItems: "center",
     marginBottom: 16,
   },
   qrCodeString: {
-    color: "#052e16",
+    color: c.onPrimary,
     fontSize: 13,
     fontWeight: "800",
     letterSpacing: 1,
@@ -483,7 +490,7 @@ const styles = StyleSheet.create({
   },
   qrHint: {
     fontSize: 12,
-    color: "#94a3b8",
+    color: c.textSecondary,
     textAlign: "center",
     lineHeight: 16,
     paddingHorizontal: 12,
