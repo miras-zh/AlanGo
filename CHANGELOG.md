@@ -9,6 +9,43 @@
 
 ## [Unreleased]
 
+### 📱 Подготовка сборки iOS для TestFlight (билд 8)
+- **Номер сборки 7 → 8**:
+  - `ui/mobile/app.json`: `ios.buildNumber = "8"`;
+  - `ui/mobile/ios/AlanGo/Info.plist`: `CFBundleVersion = "8"`;
+  - `ui/mobile/ios/AlanGo.xcodeproj/project.pbxproj`: `CURRENT_PROJECT_VERSION = 8` (Debug и Release);
+  - `ui/mobile/scripts/build_testflight.sh`: билд 8 и архив `AlanGo_v1.0.0_b8.xcarchive`. Версия остаётся `1.0.0`.
+- **Проверка релизного JS-бандла** (`expo export:embed --platform ios --dev false`): собирается штатно (1401 модуль, 43 ассета). Подключен боевой API `alango.78.140.223.90.sslip.io`, Google Client ID. Ошибок типов нет (`tsc --noEmit` пройден).
+- **Синхронизация CocoaPods**: `Podfile.lock` и `Pods/Manifest.lock` полностью совпадают, `AlanGo.xcworkspace` готов к архивации в Xcode.
+- **Что нового относительно сборки (7)**:
+  - 🖼️ Собственная обложка (баннер) спорткомплекса отдельно от фото залов (загрузка/удаление в профиле бизнеса, отображение в карточке комплекса);
+  - 💎 Подписка исключительно для бизнеса (клиенты бронируют без ограничений), реальная статистика профиля и рейтинг клиентов;
+  - 🎨 Светлая тема во всех экранах приложения (включая фильтры, профиль, бронирования, экран деталей комплекса);
+  - ⚙️ Настройки профиля в стиле Apple Vision (группированные списки, кастомные свитчи, тактильный отклик, выбор языка и темы);
+  - 🧭 Нативная капсула Liquid Glass таб-бара и `StandaloneTabBar` на экранах каталога комплексов;
+  - 🛠️ Исправление выбора фото (`public.jpeg` на iOS) и обновлённый плейсхолдер адреса.
+- **Сборка в Xcode**: открыть `ui/mobile/ios/AlanGo.xcworkspace` → выбрать схему **AlanGo** и цель **Any iOS Device (arm64)** → меню **Product → Archive** → **Distribute App** → **App Store Connect** → **Upload**.
+
+
+### 🚀 Деплой бэкенда на VPS (2026-11-13, 03:47 UTC, коммит `b1f80d8`)
+- **Что выкачено**:
+  - `POST`/`DELETE /api/arenas/{id}/cover` — загрузка и удаление баннера/обложки спорткомплекса (отдельно от фото залов);
+  - Подписка только для бизнеса, честная статистика профиля и рейтинг клиентов;
+  - Миграции **000008_business_plans** и **000009_client_ratings** (схема БД обновлена с 7 до **9**, `dirty = false`).
+- **Бэкап базы перед деплоем**: `/root/backups/alango/alango_backup_20261113_034616.sql.gz` (`pg_dump -U postgres alango`, архив проверен `gzip -t`, маркер «dump complete» на месте).
+- **Выкатка**:
+  - Бинарник собран локально под Linux amd64 (`md5: 6fb4cd891ce8cb3ee7f1c7c47a18ed2c`), загружен в `/root/AlanGo/bin/server`;
+  - Предыдущая версия бинарника сохранена в `/root/AlanGo/bin/server.prev` для мгновенного отката;
+  - Исходники бэкенда и `migrations` синхронизированы в `/root/AlanGo`;
+  - Контейнер обновлён через `docker cp` бинарника и миграций, перезапущен `alango-api`;
+  - Предыдущее состояние контейнера зафиксировано как `alango-app:pre-20261113-backup`, текущее зафиксировано как `alango-app:latest`.
+- **Проверка на проде**:
+  - Миграции 000008 и 000009 применились успешно (`schema_migrations: version 9, dirty f`);
+  - `/api/arenas` → 200, `/api/halls` → 200, `/api/business/me` (без токена) → 401;
+  - В логах `alango-api` ошибок нет, сервер работает в штатном режиме.
+- **Откат (при необходимости)**: `docker cp /root/AlanGo/bin/server.prev alango-api:/app/server && docker restart alango-api`.
+
+
 ### 🖼️ Обложка спорткомплекса отдельно от фото залов
 - **Было**: у арены нет своей обложки, а `ArenaCard` подставлял фото первого зала (`arena.imageUrl || halls.find(h => h.imageUrl)`). Поле `arenas.image_url` было, но загрузить в него владелец не мог — в профиле бизнеса над аватаром пустой блок.
 - **Бэкенд** ([`internal/sport/arena_cover.go`](file:///Users/miko/MyProduction/AlanGo/internal/sport/arena_cover.go)): `POST /api/arenas/{id}/cover` (multipart `photo`, JPEG/PNG/WebP до 5 МБ) и `DELETE /api/arenas/{id}/cover`. Только владелец арены; старый загруженный файл удаляется; пишет в существующее `arenas.image_url` (миграция не нужна).

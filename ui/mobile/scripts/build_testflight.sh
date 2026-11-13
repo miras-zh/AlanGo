@@ -2,7 +2,7 @@
 set -e
 
 # ==============================================================================
-# AlanGo — Скрипт сборки для TestFlight (версия 1.0.0, билд 7)
+# AlanGo — Скрипт сборки для TestFlight (версия 1.0.0, билд 8)
 # ==============================================================================
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -11,7 +11,7 @@ cd "$PROJECT_DIR"
 echo "========================================================"
 echo "🚀 Подготовка и сборка AlanGo для Apple TestFlight"
 echo "Версия: 1.0.0"
-echo "Build:   7"
+echo "Build:   8"
 echo "Bundle ID: kz.alango.app"
 echo "========================================================"
 
@@ -35,7 +35,7 @@ if [ "$BUILD_CHOICE" == "1" ]; then
 
 elif [ "$BUILD_CHOICE" == "2" ]; then
     echo "⚙️  Сборка нативного архива через Xcode..."
-    ARCHIVE_PATH="$PROJECT_DIR/ios/build/AlanGo_v1.0.0_b7.xcarchive"
+    ARCHIVE_PATH="$PROJECT_DIR/ios/build/AlanGo_v1.0.0_b8.xcarchive"
     mkdir -p "$PROJECT_DIR/ios/build"
 
     xcodebuild -workspace ios/AlanGo.xcworkspace \
