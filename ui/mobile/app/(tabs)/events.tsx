@@ -16,7 +16,7 @@ import { radii, spacing } from "@/constants/theme";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { useT, type MessageKey } from "@/lib/i18n";
 import { cityLabel, dayMonth } from "@/lib/dataLabels";
-import { getSelectedCity, subscribeCityChange } from "@/lib/cities";
+import { getSelectedCity, setSelectedCity, subscribeCityChange } from "@/lib/cities";
 import {
   activeFilterCount,
   cancelEventRegistration,
@@ -29,14 +29,11 @@ import {
   registerForEvent,
   toggleEventFavorite,
   useEventUserState,
-  type DateFilter,
   type EventFilterState,
   type SportEvent,
 } from "@/lib/eventsData";
 import { EventCard } from "@/components/EventCard";
 import { EventsFilterModal } from "@/components/EventsFilterModal";
-import { DATE_FILTERS, EventCalendarModal } from "@/components/EventCalendarModal";
-import { CityPickerModal } from "@/components/CityPickerModal";
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 type ListTab = "upcoming" | "popular" | "mine";
@@ -58,14 +55,10 @@ export default function EventsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [query, setQuery] = useState("");
-  const [dateFilter, setDateFilter] = useState<DateFilter>("upcoming");
-  const [city, setCity] = useState("");
   const [filters, setFilters] = useState<EventFilterState>(DEFAULT_EVENT_FILTERS);
   const [tab, setTab] = useState<ListTab>("upcoming");
 
   const [filterOpen, setFilterOpen] = useState(false);
-  const [dateOpen, setDateOpen] = useState(false);
-  const [cityOpen, setCityOpen] = useState(false);
   const [registering, setRegistering] = useState<string | null>(null);
 
   const { favorites, registered } = useEventUserState();
@@ -84,23 +77,35 @@ export default function EventsScreen() {
 
   useEffect(() => {
     load();
+    const setCity = (city: string) => setFilters((f) => ({ ...f, city }));
     getSelectedCity().then(setCity).catch(() => {});
     return subscribeCityChange(setCity);
   }, [load]);
 
   const countFor = useCallback(
-    (f: EventFilterState) => filterEvents(events, { filters: f, date: dateFilter, city, query, t }).length,
-    [events, dateFilter, city, query, t],
+    (f: EventFilterState) => filterEvents(events, { filters: f, query, t }).length,
+    [events, query, t],
   );
 
   const visible = useMemo(() => {
     if (tab === "popular") return [];
-    const list = filterEvents(events, { filters, date: dateFilter, city, query, t });
+    const list = filterEvents(events, { filters, query, t });
     return tab === "mine" ? list.filter((e) => registered.includes(e.id)) : list;
-  }, [tab, events, filters, dateFilter, city, query, t, registered]);
+  }, [tab, events, filters, query, t, registered]);
 
-  const filtersActive = activeFilterCount(filters) > 0;
-  const dateLabel = t(DATE_FILTERS.find((d) => d.id === dateFilter)?.label ?? "events.dateUpcoming");
+  const activeCount = activeFilterCount(filters);
+  const filtersActive = activeCount > 0;
+
+  const applyFilters = (next: EventFilterState) => {
+    if (next.city && next.city !== filters.city) setSelectedCity(next.city);
+    setFilters(next);
+  };
+
+  const resetFilters = () => {
+    hapticSelection();
+    setQuery("");
+    setFilters((f) => ({ ...DEFAULT_EVENT_FILTERS, city: f.city }));
+  };
 
   const handleRegister = (ev: SportEvent) => {
     if (registered.includes(ev.id)) {
@@ -157,7 +162,7 @@ export default function EventsScreen() {
     if (tab === "mine") return { icon: "ticket-outline" as const, title: t("events.mineEmpty"), text: t("events.mineEmptyText") };
     return { icon: "trophy-outline" as const, title: t("events.notFound"), text: t("events.notFoundText") };
   })();
-  const canReset = !loadError && tab !== "popular" && (filtersActive || query.length > 0 || dateFilter !== "upcoming");
+  const canReset = !loadError && tab !== "popular" && (filtersActive || query.length > 0);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -165,20 +170,24 @@ export default function EventsScreen() {
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.title}>{t("events.title")}</Text>
-          <Text style={styles.subtitle}>{t("events.subtitle")}</Text>
+          {filtersActive || query.length > 0 ? (
+            <View style={styles.summaryRow}>
+              <Text style={styles.subtitle} numberOfLines={1}>
+                {t("events.foundCount", { count: visible.length })}
+                {filters.city ? ` · ${cityLabel(filters.city, t)}` : ""}
+              </Text>
+              <Pressable onPress={resetFilters} hitSlop={8} accessibilityRole="button">
+                <Text style={styles.summaryReset}>{t("filters.reset")}</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Text style={styles.subtitle}>
+              {t("events.subtitle")}
+              {filters.city ? ` · ${cityLabel(filters.city, t)}` : ""}
+            </Text>
+          )}
         </View>
         <View style={styles.headerActions}>
-          <Pressable
-            style={({ pressed }) => [styles.roundBtn, pressed && { opacity: 0.8 }]}
-            onPress={() => {
-              hapticSelection();
-              setDateOpen(true);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={t("calendar.title")}
-          >
-            <Ionicons name="calendar-outline" size={22} color={c.primary} />
-          </Pressable>
           <Pressable
             style={({ pressed }) => [styles.roundBtn, filtersActive && styles.roundBtnActive, pressed && { opacity: 0.8 }]}
             onPress={() => {
@@ -189,7 +198,11 @@ export default function EventsScreen() {
             accessibilityLabel={t("events.filtersTitle")}
           >
             <Ionicons name="options-outline" size={22} color={c.primary} />
-            {filtersActive ? <View style={styles.filterDot} /> : null}
+            {filtersActive ? (
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{activeCount}</Text>
+              </View>
+            ) : null}
           </Pressable>
         </View>
       </View>
@@ -210,38 +223,6 @@ export default function EventsScreen() {
             <Ionicons name="close-circle" size={16} color={c.textSecondary} />
           </Pressable>
         ) : null}
-      </View>
-
-      {/* Date + city */}
-      <View style={styles.dropdowns}>
-        <Pressable
-          style={styles.dropdown}
-          onPress={() => {
-            hapticSelection();
-            setDateOpen(true);
-          }}
-          accessibilityRole="button"
-        >
-          <Ionicons name="calendar-outline" size={18} color={c.primary} />
-          <Text style={styles.dropdownText} numberOfLines={1}>
-            {dateLabel}
-          </Text>
-          <Ionicons name="chevron-down" size={16} color={c.textSecondary} />
-        </Pressable>
-        <Pressable
-          style={styles.dropdown}
-          onPress={() => {
-            hapticSelection();
-            setCityOpen(true);
-          }}
-          accessibilityRole="button"
-        >
-          <Ionicons name="location-outline" size={18} color={c.primary} />
-          <Text style={styles.dropdownText} numberOfLines={1}>
-            {city ? cityLabel(city, t) : t("cities.title")}
-          </Text>
-          <Ionicons name="chevron-down" size={16} color={c.textSecondary} />
-        </Pressable>
       </View>
 
       {/* List tabs */}
@@ -319,12 +300,7 @@ export default function EventsScreen() {
               ) : canReset ? (
                 <Pressable
                   style={styles.emptyBtn}
-                  onPress={() => {
-                    hapticSelection();
-                    setQuery("");
-                    setDateFilter("upcoming");
-                    setFilters(DEFAULT_EVENT_FILTERS);
-                  }}
+                  onPress={resetFilters}
                 >
                   <Text style={styles.emptyBtnText}>{t("common.resetFilters")}</Text>
                 </Pressable>
@@ -339,22 +315,7 @@ export default function EventsScreen() {
         filters={filters}
         countFor={countFor}
         onClose={() => setFilterOpen(false)}
-        onApply={setFilters}
-      />
-      <EventCalendarModal
-        visible={dateOpen}
-        selected={dateFilter}
-        onClose={() => setDateOpen(false)}
-        onSelect={setDateFilter}
-      />
-      <CityPickerModal
-        visible={cityOpen}
-        selectedCity={city}
-        onClose={() => setCityOpen(false)}
-        onSelect={(next) => {
-          setCity(next);
-          setCityOpen(false);
-        }}
+        onApply={applyFilters}
       />
     </SafeAreaView>
   );
@@ -406,14 +367,33 @@ function createStyles(c: Palette) {
     roundBtnActive: {
       borderColor: c.primary,
     },
-    filterDot: {
+    countBadge: {
       position: "absolute",
-      top: 10,
-      right: 10,
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: c.accent,
+      top: -2,
+      right: -2,
+      minWidth: 18,
+      height: 18,
+      borderRadius: 9,
+      paddingHorizontal: spacing.xs,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.primary,
+    },
+    countBadgeText: {
+      fontSize: 11,
+      fontWeight: "800",
+      color: c.onPrimary,
+    },
+    summaryRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    summaryReset: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: c.primary,
+      marginTop: spacing.xs,
     },
     searchBar: {
       flexDirection: "row",
@@ -431,30 +411,6 @@ function createStyles(c: Palette) {
     searchInput: {
       flex: 1,
       fontSize: 15,
-      color: c.textPrimary,
-    },
-    dropdowns: {
-      flexDirection: "row",
-      gap: spacing.sm,
-      marginHorizontal: spacing.screenHorizontal,
-      marginTop: spacing.md,
-    },
-    dropdown: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      height: 44,
-      paddingHorizontal: spacing.md,
-      borderRadius: radii.button,
-      backgroundColor: c.glassBackground,
-      borderWidth: 1,
-      borderColor: c.glassBorder,
-    },
-    dropdownText: {
-      flex: 1,
-      fontSize: 14,
-      fontWeight: "600",
       color: c.textPrimary,
     },
     tabs: {

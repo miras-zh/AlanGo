@@ -4,7 +4,6 @@ import {
   Animated,
   Easing,
   FlatList,
-  Modal,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -26,43 +25,27 @@ import {
 import { getSelectedCity, setSelectedCity } from "@/lib/cities";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 import { VenueCard } from "@/components/VenueCard";
-import { ArenaCard, arenaMinPrice } from "@/components/ArenaCard";
-import { ALL_SPORTS, SportCategoryTiles, sportMatches } from "@/components/SportCategoryTiles";
+import { ArenaCard } from "@/components/ArenaCard";
+import { ALL_SPORTS } from "@/components/SportCategoryTiles";
+import { CatalogFilterModal } from "@/components/CatalogFilterModal";
+import {
+  activeCatalogFilters,
+  DEFAULT_CATALOG_FILTERS,
+  filterArenas,
+  filterHalls,
+  type CatalogFilters,
+  type CatalogTab,
+} from "@/lib/catalogFilters";
 import { capacityLabel } from "@/lib/hallOptions";
-import { FilterModal, FilterState } from "@/components/FilterModal";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
-import { useT, type MessageKey } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 import { cityLabel, sportLabel, surfaceLabel } from "@/lib/dataLabels";
-
-type CatalogTab = "halls" | "arenas";
-
-const HALL_SORTS = [
-  { key: "popular", label: "halls.sortPopular" as MessageKey },
-  { key: "price_asc", label: "halls.sortCheap" as MessageKey },
-  { key: "price_desc", label: "halls.sortExpensive" as MessageKey },
-  { key: "rating", label: "halls.sortRating" as MessageKey },
-];
-
-const ARENA_SORTS = [
-  { key: "rating", label: "arenas.sortRating" as MessageKey },
-  { key: "halls", label: "arenas.sortHalls" as MessageKey },
-  { key: "price", label: "arenas.sortPrice" as MessageKey },
-];
-
-const CITIES = ["Астана", "Алматы", "Шымкент", "Караганда", "Актобе"];
 
 const FAVORITES_STORAGE_KEY = "alango_favorite_halls";
 
-const DEFAULT_FILTERS: FilterState = {
-  sport: "Все",
-  facilityType: "all",
-  maxPrice: 50000,
-  amenities: [],
-};
-
-// FilterModal sport keys → sport tile ids.
-function tileIdFromFilterSport(sport: string): string {
+// Old ?sport= values (FilterModal keys) → sport tile ids.
+function tileIdFromParam(sport: string): string {
   if (sport === "Все") return ALL_SPORTS;
   if (sport === "Сквош" || sport === "Падл") return "Сквош и падл";
   return sport;
@@ -135,7 +118,7 @@ export default function ItemsScreen() {
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const searchParams = useLocalSearchParams<{ openFilter?: string; sport?: string; tab?: string }>();
+  const searchParams = useLocalSearchParams<{ sport?: string; tab?: string }>();
 
   const [tab, setTab] = useState<CatalogTab>(searchParams.tab === "arenas" ? "arenas" : "halls");
   const [arenas, setArenas] = useState<ArenaWithHalls[]>([]);
@@ -150,23 +133,10 @@ export default function ItemsScreen() {
   const search = tab === "halls" ? hallSearch : arenaSearch;
   const setSearch = tab === "halls" ? setHallSearch : setArenaSearch;
 
-  // Sport tile filter is shared by both tabs.
-  const [sport, setSport] = useState<string>(ALL_SPORTS);
-  const [currentCity, setCurrentCity] = useState("Астана");
+  // All filtering lives in the filter sheet and is applied from there.
+  const [filters, setFilters] = useState<CatalogFilters>(DEFAULT_CATALOG_FILTERS);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [favorites, setFavorites] = useState<number[]>([]);
-
-  // Advanced (hall-only) filters.
-  const [filterModalOpen, setFilterModalOpen] = useState(false);
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-
-  const [sortModalOpen, setSortModalOpen] = useState(false);
-  const [hallSort, setHallSort] = useState("popular");
-  const [arenaSort, setArenaSort] = useState("rating");
-  const sortOptions = tab === "halls" ? HALL_SORTS : ARENA_SORTS;
-  const currentSort = tab === "halls" ? hallSort : arenaSort;
-  const sortChanged = currentSort !== (tab === "halls" ? "popular" : "rating");
-
-  const [cityModalOpen, setCityModalOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -179,7 +149,7 @@ export default function ItemsScreen() {
       setArenas(arenasData);
       setHalls(hallsData);
       setLoadError(false);
-      if (storedCity) setCurrentCity(storedCity);
+      if (storedCity) setFilters((f) => ({ ...f, city: storedCity }));
       if (favData) {
         try {
           setFavorites(JSON.parse(favData));
@@ -198,10 +168,7 @@ export default function ItemsScreen() {
   }, [loadData]);
 
   useEffect(() => {
-    if (searchParams.sport) {
-      setSport(tileIdFromFilterSport(searchParams.sport));
-      setFilters((prev) => ({ ...prev, sport: searchParams.sport as string }));
-    }
+    if (searchParams.sport) setFilters((f) => ({ ...f, sport: tileIdFromParam(searchParams.sport as string) }));
   }, [searchParams.sport]);
 
   useEffect(() => {
@@ -216,92 +183,36 @@ export default function ItemsScreen() {
     await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(nextFavs));
   };
 
-  const handleSelectCity = async (city: string) => {
-    hapticSelection();
-    setCurrentCity(city);
-    await setSelectedCity(city);
-    setCityModalOpen(false);
+  const applyFilters = (next: CatalogFilters) => {
+    if (next.city !== filters.city) setSelectedCity(next.city);
+    setFilters(next);
   };
 
-  const handleSelectSport = (id: string) => {
-    setSport(id);
-    setFilters((prev) => ({ ...prev, sport: id === ALL_SPORTS ? "Все" : id }));
-  };
+  const filteredHalls = useMemo(
+    () => filterHalls(halls, arenas, filters, hallSearch, t),
+    [halls, arenas, filters, hallSearch, t],
+  );
+  const filteredArenas = useMemo(
+    () => filterArenas(arenas, filters, arenaSearch),
+    [arenas, filters, arenaSearch],
+  );
 
-  // Badge counts only hall-specific filters (sport has its own tiles).
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    if (filters.facilityType !== "all") count += 1;
-    if (filters.maxPrice < 50000) count += 1;
-    if (filters.amenities.length > 0) count += filters.amenities.length;
-    return count;
-  }, [filters]);
+  const countFor = useCallback(
+    (draft: CatalogFilters) =>
+      tab === "halls"
+        ? filterHalls(halls, arenas, draft, hallSearch, t).length
+        : filterArenas(arenas, draft, arenaSearch).length,
+    [tab, halls, arenas, hallSearch, arenaSearch, t],
+  );
 
-  const arenaCity = useMemo(() => {
-    const map = new Map<number, string>();
-    arenas.forEach((a) => map.set(a.id, a.city));
-    return map;
-  }, [arenas]);
-
-  const cityOk = (city?: string) => !currentCity || !city || city.toLowerCase() === currentCity.toLowerCase();
-
-  const filteredHalls = useMemo(() => {
-    const q = hallSearch.trim().toLowerCase();
-    const list = halls.filter((h) => {
-      if (!cityOk(arenaCity.get(h.arenaId))) return false;
-      if (!sportMatches(sport, h.sportType)) return false;
-      if (filters.maxPrice < 50000 && h.pricePerHour > filters.maxPrice) return false;
-      if (
-        q &&
-        ![h.title, h.arenaTitle, h.arenaAddress, h.sportType, sportLabel(h.sportType, t), h.surfaceType]
-          .join(" ")
-          .toLowerCase()
-          .includes(q)
-      ) {
-        return false;
-      }
-      return true;
-    });
-    if (hallSort === "price_asc") list.sort((a, b) => a.pricePerHour - b.pricePerHour);
-    else if (hallSort === "price_desc") list.sort((a, b) => b.pricePerHour - a.pricePerHour);
-    else if (hallSort === "rating") list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    return list;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [halls, hallSearch, sport, filters.maxPrice, hallSort, currentCity, arenaCity, t]);
-
-  const filteredArenas = useMemo(() => {
-    const q = arenaSearch.trim().toLowerCase();
-    const list = arenas.filter((a) => {
-      if (!cityOk(a.city)) return false;
-      if (sport !== ALL_SPORTS && !a.availableSports.some((s) => sportMatches(sport, s))) return false;
-      if (q && !`${a.title} ${a.address}`.toLowerCase().includes(q)) return false;
-      return true;
-    });
-    return list.sort((a, b) => {
-      if (arenaSort === "halls") return b.halls.length - a.halls.length;
-      if (arenaSort === "price") {
-        return (arenaMinPrice(a) ?? Number.MAX_SAFE_INTEGER) - (arenaMinPrice(b) ?? Number.MAX_SAFE_INTEGER);
-      }
-      return (b.rating || 0) - (a.rating || 0);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [arenas, arenaSearch, sport, arenaSort, currentCity]);
+  const activeCount = activeCatalogFilters(filters, tab);
+  const isFiltered = activeCount > 0 || search.trim().length > 0;
 
   const resetAll = () => {
+    hapticSelection();
     setSearch("");
-    setSport(ALL_SPORTS);
-    setFilters(DEFAULT_FILTERS);
+    setFilters((f) => ({ ...DEFAULT_CATALOG_FILTERS, city: f.city }));
   };
-
-  const isFiltered = search.trim().length > 0 || sport !== ALL_SPORTS || activeFiltersCount > 0;
-  const subtitle =
-    tab === "halls"
-      ? isFiltered
-        ? t("halls.found", { count: filteredHalls.length })
-        : t("halls.subtitle")
-      : isFiltered
-        ? t("arenas.count", { count: filteredArenas.length })
-        : t("arenas.subtitle");
 
   const refreshControl = (
     <RefreshControl
@@ -326,7 +237,6 @@ export default function ItemsScreen() {
       <Pressable
         style={styles.emptyResetBtn}
         onPress={() => {
-          hapticSelection();
           if (loadError) {
             setLoading(true);
             loadData();
@@ -342,13 +252,28 @@ export default function ItemsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* 1. Header: text tabs + map / filters */}
+      {/* 1. Header: text tabs + map */}
       <View style={styles.header}>
         <View style={styles.headerTitleWrap}>
           <CatalogTabs tab={tab} onChange={setTab} />
-          <Text style={styles.screenSubtitle} numberOfLines={1}>
-            {subtitle}
-          </Text>
+          {isFiltered ? (
+            <View style={styles.summaryRow}>
+              <Text style={styles.screenSubtitle} numberOfLines={1}>
+                {tab === "halls"
+                  ? t("halls.found", { count: filteredHalls.length })
+                  : t("arenas.count", { count: filteredArenas.length })}
+                {" · "}
+                {cityLabel(filters.city, t)}
+              </Text>
+              <Pressable onPress={resetAll} hitSlop={8} accessibilityRole="button">
+                <Text style={styles.summaryReset}>{t("filters.reset")}</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Text style={styles.screenSubtitle} numberOfLines={1}>
+              {tab === "halls" ? t("halls.subtitle") : t("arenas.subtitle")}
+            </Text>
+          )}
         </View>
 
         <View style={styles.headerActions}>
@@ -363,11 +288,10 @@ export default function ItemsScreen() {
           >
             <Ionicons name="location-outline" size={20} color={c.textPrimary} />
           </Pressable>
-
         </View>
       </View>
 
-      {/* 2. Search + sort + advanced filters */}
+      {/* 2. Search + one filter button */}
       <View style={styles.searchRow}>
         <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={18} color={c.textSecondary} style={{ marginRight: spacing.sm }} />
@@ -387,70 +311,24 @@ export default function ItemsScreen() {
         </View>
 
         <Pressable
-          style={({ pressed }) => [styles.squareBtn, sortChanged && styles.squareBtnActive, pressed && { opacity: 0.8 }]}
-          onPress={() => {
-            hapticSelection();
-            setSortModalOpen(true);
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={t("halls.sort")}
-        >
-          <Ionicons name="swap-vertical" size={20} color={sortChanged ? c.primary : c.textPrimary} />
-        </Pressable>
-
-        {/* Advanced filters (price, amenities) exist for halls only; dimmed on complexes
-            so the row doesn't jump between tabs. */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.squareBtn,
-            tab === "halls" && activeFiltersCount > 0 && styles.squareBtnActive,
-            tab !== "halls" && styles.squareBtnDisabled,
-            pressed && { opacity: 0.8 },
-          ]}
-          disabled={tab !== "halls"}
+          style={({ pressed }) => [styles.squareBtn, activeCount > 0 && styles.squareBtnActive, pressed && { opacity: 0.8 }]}
           onPress={() => {
             hapticImpact();
-            setFilterModalOpen(true);
+            setFilterOpen(true);
           }}
           accessibilityRole="button"
           accessibilityLabel={t("filters.title")}
-          accessibilityState={{ disabled: tab !== "halls" }}
         >
-          <Ionicons
-            name="options-outline"
-            size={20}
-            color={tab === "halls" && activeFiltersCount > 0 ? c.primary : c.textPrimary}
-          />
-          {tab === "halls" && activeFiltersCount > 0 ? <View style={styles.filterDot} /> : null}
+          <Ionicons name="options-outline" size={20} color={activeCount > 0 ? c.primary : c.textPrimary} />
+          {activeCount > 0 ? (
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>{activeCount}</Text>
+            </View>
+          ) : null}
         </Pressable>
       </View>
 
-      {/* 3. City + sport tiles (one scrolling row) */}
-      <SportCategoryTiles
-        variant="compact"
-        selected={sport}
-        onSelect={handleSelectSport}
-        style={styles.categories}
-        leading={
-          <Pressable
-            style={styles.cityPill}
-            onPress={() => {
-              hapticSelection();
-              setCityModalOpen(true);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={t("halls.chooseCity")}
-          >
-            <Ionicons name="location-sharp" size={16} color={c.primary} />
-            <Text style={styles.cityPillText} numberOfLines={1}>
-              {cityLabel(currentCity, t)}
-            </Text>
-            <Ionicons name="chevron-down" size={14} color={c.textSecondary} />
-          </Pressable>
-        }
-      />
-
-      {/* 5. Catalog of the active tab */}
+      {/* 3. Catalog of the active tab */}
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator color={c.primary} size="large" />
@@ -515,63 +393,14 @@ export default function ItemsScreen() {
         />
       )}
 
-      <FilterModal
-        visible={filterModalOpen}
-        onClose={() => setFilterModalOpen(false)}
+      <CatalogFilterModal
+        visible={filterOpen}
+        tab={tab}
         filters={filters}
-        onApply={(newFilters) => {
-          setFilters(newFilters);
-          setSport(tileIdFromFilterSport(newFilters.sport));
-        }}
-        onReset={() => setSport(ALL_SPORTS)}
-        totalResultsCount={filteredHalls.length}
+        countFor={countFor}
+        onClose={() => setFilterOpen(false)}
+        onApply={applyFilters}
       />
-
-      {/* Sort options of the active tab */}
-      <Modal visible={sortModalOpen} animationType="fade" transparent onRequestClose={() => setSortModalOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setSortModalOpen(false)}>
-          <View style={styles.sortSheet}>
-            <Text style={styles.sortTitle}>{t("halls.sort")}</Text>
-            {sortOptions.map((opt) => (
-              <Pressable
-                key={opt.key}
-                style={[styles.sortOptionRow, currentSort === opt.key && styles.sortOptionRowActive]}
-                onPress={() => {
-                  hapticSelection();
-                  if (tab === "halls") setHallSort(opt.key);
-                  else setArenaSort(opt.key);
-                  setSortModalOpen(false);
-                }}
-              >
-                <Text style={[styles.sortOptionText, currentSort === opt.key && styles.sortOptionTextActive]}>
-                  {t(opt.label)}
-                </Text>
-                {currentSort === opt.key && <Ionicons name="checkmark" size={18} color={c.primary} />}
-              </Pressable>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
-
-      <Modal visible={cityModalOpen} animationType="fade" transparent onRequestClose={() => setCityModalOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setCityModalOpen(false)}>
-          <View style={styles.sortSheet}>
-            <Text style={styles.sortTitle}>{t("halls.chooseCity")}</Text>
-            {CITIES.map((cityName) => (
-              <Pressable
-                key={cityName}
-                style={[styles.sortOptionRow, currentCity === cityName && styles.sortOptionRowActive]}
-                onPress={() => handleSelectCity(cityName)}
-              >
-                <Text style={[styles.sortOptionText, currentCity === cityName && styles.sortOptionTextActive]}>
-                  {cityLabel(cityName, t)}
-                </Text>
-                {currentCity === cityName && <Ionicons name="checkmark" size={18} color={c.primary} />}
-              </Pressable>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -655,19 +484,6 @@ const createStyles = (c: Palette) =>
     justifyContent: "center",
     position: "relative",
   },
-  iconBtnActive: {
-    borderColor: c.primary,
-    backgroundColor: c.primarySoft,
-  },
-  filterDot: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: c.primary,
-  },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -701,35 +517,38 @@ const createStyles = (c: Palette) =>
     borderColor: c.primary,
     backgroundColor: c.primarySoft,
   },
-  squareBtnDisabled: {
-    opacity: 0.4,
+  countBadge: {
+    position: "absolute",
+    top: -spacing.xs,
+    right: -spacing.xs,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: spacing.xs,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: c.primary,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: c.onPrimary,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  summaryReset: {
+    ...typography.caption,
+    marginTop: spacing.sm,
+    fontWeight: "700",
+    color: c.primary,
   },
   searchInput: {
     flex: 1,
     color: c.textPrimary,
     fontSize: 14,
-  },
-  categories: {
-    // This screen has no container padding, so cancel the tiles' edge-to-edge offset.
-    marginHorizontal: 0,
-    marginBottom: spacing.md,
-  },
-  cityPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    height: 40,
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: 20,
-    backgroundColor: c.glassBackground,
-    borderWidth: 1,
-    borderColor: c.glassBorder,
-  },
-  cityPillText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: c.textPrimary,
   },
   listContent: {
     paddingHorizontal: spacing.screenHorizontal,
@@ -776,46 +595,5 @@ const createStyles = (c: Palette) =>
     fontSize: 13,
     fontWeight: "700",
     color: c.primary,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: c.overlay,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  sortSheet: {
-    backgroundColor: c.surface,
-    borderRadius: radii.modal,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  sortTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: c.textPrimary,
-    marginBottom: 14,
-  },
-  sortOptionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: c.hairline,
-  },
-  sortOptionRowActive: {
-    backgroundColor: c.primarySoft,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  sortOptionText: {
-    fontSize: 14,
-    color: c.textSecondary,
-    fontWeight: "500",
-  },
-  sortOptionTextActive: {
-    color: c.primary,
-    fontWeight: "700",
   },
 });

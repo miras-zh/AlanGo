@@ -171,6 +171,8 @@ export type DateFilter = "upcoming" | "today" | "weekend" | "week";
 export type PriceRange = "all" | "under5" | "5to15" | "above15";
 
 export interface EventFilterState {
+  date: DateFilter;
+  city: string; // stored (Russian) city name; "" = any
   sports: EventSport[]; // empty = all sports
   types: EventType[]; // empty = all types
   priceRange: PriceRange;
@@ -178,14 +180,23 @@ export interface EventFilterState {
 }
 
 export const DEFAULT_EVENT_FILTERS: EventFilterState = {
+  date: "upcoming",
+  city: "",
   sports: [],
   types: [],
   priceRange: "all",
   onlyWithSpots: false,
 };
 
+/** Filters that differ from the defaults (the city doesn't count). */
 export function activeFilterCount(f: EventFilterState): number {
-  return f.sports.length + f.types.length + (f.priceRange !== "all" ? 1 : 0) + (f.onlyWithSpots ? 1 : 0);
+  return (
+    (f.date !== "upcoming" ? 1 : 0) +
+    f.sports.length +
+    f.types.length +
+    (f.priceRange !== "all" ? 1 : 0) +
+    (f.onlyWithSpots ? 1 : 0)
+  );
 }
 
 function startOfDay(d: Date): Date {
@@ -218,9 +229,10 @@ export function matchesDate(ev: SportEvent, filter: DateFilter, now = new Date()
 
 export function filterEvents(
   events: SportEvent[],
-  opts: { filters: EventFilterState; date: DateFilter; city: string; query: string; t: TFunction },
+  opts: { filters: EventFilterState; query: string; t: TFunction },
 ): SportEvent[] {
-  const { filters, date, city, query, t } = opts;
+  const { filters, query, t } = opts;
+  const { date, city } = filters;
   const q = query.trim().toLowerCase();
   return events
     .filter((ev) => {
