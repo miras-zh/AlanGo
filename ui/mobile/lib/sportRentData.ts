@@ -1321,6 +1321,24 @@ export async function saveUpdatedHall(hall: Hall): Promise<void> {
   });
 }
 
+/** Saves only the map location of the owner's arena (PATCH keeps other fields). */
+export async function saveArenaLocation(arenaId: number, latitude: number, longitude: number): Promise<void> {
+  await apiFetch(`/arenas/${arenaId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ latitude, longitude }),
+  });
+  try {
+    const raw = await AsyncStorage.getItem(ARENAS_KEY);
+    if (raw) {
+      const list: Arena[] = JSON.parse(raw);
+      const next = list.map((a) => (a.id === arenaId ? { ...a, latitude, longitude } : a));
+      await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(next));
+    }
+  } catch {
+    // cache refresh is best-effort
+  }
+}
+
 export async function saveUpdatedArena(arena: Arena): Promise<void> {
   await apiFetch(`/arenas/${arena.id}`, {
     method: "PATCH",
@@ -1669,6 +1687,60 @@ export async function getHallAvailability(
     price: d.price,
     slots: d.slots ?? [],
   };
+}
+
+export type HallNearestSlots = {
+  day: "today" | "tomorrow";
+  slots: string[];
+};
+
+const nearestSlotsCache = new Map<number, { expiresAt: number; data: HallNearestSlots }>();
+const NEAREST_SLOTS_TTL_MS = 60_000;
+
+function formatLocalDateISO(offsetDays = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export async function getHallNearestSlots(hallId: number): Promise<HallNearestSlots | null> {
+  const cached = nearestSlotsCache.get(hallId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
+  try {
+    const todayRes = await getHallAvailability(hallId, formatLocalDateISO(0));
+    const todaySlots = todayRes.slots
+      .filter((s) => s.status === "free")
+      .map((s) => s.start)
+      .slice(0, 3);
+
+    if (todaySlots.length > 0) {
+      const data: HallNearestSlots = { day: "today", slots: todaySlots };
+      nearestSlotsCache.set(hallId, { expiresAt: Date.now() + NEAREST_SLOTS_TTL_MS, data });
+      return data;
+    }
+
+    const tomorrowRes = await getHallAvailability(hallId, formatLocalDateISO(1));
+    const tomorrowSlots = tomorrowRes.slots
+      .filter((s) => s.status === "free")
+      .map((s) => s.start)
+      .slice(0, 3);
+
+    if (tomorrowSlots.length > 0) {
+      const data: HallNearestSlots = { day: "tomorrow", slots: tomorrowSlots };
+      nearestSlotsCache.set(hallId, { expiresAt: Date.now() + NEAREST_SLOTS_TTL_MS, data });
+      return data;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 // Creates a booking on the server; the server validates the slot against the

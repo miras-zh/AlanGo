@@ -19,8 +19,10 @@ import { radii, spacing, typography } from "@/constants/theme";
 import {
   ArenaWithHalls,
   getArenasWithHalls,
+  getHallNearestSlots,
   getStoredHalls,
   Hall,
+  type HallNearestSlots,
 } from "@/lib/sportRentData";
 import { getSelectedCity, setSelectedCity } from "@/lib/cities";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
@@ -123,6 +125,7 @@ export default function ItemsScreen() {
   const [tab, setTab] = useState<CatalogTab>(searchParams.tab === "arenas" ? "arenas" : "halls");
   const [arenas, setArenas] = useState<ArenaWithHalls[]>([]);
   const [halls, setHalls] = useState<Hall[]>([]);
+  const [nearestSlotsMap, setNearestSlotsMap] = useState<Record<number, HallNearestSlots>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -192,6 +195,35 @@ export default function ItemsScreen() {
     () => filterHalls(halls, arenas, filters, hallSearch, t),
     [halls, arenas, filters, hallSearch, t],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    const missing = filteredHalls.filter((h) => !(h.id in nearestSlotsMap));
+    if (missing.length === 0) return;
+
+    (async () => {
+      const BATCH = 4;
+      for (let i = 0; i < missing.length; i += BATCH) {
+        if (cancelled) return;
+        const slice = missing.slice(i, i + BATCH);
+        const results = await Promise.all(
+          slice.map(async (h) => ({ id: h.id, data: await getHallNearestSlots(h.id) })),
+        );
+        if (cancelled) return;
+        setNearestSlotsMap((prev) => {
+          const next = { ...prev };
+          for (const r of results) {
+            if (r.data) next[r.id] = r.data;
+          }
+          return next;
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filteredHalls]);
   const filteredArenas = useMemo(
     () => filterArenas(arenas, filters, arenaSearch),
     [arenas, filters, arenaSearch],
@@ -367,6 +399,8 @@ export default function ItemsScreen() {
                 pricePerHour={item.pricePerHour}
                 sportType={item.sportType}
                 specs={specsText}
+                nearestSlots={nearestSlotsMap[item.id]?.slots}
+                nearestSlotsDay={nearestSlotsMap[item.id]?.day}
                 isFavorite={favorites.includes(item.id)}
                 onPress={() => router.push(`/hall/${item.id}`)}
                 onToggleFavorite={() => toggleFavorite(item.id)}

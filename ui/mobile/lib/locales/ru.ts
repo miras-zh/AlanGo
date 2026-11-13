@@ -603,6 +603,7 @@ export const ru = {
   "select.placeholder": "Выберите",
   "gallery.empty": "Фото зала пока не добавлены",
   "splash.tagline": "Аренда спортивных залов",
+  "venue.nearestSlots": "Ближайшие свободные слоты",
   "biz.disableTitle": "Отключить бизнес-аккаунт?",
   "biz.disableText": "Ваша площадка временно скроется из поиска и каталога, а аккаунт переключится в режим клиента. Все данные, залы и цены сохранятся — включить обратно можно в любой момент.",
   "biz.disable": "Отключить",
@@ -1119,6 +1120,19 @@ export const ru = {
   "amenity.inventoryShort": "Инвентарь",
   "events.period": "Период",
   "events.foundCount": "Найдено {count} событие|Найдено {count} события|Найдено {count} событий",
+  "map.nearYou": "Рядом с вами",
+  "map.locating": "Определяем ваше местоположение…",
+  "map.enableLocation": "Разрешите доступ к геолокации, чтобы видеть залы рядом. Открыть настройки",
+  "bizLocation.title": "Локация на карте",
+  "bizLocation.hintNew": "Нажмите на карту или передвиньте метку на ваш спорткомплекс",
+  "bizLocation.hintEdit": "Передвиньте метку, если локация указана неточно",
+  "bizLocation.tapMap": "Нажмите на карту, чтобы поставить метку",
+  "bizLocation.noGpsTitle": "Геолокация недоступна",
+  "bizLocation.noGpsText": "Разрешите доступ к геолокации в настройках или поставьте метку вручную.",
+  "bizLocation.saved": "Локация сохранена. Клиенты увидят комплекс на карте.",
+  "bizLocation.set": "Указана на карте",
+  "bizLocation.notSet": "Не указана — клиенты не найдут вас на карте",
+  "common.ok": "ОК",
 };
 
 export type MessageKey = keyof typeof ru;

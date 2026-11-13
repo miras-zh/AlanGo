@@ -29,6 +29,8 @@ export interface VenueCardProps {
   sportType?: string;
   specs?: string;
   availableTimeText?: string;
+  nearestSlots?: string[];
+  nearestSlotsDay?: "today" | "tomorrow";
   isFavorite?: boolean;
   onPress: () => void;
   onToggleFavorite?: () => void;
@@ -58,6 +60,8 @@ export function VenueCard({
   sportType,
   specs,
   availableTimeText,
+  nearestSlots,
+  nearestSlotsDay = "today",
   isFavorite = false,
   onPress,
   onToggleFavorite,
@@ -79,8 +83,9 @@ export function VenueCard({
         onPress();
       }}
     >
-      {/* 1. Left: Compact Thumbnail Image */}
-      <View style={styles.imageContainer}>
+      <View style={styles.topRow}>
+        {/* 1. Left: Compact Thumbnail Image */}
+        <View style={styles.imageContainer}>
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
@@ -236,6 +241,33 @@ export function VenueCard({
           </Pressable>
         </View>
       </View>
+      </View>
+
+      {nearestSlots && nearestSlots.length > 0 ? (
+        <View style={styles.slotsSection}>
+          <View style={styles.slotsHeader}>
+            <View style={styles.slotsTitleRow}>
+              <Ionicons name="time-outline" size={13} color={c.primary} />
+              <Text style={styles.slotsLabel}>{t("venue.nearestSlots")}</Text>
+            </View>
+            <Text style={styles.slotsDay}>
+              {nearestSlotsDay === "tomorrow" ? t("date.tomorrow") : t("date.today")}
+            </Text>
+          </View>
+          <View style={styles.slotsRow}>
+            {nearestSlots.slice(0, 3).map((slot, idx) => (
+              <View
+                key={slot}
+                style={[styles.slotChip, idx === 0 && styles.slotChipNearest]}
+              >
+                <Text style={[styles.slotChipText, idx === 0 && styles.slotChipTextNearest]}>
+                  {slot}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -249,6 +281,8 @@ const createStyles = (c: Palette) =>
     borderColor: c.glassBorder,
     padding: spacing.sm,
     marginBottom: spacing.card,
+  },
+  topRow: {
     flexDirection: "row",
     alignItems: "flex-start",
   },
@@ -416,5 +450,59 @@ const createStyles = (c: Palette) =>
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+  },
+  slotsSection: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: c.hairline,
+  },
+  slotsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.xs + 2,
+  },
+  slotsTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  slotsLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: c.textSecondary,
+  },
+  slotsDay: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: c.textMuted,
+  },
+  slotsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  slotChip: {
+    flex: 1,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radii.smallChip,
+    backgroundColor: c.surfaceElevated,
+    borderWidth: 1,
+    borderColor: c.border,
+    alignItems: "center",
+  },
+  slotChipNearest: {
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    borderColor: c.primary,
+  },
+  slotChipText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: c.textPrimary,
+  },
+  slotChipTextNearest: {
+    color: c.primary,
   },
 });
