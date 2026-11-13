@@ -15,6 +15,7 @@ import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 export interface VenueCardProps {
   id: number | string;
   title: string;
+  arenaTitle?: string;
   imageUrl?: string;
   address: string;
   distance?: string;
@@ -42,6 +43,7 @@ function getSportIcon(sport?: string): keyof typeof Ionicons.glyphMap {
 
 export function VenueCard({
   title,
+  arenaTitle,
   imageUrl,
   address,
   distance,
@@ -113,10 +115,20 @@ export function VenueCard({
 
       {/* 2. Right: Information Content */}
       <View style={styles.content}>
-        {/* Title (Up to 2 lines) */}
-        <Text style={styles.title} numberOfLines={2}>
-          {title}
-        </Text>
+        {/* Title + Business/Complex Badge in top-right */}
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { flex: 1 }]} numberOfLines={2}>
+            {title}
+          </Text>
+          {arenaTitle ? (
+            <View style={styles.arenaBadge}>
+              <Ionicons name="business-outline" size={10} color={c.primary} />
+              <Text style={styles.arenaBadgeText} numberOfLines={1} ellipsizeMode="tail">
+                {arenaTitle}
+              </Text>
+            </View>
+          ) : null}
+        </View>
 
         {/* Rating & Reviews */}
         <View style={styles.ratingRow}>
@@ -266,11 +278,36 @@ const createStyles = (c: Palette) =>
     marginLeft: 12,
     justifyContent: "space-between",
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    marginBottom: 2,
+  },
   title: {
     ...typography.cardTitle,
     color: c.textPrimary,
     lineHeight: 20,
-    marginBottom: 2,
+  },
+  arenaBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: "46%",
+    backgroundColor: c.surfaceElevated,
+    borderWidth: 1,
+    borderColor: c.border,
+    borderRadius: radii.smallChip,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    flexShrink: 1,
+  },
+  arenaBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: c.textSecondary,
+    flexShrink: 1,
   },
   ratingRow: {
     flexDirection: "row",

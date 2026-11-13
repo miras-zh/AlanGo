@@ -456,6 +456,7 @@ export default function ItemsScreen() {
               <VenueCard
                 id={item.id}
                 title={item.title}
+                arenaTitle={item.arenaTitle}
                 imageUrl={item.imageUrl}
                 address={item.arenaAddress || `${currentCity}, спортивный комплекс`}
                 distance={itemDistance}
