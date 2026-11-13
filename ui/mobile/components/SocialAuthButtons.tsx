@@ -8,6 +8,7 @@ import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 type Props = {
   mode?: "signin" | "signup";
@@ -17,6 +18,7 @@ type Props = {
 // Each button renders only when its native module and config are present,
 // so Expo Go / an unconfigured build simply shows fewer options.
 export function SocialAuthButtons({ mode = "signin" }: Props) {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -59,7 +61,7 @@ export function SocialAuthButtons({ mode = "signin" }: Props) {
     <View style={styles.wrap}>
       <View style={styles.dividerRow}>
         <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>или</Text>
+        <Text style={styles.dividerText}>{t("auth.or")}</Text>
         <View style={styles.dividerLine} />
       </View>
 
@@ -95,7 +97,7 @@ export function SocialAuthButtons({ mode = "signin" }: Props) {
             <>
               <Ionicons name="logo-google" size={18} color={c.textPrimary} />
               <Text style={styles.googleText}>
-                {mode === "signup" ? "Продолжить с Google" : "Войти через Google"}
+                {mode === "signup" ? t("auth.continueGoogle") : t("auth.signInGoogle")}
               </Text>
             </>
           )}

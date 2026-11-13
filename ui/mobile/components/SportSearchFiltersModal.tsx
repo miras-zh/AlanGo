@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
+import { useT, type MessageKey } from "@/lib/i18n";
+import { surfaceLabel } from "@/lib/dataLabels";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
@@ -29,12 +31,12 @@ export const DEFAULT_FILTERS: SportFilterState = {
 };
 
 export const SPORTS_LIST = [
-  { id: "Футбол", label: "Футбол", icon: "football-outline" as const },
-  { id: "Теннис", label: "Теннис", icon: "tennisball-outline" as const },
-  { id: "Баскетбол", label: "Баскетбол", icon: "basketball-outline" as const },
-  { id: "Волейбол", label: "Волейбол", icon: "baseball-outline" as const },
-  { id: "Падел", label: "Падел", icon: "fitness-outline" as const },
-  { id: "Настольный теннис", label: "Наст. теннис", icon: "disc-outline" as const },
+  { id: "Футбол", label: "sport.football" as MessageKey, icon: "football-outline" as const },
+  { id: "Теннис", label: "sport.tennis" as MessageKey, icon: "tennisball-outline" as const },
+  { id: "Баскетбол", label: "sport.basketball" as MessageKey, icon: "basketball-outline" as const },
+  { id: "Волейбол", label: "sport.volleyball" as MessageKey, icon: "baseball-outline" as const },
+  { id: "Падел", label: "sport.padelAlt" as MessageKey, icon: "fitness-outline" as const },
+  { id: "Настольный теннис", label: "sport.tableTennisShort" as MessageKey, icon: "disc-outline" as const },
 ];
 
 export const SURFACES_LIST = [
@@ -47,20 +49,20 @@ export const SURFACES_LIST = [
 ];
 
 export const AMENITIES_LIST = [
-  { id: "shower", label: "Душевые кабины", icon: "water-outline" as const },
-  { id: "locker", label: "Раздевалки со шкафчиками", icon: "file-tray-stacked-outline" as const },
-  { id: "parking", label: "Собственная парковка", icon: "car-outline" as const },
-  { id: "lighting", label: "Освещение для вечерней игры", icon: "flashlight-outline" as const },
-  { id: "tribune", label: "Трибуны для зрителей", icon: "people-outline" as const },
-  { id: "sauna", label: "Сауна после матча", icon: "flame-outline" as const },
-  { id: "inventory", label: "Аренда мячей и манишек", icon: "shirt-outline" as const },
+  { id: "shower", label: "amenity.shower" as MessageKey, icon: "water-outline" as const },
+  { id: "locker", label: "amenity.locker" as MessageKey, icon: "file-tray-stacked-outline" as const },
+  { id: "parking", label: "amenity.parking" as MessageKey, icon: "car-outline" as const },
+  { id: "lighting", label: "amenity.lighting" as MessageKey, icon: "flashlight-outline" as const },
+  { id: "tribune", label: "amenity.tribune" as MessageKey, icon: "people-outline" as const },
+  { id: "sauna", label: "amenity.sauna" as MessageKey, icon: "flame-outline" as const },
+  { id: "inventory", label: "amenity.inventory" as MessageKey, icon: "shirt-outline" as const },
 ];
 
 export const PRICE_RANGES = [
-  { id: "all", label: "Любая цена" },
-  { id: "under10", label: "До 10 000 ₸" },
-  { id: "10to20", label: "10 000 — 20 000 ₸" },
-  { id: "above20", label: "От 20 000 ₸" },
+  { id: "all", label: "price.any" as MessageKey },
+  { id: "under10", label: "price.under10" as MessageKey },
+  { id: "10to20", label: "price.10to20" as MessageKey },
+  { id: "above20", label: "price.above20" as MessageKey },
 ];
 
 interface SportSearchFiltersModalProps {
@@ -79,6 +81,7 @@ export function SportSearchFiltersModal({
   onApply,
 }: SportSearchFiltersModalProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [draft, setDraft] = useState<SportFilterState>(filters);
 
@@ -150,7 +153,7 @@ export function SportSearchFiltersModal({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <Text style={styles.headerTitle}>Фильтры</Text>
+              <Text style={styles.headerTitle}>{t("filters.title")}</Text>
               {activeFiltersCount > 0 && (
                 <View style={styles.countBadge}>
                   <Text style={styles.countBadgeText}>{activeFiltersCount}</Text>
@@ -160,7 +163,7 @@ export function SportSearchFiltersModal({
             <View style={styles.headerActions}>
               {activeFiltersCount > 0 && (
                 <Pressable onPress={handleReset} style={styles.resetBtn} hitSlop={8}>
-                  <Text style={styles.resetBtnText}>Сбросить</Text>
+                  <Text style={styles.resetBtnText}>{t("filters.reset")}</Text>
                 </Pressable>
               )}
               <Pressable
@@ -184,7 +187,7 @@ export function SportSearchFiltersModal({
           >
             {/* 1. Виды спорта */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Вид спорта</Text>
+              <Text style={styles.sectionTitle}>{t("filters.sport")}</Text>
               <View style={styles.chipsWrap}>
                 {SPORTS_LIST.map((sport) => {
                   const active = draft.sports.includes(sport.id);
@@ -200,7 +203,7 @@ export function SportSearchFiltersModal({
                         color={active ? c.primary : c.textSecondary}
                       />
                       <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                        {sport.label}
+                        {t(sport.label)}
                       </Text>
                     </Pressable>
                   );
@@ -210,7 +213,7 @@ export function SportSearchFiltersModal({
 
             {/* 2. Тип покрытия */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Покрытие площадки</Text>
+              <Text style={styles.sectionTitle}>{t("filters.surface")}</Text>
               <View style={styles.chipsWrap}>
                 {SURFACES_LIST.map((surf) => {
                   const active = draft.surfaces.includes(surf);
@@ -221,7 +224,7 @@ export function SportSearchFiltersModal({
                       style={[styles.chip, active && styles.chipActive]}
                     >
                       <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                        {surf}
+                        {surfaceLabel(surf, t)}
                       </Text>
                     </Pressable>
                   );
@@ -231,7 +234,7 @@ export function SportSearchFiltersModal({
 
             {/* 3. Диапазон цен */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Стоимость в час</Text>
+              <Text style={styles.sectionTitle}>{t("filters.pricePerHour")}</Text>
               <View style={styles.chipsWrap}>
                 {PRICE_RANGES.map((p) => {
                   const active = draft.priceRange === p.id;
@@ -242,7 +245,7 @@ export function SportSearchFiltersModal({
                       style={[styles.chip, active && styles.chipActive]}
                     >
                       <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                        {p.label}
+                        {t(p.label)}
                       </Text>
                     </Pressable>
                   );
@@ -252,7 +255,7 @@ export function SportSearchFiltersModal({
 
             {/* 4. Удобства и инфраструктура */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Удобства и инвентарь</Text>
+              <Text style={styles.sectionTitle}>{t("filters.amenities")}</Text>
               <View style={styles.amenitiesList}>
                 {AMENITIES_LIST.map((amenity) => {
                   const active = draft.amenities.includes(amenity.id);
@@ -269,7 +272,7 @@ export function SportSearchFiltersModal({
                           color={active ? c.primary : c.textSecondary}
                         />
                         <Text style={[styles.amenityLabel, active && styles.amenityLabelActive]}>
-                          {amenity.label}
+                          {t(amenity.label)}
                         </Text>
                       </View>
                       <Ionicons
@@ -289,8 +292,8 @@ export function SportSearchFiltersModal({
             <Pressable onPress={handleApply} style={styles.applyBtn}>
               <Text style={styles.applyBtnText}>
                 {matchedCount > 0
-                  ? `Показать ${matchedCount} ${getDeclension(matchedCount, "площадку", "площадки", "площадок")}`
-                  : "Показать площадки"}
+                  ? t("filters.showCount", { count: matchedCount })
+                  : t("filters.show")}
               </Text>
               <Ionicons name="arrow-forward" size={18} color={c.background} />
             </Pressable>
@@ -301,13 +304,6 @@ export function SportSearchFiltersModal({
   );
 }
 
-function getDeclension(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-  return many;
-}
 
 const createStyles = (c: Palette) =>
   StyleSheet.create({

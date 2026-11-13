@@ -20,8 +20,11 @@ import { listPublicItems, ItemEntity } from "@/lib/items";
 import { ArenaWithHalls, getArenasWithHalls } from "@/lib/sportRentData";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getSelectedCity, subscribeCityChange } from "@/lib/cities";
+import { formatNumber, useT, type MessageKey } from "@/lib/i18n";
+import { categoryLabel, cityLabel, dayMonth, sportLabel, weekdayShort } from "@/lib/dataLabels";
 import { CityPickerModal } from "@/components/CityPickerModal";
 import { LiveMatchIsland } from "@/components/LiveMatchIsland";
+import { HomeBannerSlider } from "@/components/HomeBannerSlider";
 import {
   SportSearchFiltersModal,
   SportFilterState,
@@ -36,20 +39,21 @@ const FAVORITES_STORAGE_KEY = "alango_user_favorites";
 
 type CategoryItem = {
   id: string;
-  name: string;
+  name: MessageKey;
   icon: keyof typeof Ionicons.glyphMap;
 };
 
 const CATEGORIES: CategoryItem[] = [
-  { id: "all", name: "Все", icon: "grid-outline" },
-  { id: "Футбол", name: "Футбол", icon: "football-outline" },
-  { id: "Теннис", name: "Теннис", icon: "tennisball-outline" },
-  { id: "Баскетбол", name: "Баскетбол", icon: "basketball-outline" },
-  { id: "Сквош и падл", name: "Падл", icon: "fitness-outline" },
-  { id: "Волейбол", name: "Волейбол", icon: "baseball-outline" },
+  { id: "all", name: "sport.all", icon: "grid-outline" },
+  { id: "Футбол", name: "sport.football", icon: "football-outline" },
+  { id: "Теннис", name: "sport.tennis", icon: "tennisball-outline" },
+  { id: "Баскетбол", name: "sport.basketball", icon: "basketball-outline" },
+  { id: "Сквош и падл", name: "sport.padel", icon: "fitness-outline" },
+  { id: "Волейбол", name: "sport.volleyball", icon: "baseball-outline" },
 ];
 
 export default function HomeScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -70,7 +74,8 @@ export default function HomeScreen() {
   // Quick Booking Modal State
   const [selectedHall, setSelectedHall] = useState<ItemEntity | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string>("19:00 - 20:00");
-  const [selectedDate, setSelectedDate] = useState<string>("Сегодня");
+  // Day offset from today in the quick-booking modal.
+  const [selectedDate, setSelectedDate] = useState<number>(0);
 
   useEffect(() => {
     getSelectedCity().then(setCurrentCity);
@@ -229,15 +234,23 @@ export default function HomeScreen() {
     await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(nextFavs));
   };
 
+  const dayOptionLabel = (offset: number) => {
+    if (offset === 0) return t("date.today");
+    if (offset === 1) return t("date.tomorrow");
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return `${weekdayShort(d.getDay(), t)}, ${dayMonth(d, t)}`;
+  };
+
   const confirmBooking = () => {
     if (!selectedHall) return;
     hapticSuccess();
     const hallTitle = selectedHall.title;
     setSelectedHall(null);
     Alert.alert(
-      "Бронь оформлена! 🎉",
-      `Вы успешно забронировали "${hallTitle}" на ${selectedDate} в слот ${selectedSlot}. Ждем вас!`,
-      [{ text: "Отлично" }]
+      t("home.bookedTitle"),
+      t("home.bookedText", { hall: hallTitle, date: dayOptionLabel(selectedDate), slot: selectedSlot }),
+      [{ text: t("home.great") }]
     );
   };
 
@@ -278,7 +291,7 @@ export default function HomeScreen() {
             }}
           >
             <Ionicons name="location-sharp" size={14} color={c.primary} />
-            <Text style={styles.locationText}>{currentCity}</Text>
+            <Text style={styles.locationText}>{cityLabel(currentCity, t)}</Text>
             <Ionicons name="chevron-down" size={13} color={c.textSecondary} />
           </Pressable>
         </View>
@@ -287,27 +300,7 @@ export default function HomeScreen() {
         <LiveMatchIsland />
 
         {/* --- 2. HERO BANNER --- */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroLeft}>
-            <Text style={styles.heroTitle}>
-              Арендуйте{"\n"}
-              спортивные{"\n"}
-              <Text style={styles.heroTitlePrimary}>залы</Text>
-            </Text>
-            <Text style={styles.heroSubtitle}>
-              Футбол, теннис, баскетбол и многое другое
-            </Text>
-          </View>
-
-          <View style={styles.heroRight}>
-            <Image
-              source={{
-                uri: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=500&q=80",
-              }}
-              style={styles.heroBallImage}
-            />
-          </View>
-        </View>
+        <HomeBannerSlider />
 
         {/* --- 3. SEARCH BAR + FILTERS + MAP --- */}
         <View style={styles.searchRow}>
@@ -321,7 +314,7 @@ export default function HomeScreen() {
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Поиск залов и площадок..."
+              placeholder={t("home.searchPlaceholder")}
               placeholderTextColor={c.textSecondary}
               style={styles.searchInput}
               returnKeyType="search"
@@ -384,11 +377,11 @@ export default function HomeScreen() {
             </View>
             <View style={styles.mapBannerTextWrap}>
               <View style={styles.mapBannerTitleRow}>
-                <Text style={styles.mapBannerTitle}>Залы рядом на карте</Text>
+                <Text style={styles.mapBannerTitle}>{t("home.mapTitle")}</Text>
                 <View style={styles.livePulseDot} />
               </View>
               <Text style={styles.mapBannerSub}>
-                Интерактивная карта площадок, кортов и цены в г. {currentCity}
+                {t("home.mapSubtitle", { city: cityLabel(currentCity, t) })}
               </Text>
             </View>
           </View>
@@ -429,7 +422,7 @@ export default function HomeScreen() {
                   ]}
                   numberOfLines={1}
                 >
-                  {cat.name}
+                  {t(cat.name)}
                 </Text>
               </Pressable>
             );
@@ -440,10 +433,10 @@ export default function HomeScreen() {
         {filteredArenas.length > 0 ? (
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
-              <View>
-                <Text style={styles.sectionTitle}>Спорткомплексы и арены</Text>
+              <View style={styles.sectionHeaderText}>
+                <Text style={styles.sectionTitle}>{t("home.arenasTitle")}</Text>
                 <Text style={styles.sectionSubtitle}>
-                  {currentCity ? `Площадки в г. ${currentCity}` : "Спортивные центры с арендой залов"}
+                  {currentCity ? t("home.arenasInCity", { city: cityLabel(currentCity, t) }) : t("home.arenasSubtitle")}
                 </Text>
               </View>
               <Pressable
@@ -454,7 +447,7 @@ export default function HomeScreen() {
                 hitSlop={10}
                 style={styles.seeAllBtn}
               >
-                <Text style={styles.seeAllText}>Все ({filteredArenas.length})</Text>
+                <Text style={styles.seeAllText}>{t("home.allCount", { n: filteredArenas.length })}</Text>
                 <Ionicons name="chevron-forward" size={14} color={c.primary} />
               </Pressable>
             </View>
@@ -481,7 +474,7 @@ export default function HomeScreen() {
                     <View style={styles.arenaBadge}>
                       <Ionicons name="business" size={11} color={c.primary} />
                       <Text style={styles.arenaBadgeText}>
-                        {arena.category || "Спорткомплекс"}
+                        {categoryLabel(arena.category || "Спорткомплекс", t)}
                       </Text>
                     </View>
                     <View style={styles.arenaRating}>
@@ -508,17 +501,17 @@ export default function HomeScreen() {
                     <View style={styles.arenaSportsRow}>
                       {arena.availableSports.slice(0, 3).map((sp) => (
                         <View key={sp} style={styles.arenaSportPill}>
-                          <Text style={styles.arenaSportText}>{sp}</Text>
+                          <Text style={styles.arenaSportText}>{sportLabel(sp, t)}</Text>
                         </View>
                       ))}
                     </View>
 
                     <View style={styles.arenaFooter}>
                       <Text style={styles.arenaHallsCount}>
-                        {arena.hallsCount} {arena.hallsCount === 1 ? "зал" : "зала"}
+                        {t("common.hallsCount", { count: arena.hallsCount })}
                       </Text>
                       <Text style={styles.arenaPrice}>
-                        от {arena.minPrice.toLocaleString("ru-RU")} ₸
+                        {t("common.priceFrom", { price: formatNumber(arena.minPrice) })}
                       </Text>
                     </View>
                   </View>
@@ -529,9 +522,9 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.emptyFilteredBox}>
             <Ionicons name="football-outline" size={32} color={c.border} />
-            <Text style={styles.emptyFilteredTitle}>Площадки не найдены</Text>
+            <Text style={styles.emptyFilteredTitle}>{t("home.emptyTitle")}</Text>
             <Text style={styles.emptyFilteredText}>
-              В г. {currentCity} нет доступных площадок с выбранными параметрами.
+              {t("home.emptyText", { city: cityLabel(currentCity, t) })}
             </Text>
             {(activeFiltersCount > 0 ||
               selectedCategory !== "all" ||
@@ -545,7 +538,7 @@ export default function HomeScreen() {
                   setSearchQuery("");
                 }}
               >
-                <Text style={styles.resetFiltersBtnText}>Сбросить фильтры</Text>
+                <Text style={styles.resetFiltersBtnText}>{t("common.resetFilters")}</Text>
               </Pressable>
             )}
           </View>
@@ -554,10 +547,10 @@ export default function HomeScreen() {
         {/* --- 5. SECTION: Популярные залы (VenueCards) --- */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Популярные залы</Text>
+            <View style={styles.sectionHeaderText}>
+              <Text style={styles.sectionTitle}>{t("home.popularTitle")}</Text>
               <Text style={styles.sectionSubtitle}>
-                Топ площадок с проверенными отзывами
+                {t("home.popularSubtitle")}
               </Text>
             </View>
             <Pressable
@@ -568,7 +561,7 @@ export default function HomeScreen() {
               hitSlop={10}
               style={styles.seeAllBtn}
             >
-              <Text style={styles.seeAllText}>Все залы</Text>
+              <Text style={styles.seeAllText}>{t("home.allHalls")}</Text>
               <Ionicons name="chevron-forward" size={14} color={c.primary} />
             </Pressable>
           </View>
@@ -612,11 +605,11 @@ export default function HomeScreen() {
                       {hall.title}
                     </Text>
                     <Text style={styles.popularMeta} numberOfLines={1}>
-                      {hall.category || "Спорт"}
+                      {hall.category ? sportLabel(hall.category, t) : t("home.sportFallback")}
                     </Text>
                     {hall.price ? (
                       <Text style={styles.popularPrice}>
-                        {Number(hall.price).toLocaleString("ru-RU")} ₸<Text style={styles.popularMeta}> / час</Text>
+                        {formatNumber(Number(hall.price))} ₸<Text style={styles.popularMeta}> {t("common.perHour")}</Text>
                       </Text>
                     ) : null}
                   </View>
@@ -639,14 +632,14 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.eventsTextWrap}>
-            <Text style={styles.eventsTitle}>Спортивные события</Text>
+            <Text style={styles.eventsTitle}>{t("home.eventsTitle")}</Text>
             <Text style={styles.eventsSubtitle}>
-              Турниры, открытые матчи и поиск команды
+              {t("home.eventsSubtitle")}
             </Text>
           </View>
 
           <View style={styles.eventsActionBtn}>
-            <Text style={styles.eventsActionBtnText}>Смотреть</Text>
+            <Text style={styles.eventsActionBtnText}>{t("home.eventsButton")}</Text>
           </View>
         </Pressable>
 
@@ -671,7 +664,7 @@ export default function HomeScreen() {
                   {selectedHall?.title}
                 </Text>
                 <Text style={styles.modalSubtitle}>
-                  📍 {selectedHall?.metadata?.location || currentCity}
+                  📍 {selectedHall?.metadata?.location || cityLabel(currentCity, t)}
                 </Text>
               </View>
               <Pressable
@@ -683,9 +676,9 @@ export default function HomeScreen() {
             </View>
 
             {/* Date Selection */}
-            <Text style={styles.modalSectionLabel}>Выберите день</Text>
+            <Text style={styles.modalSectionLabel}>{t("home.chooseDay")}</Text>
             <View style={styles.slotRow}>
-              {["Сегодня", "Завтра", "Пт, 7 ноя", "Сб, 8 ноя"].map((d) => (
+              {[0, 1, 2, 3].map((d) => (
                 <Pressable
                   key={d}
                   style={[
@@ -703,14 +696,14 @@ export default function HomeScreen() {
                       selectedDate === d && styles.slotChipTextActive,
                     ]}
                   >
-                    {d}
+                    {dayOptionLabel(d)}
                   </Text>
                 </Pressable>
               ))}
             </View>
 
             {/* Time Slot Selection */}
-            <Text style={styles.modalSectionLabel}>Свободные слоты</Text>
+            <Text style={styles.modalSectionLabel}>{t("home.freeSlots")}</Text>
             <View style={styles.slotRow}>
               {[
                 "17:00 - 18:00",
@@ -744,16 +737,16 @@ export default function HomeScreen() {
             {/* Modal Footer */}
             <View style={styles.modalFooter}>
               <View>
-                <Text style={styles.modalTotalLabel}>Стоимость брони</Text>
+                <Text style={styles.modalTotalLabel}>{t("home.bookingCost")}</Text>
                 <Text style={styles.modalTotalPrice}>
-                  {(selectedHall?.price || 15000).toLocaleString("ru-RU")} ₸
+                  {formatNumber((selectedHall?.price || 15000))} ₸
                 </Text>
               </View>
               <Pressable
                 style={styles.modalBookBtn}
                 onPress={confirmBooking}
               >
-                <Text style={styles.modalBookBtnText}>Забронировать</Text>
+                <Text style={styles.modalBookBtnText}>{t("common.book")}</Text>
               </Pressable>
             </View>
           </View>
@@ -894,52 +887,6 @@ const createStyles = (c: Palette) =>
   },
 
   // Hero Card
-  heroCard: {
-    backgroundColor: c.surfaceElevated,
-    borderRadius: radii.card, // 18px
-    borderWidth: 1,
-    borderColor: c.border,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: spacing.lg,
-    marginTop: spacing.xs,
-    marginBottom: spacing.card,
-    overflow: "hidden",
-    minHeight: 140,
-  },
-  heroLeft: {
-    flex: 1,
-    paddingVertical: spacing.lg,
-  },
-  heroTitle: {
-    fontSize: 26,
-    lineHeight: 31,
-    fontWeight: "900",
-    color: c.textPrimary,
-    letterSpacing: -0.5,
-  },
-  heroTitlePrimary: {
-    color: c.primary, // #00C968
-  },
-  heroSubtitle: {
-    fontSize: 12,
-    lineHeight: 16,
-    color: c.textSecondary,
-    marginTop: spacing.xs + 2,
-  },
-  heroRight: {
-    width: 135,
-    height: 140,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  heroBallImage: {
-    width: 125,
-    height: 125,
-    borderRadius: 62.5,
-    transform: [{ rotate: "15deg" }],
-  },
-
   // Promo Actions Card
   promoActionCard: {
     flexDirection: "row",
@@ -1166,6 +1113,10 @@ const createStyles = (c: Palette) =>
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: spacing.md,
+  },
+  sectionHeaderText: {
+    flex: 1,
+    marginRight: spacing.sm,
   },
   sectionTitle: {
     fontSize: 19,

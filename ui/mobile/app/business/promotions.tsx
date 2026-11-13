@@ -20,9 +20,26 @@ import { hapticImpact, hapticSelection } from "@/lib/haptics";
 import * as Haptics from "expo-haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT, type MessageKey, type TFunction } from "@/lib/i18n";
+
+// Built-in demo promotions are stored on the device in Russian; show them in
+// the selected language by id. Custom promotions are shown as stored.
+const PROMO_KEYS: Record<string, string> = {
+  "promo-happy-hours": "promo.happy",
+  "promo-hot-slot": "promo.hot",
+  "promo-welcome": "promo.welcome",
+};
+
+type PromoField = "title" | "tagline" | "badge" | "description" | "conditions";
+
+function promoText(p: Promotion, field: PromoField, t: TFunction): string {
+  const base = PROMO_KEYS[p.id];
+  return base ? t(`${base}.${field}` as MessageKey) : p[field];
+}
 
 export default function BusinessPromotionsScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [promos, setPromos] = useState<Promotion[]>([]);
@@ -51,7 +68,7 @@ export default function BusinessPromotionsScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={c.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Маркетинг и Акции</Text>
+        <Text style={styles.headerTitle}>{t("promo.title")}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -60,14 +77,14 @@ export default function BusinessPromotionsScreen() {
         <View style={styles.infoBanner}>
           <Ionicons name="trending-up" size={24} color={c.primary} />
           <View style={styles.infoBannerText}>
-            <Text style={styles.infoBannerTitle}>Динамическое ценообразование</Text>
+            <Text style={styles.infoBannerTitle}>{t("promo.dynamic")}</Text>
             <Text style={styles.infoBannerSubtitle}>
-              Включение скидок в непиковые дневные часы повышает среднюю загрузку залов на 35-40% и привлекает корпоративные команды.
+              {t("promo.dynamicText")}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>АКТИВНЫЕ МЕХАНИКИ СКИТОК</Text>
+        <Text style={styles.sectionTitle}>{t("promo.activeMechanics")}</Text>
 
         {promos.map((p) => (
           <View key={p.id} style={styles.promoCard}>
@@ -82,9 +99,9 @@ export default function BusinessPromotionsScreen() {
               </View>
               <View style={styles.promoMeta}>
                 <View style={styles.row}>
-                  <Text style={styles.promoTitle}>{p.title}</Text>
+                  <Text style={styles.promoTitle}>{promoText(p, "title", t)}</Text>
                 </View>
-                <Text style={styles.promoTagline}>{p.tagline}</Text>
+                <Text style={styles.promoTagline}>{promoText(p, "tagline", t)}</Text>
               </View>
               <Switch
                 value={p.isEnabled}
@@ -94,20 +111,20 @@ export default function BusinessPromotionsScreen() {
               />
             </View>
 
-            <Text style={styles.promoDesc}>{p.description}</Text>
+            <Text style={styles.promoDesc}>{promoText(p, "description", t)}</Text>
 
             <View style={styles.conditionBox}>
               <Ionicons name="information-circle-outline" size={16} color={c.textSecondary} />
-              <Text style={styles.conditionText}>{p.conditions}</Text>
+              <Text style={styles.conditionText}>{promoText(p, "conditions", t)}</Text>
             </View>
 
             <View style={styles.footerRow}>
               <View style={styles.badgeWrap}>
-                <Text style={styles.badgeText}>{p.badge}</Text>
+                <Text style={styles.badgeText}>{promoText(p, "badge", t)}</Text>
               </View>
               {p.promoCode && (
                 <View style={styles.codeWrap}>
-                  <Text style={styles.codeText}>Промокод: {p.promoCode}</Text>
+                  <Text style={styles.codeText}>{t("promo.code", { code: p.promoCode })}</Text>
                 </View>
               )}
             </View>
@@ -119,13 +136,13 @@ export default function BusinessPromotionsScreen() {
           onPress={() => {
             hapticSelection();
             Alert.alert(
-              "Кастомная промо-акция",
-              "Для создания индивидуального сезонного турнира или специального корпоративного тарифа свяжитесь с поддержкой AlanGo Business."
+              t("promo.customTitle"),
+              t("promo.customText")
             );
           }}
         >
           <Ionicons name="add-circle-outline" size={20} color={c.primary} />
-          <Text style={styles.addCustomText}>Создать индивидуальную акцию</Text>
+          <Text style={styles.addCustomText}>{t("promo.createCustom")}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

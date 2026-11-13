@@ -29,21 +29,23 @@ import { VenueCard } from "@/components/VenueCard";
 import { FilterModal, FilterState } from "@/components/FilterModal";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT, type MessageKey } from "@/lib/i18n";
+import { cityLabel, sportLabel, surfaceLabel } from "@/lib/dataLabels";
 
 const SPORT_CHIPS = [
-  { key: "Все", label: "Все", icon: "apps-outline" },
-  { key: "Футбол", label: "Футбол", icon: "football-outline" },
-  { key: "Теннис", label: "Теннис", icon: "tennisball-outline" },
-  { key: "Баскетбол", label: "Баскетбол", icon: "basketball-outline" },
-  { key: "Волейбол", label: "Волейбол", icon: "fitness-outline" },
-  { key: "Сквош и падл", label: "Сквош", icon: "disc-outline" },
+  { key: "Все", label: "sport.all" as MessageKey, icon: "apps-outline" },
+  { key: "Футбол", label: "sport.football" as MessageKey, icon: "football-outline" },
+  { key: "Теннис", label: "sport.tennis" as MessageKey, icon: "tennisball-outline" },
+  { key: "Баскетбол", label: "sport.basketball" as MessageKey, icon: "basketball-outline" },
+  { key: "Волейбол", label: "sport.volleyball" as MessageKey, icon: "fitness-outline" },
+  { key: "Сквош и падл", label: "sport.squashShort" as MessageKey, icon: "disc-outline" },
 ];
 
 const SORT_OPTIONS = [
-  { key: "popular", label: "По популярности" },
-  { key: "price_asc", label: "Сначала дешевле" },
-  { key: "price_desc", label: "Сначала дороже" },
-  { key: "rating", label: "Высокий рейтинг" },
+  { key: "popular", label: "halls.sortPopular" as MessageKey },
+  { key: "price_asc", label: "halls.sortCheap" as MessageKey },
+  { key: "price_desc", label: "halls.sortExpensive" as MessageKey },
+  { key: "rating", label: "halls.sortRating" as MessageKey },
 ];
 
 const CITIES = ["Астана", "Алматы", "Шымкент", "Караганда", "Актобе"];
@@ -51,6 +53,7 @@ const CITIES = ["Астана", "Алматы", "Шымкент", "Карага�
 const FAVORITES_STORAGE_KEY = "alango_favorite_halls";
 
 export default function ItemsScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -226,11 +229,11 @@ export default function ItemsScreen() {
       {/* 1. Header (Screen 1 & Screen 3) */}
       <View style={styles.header}>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.screenTitle}>Залы</Text>
+          <Text style={styles.screenTitle}>{t("halls.title")}</Text>
           <Text style={styles.screenSubtitle} numberOfLines={1}>
             {activeFiltersCount > 0 || search.trim()
-              ? `Найдено ${filteredHalls.length} зала`
-              : "Найдите и забронируйте спортивный зал"}
+              ? t("halls.found", { count: filteredHalls.length })
+              : t("halls.subtitle")}
           </Text>
         </View>
 
@@ -282,7 +285,7 @@ export default function ItemsScreen() {
             style={{ marginRight: 8 }}
           />
           <TextInput
-            placeholder="Поиск по названию, адресу..."
+            placeholder={t("halls.searchPlaceholder")}
             placeholderTextColor={c.textSecondary}
             value={search}
             onChangeText={setSearch}
@@ -331,7 +334,7 @@ export default function ItemsScreen() {
                     isSelected && styles.categoryTextActive,
                   ]}
                 >
-                  {chip.label}
+                  {t(chip.label)}
                 </Text>
               </Pressable>
             );
@@ -349,7 +352,7 @@ export default function ItemsScreen() {
             setSortModalOpen(true);
           }}
         >
-          <Text style={styles.controlPillText}>Сортировка</Text>
+          <Text style={styles.controlPillText}>{t("halls.sort")}</Text>
           <Ionicons
             name="chevron-down"
             size={13}
@@ -372,7 +375,7 @@ export default function ItemsScreen() {
             color={c.primary}
             style={{ marginRight: 4 }}
           />
-          <Text style={styles.controlPillText}>{currentCity}</Text>
+          <Text style={styles.controlPillText}>{cityLabel(currentCity, t)}</Text>
           <Ionicons
             name="chevron-down"
             size={13}
@@ -386,7 +389,7 @@ export default function ItemsScreen() {
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator color={c.primary} size="large" />
-          <Text style={styles.loadingText}>Загрузка залов...</Text>
+          <Text style={styles.loadingText}>{t("halls.loading")}</Text>
         </View>
       ) : (
         <FlatList
@@ -411,9 +414,9 @@ export default function ItemsScreen() {
                 size={48}
                 color={c.textSecondary}
               />
-              <Text style={styles.emptyTitle}>Залы не найдены</Text>
+              <Text style={styles.emptyTitle}>{t("halls.emptyTitle")}</Text>
               <Text style={styles.emptySub}>
-                Попробуйте изменить поисковый запрос или сбросить фильтры.
+                {t("halls.emptyText")}
               </Text>
               <Pressable
                 style={styles.emptyResetBtn}
@@ -428,27 +431,27 @@ export default function ItemsScreen() {
                   });
                 }}
               >
-                <Text style={styles.emptyResetBtnText}>Сбросить все</Text>
+                <Text style={styles.emptyResetBtnText}>{t("halls.resetAll")}</Text>
               </Pressable>
             </View>
           }
           renderItem={({ item, index }) => {
             const isFav = favorites.includes(item.id);
-            const distances = ["1.8 км", "2.4 км", "3.1 км", "4.5 км"];
+            const distances = ["1.8", "2.4", "3.1", "4.5"].map((n) => t("common.km", { n }));
             const itemDistance = distances[index % distances.length];
 
             // Build characteristics line from real hall data
             const specsList: string[] = [];
-            if (item.sportType) specsList.push(item.sportType);
+            if (item.sportType) specsList.push(sportLabel(item.sportType, t));
             if (item.capacity) {
               const shortCap = item.capacity.split("(")[0].trim();
               if (shortCap) specsList.push(shortCap);
             }
             if (item.surfaceType && !specsList.includes(item.surfaceType)) {
-              specsList.push(item.surfaceType);
+              specsList.push(surfaceLabel(item.surfaceType, t));
             }
             if (item.equipment?.some((e) => e.toLowerCase().includes("душ"))) {
-              specsList.push("Душ");
+              specsList.push(t("halls.shower"));
             }
             const specsText = specsList.length > 0 ? specsList.slice(0, 3).join(" · ") : undefined;
 
@@ -458,7 +461,7 @@ export default function ItemsScreen() {
                 title={item.title}
                 arenaTitle={item.arenaTitle}
                 imageUrl={item.imageUrl}
-                address={item.arenaAddress || `${currentCity}, спортивный комплекс`}
+                address={item.arenaAddress || t("halls.addressFallback", { city: cityLabel(currentCity, t) })}
                 distance={itemDistance}
                 rating={item.rating || 4.8}
                 reviewsCount={item.reviewsCount || 124}
@@ -503,7 +506,7 @@ export default function ItemsScreen() {
           onPress={() => setSortModalOpen(false)}
         >
           <View style={styles.sortSheet}>
-            <Text style={styles.sortTitle}>Сортировка</Text>
+            <Text style={styles.sortTitle}>{t("halls.sort")}</Text>
             {SORT_OPTIONS.map((opt) => (
               <Pressable
                 key={opt.key}
@@ -523,7 +526,7 @@ export default function ItemsScreen() {
                     currentSort === opt.key && styles.sortOptionTextActive,
                   ]}
                 >
-                  {opt.label}
+                  {t(opt.label)}
                 </Text>
                 {currentSort === opt.key && (
                   <Ionicons name="checkmark" size={18} color={c.primary} />
@@ -546,7 +549,7 @@ export default function ItemsScreen() {
           onPress={() => setCityModalOpen(false)}
         >
           <View style={styles.sortSheet}>
-            <Text style={styles.sortTitle}>Выберите город</Text>
+            <Text style={styles.sortTitle}>{t("halls.chooseCity")}</Text>
             {CITIES.map((cityName) => (
               <Pressable
                 key={cityName}
@@ -562,7 +565,7 @@ export default function ItemsScreen() {
                     currentCity === cityName && styles.sortOptionTextActive,
                   ]}
                 >
-                  {cityName}
+                  {cityLabel(cityName, t)}
                 </Text>
                 {currentCity === cityName && (
                   <Ionicons name="checkmark" size={18} color={c.primary} />

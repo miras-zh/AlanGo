@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import { saveSession, clearSession, type SessionUser } from "@/lib/auth";
+import { tr } from "@/lib/i18n";
 
 export type StartRegistrationRequest = {
   full_name: string;
@@ -70,7 +71,7 @@ export async function loginWithEmail(
         ...user,
         id: String(user.id || 0),
         email: data.email || user.email || loginInput,
-        name: user.full_name || user.name || "Пользователь AlanGo",
+        name: user.full_name || user.name || tr("user.defaultName"),
         role: user.role || "client",
       },
     });
@@ -124,7 +125,7 @@ export async function persistAuthResponse(
   extra: Partial<SessionUser> = {},
 ): Promise<void> {
   if (!data?.token) {
-    throw new Error("Сервер не вернул токен авторизации");
+    throw new Error(tr("errors.noAuthToken"));
   }
   const user = data.user_info || data.user || {};
   await saveSession({
@@ -151,13 +152,13 @@ export async function loginWithApple(payload: {
     authorization_code: payload.authorizationCode || "",
     full_name: payload.fullName || "",
   });
-  await persistAuthResponse(res.data, payload.fullName || "Пользователь Apple");
+  await persistAuthResponse(res.data, payload.fullName || tr("user.appleName"));
   return res.data;
 }
 
 export async function loginWithGoogle(idToken: string): Promise<any> {
   const res = await api.post<any>("/api/auth/google", { id_token: idToken });
-  await persistAuthResponse(res.data, "Пользователь Google");
+  await persistAuthResponse(res.data, tr("user.googleName"));
   return res.data;
 }
 

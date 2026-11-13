@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { TabBarGlassBackground } from "@/components/TabBarGlassBackground";
 import { hapticSelection } from "@/lib/haptics";
+import { useT, type MessageKey } from "@/lib/i18n";
 
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
@@ -10,33 +11,33 @@ import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 const TAB_CONFIG: Record<
   string,
   {
-    label: string;
+    labelKey: MessageKey;
     icon: keyof typeof Ionicons.glyphMap;
     iconFocused: keyof typeof Ionicons.glyphMap;
   }
 > = {
   index: {
-    label: "Главная",
+    labelKey: "tabs.home",
     icon: "home-outline",
     iconFocused: "home",
   },
   items: {
-    label: "Залы",
+    labelKey: "tabs.halls",
     icon: "calendar-outline",
     iconFocused: "calendar",
   },
   events: {
-    label: "События",
+    labelKey: "tabs.events",
     icon: "trophy-outline",
     iconFocused: "trophy",
   },
   notifications: {
-    label: "Чат",
+    labelKey: "tabs.chat",
     icon: "chatbubble-ellipses-outline",
     iconFocused: "chatbubble-ellipses",
   },
   profile: {
-    label: "Профиль",
+    labelKey: "tabs.profile",
     icon: "person-outline",
     iconFocused: "person",
   },
@@ -56,6 +57,7 @@ type CapsuleProps = {
 export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
+  const t = useT();
   return (
     <View style={styles.floatingContainer} pointerEvents="box-none">
       <View style={styles.tabBarPill}>
@@ -64,11 +66,10 @@ export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
         <View style={styles.tabsRow}>
           {tabs.map((name) => {
             const isFocused = activeTab === name;
-            const config = TAB_CONFIG[name] || {
-              label: name,
-              icon: "ellipse-outline",
-              iconFocused: "ellipse",
-            };
+            const config = TAB_CONFIG[name];
+            const label = config ? t(config.labelKey) : name;
+            const icon = config?.icon ?? "ellipse-outline";
+            const iconFocused = config?.iconFocused ?? "ellipse";
 
             const onPress = () => {
               hapticSelection();
@@ -86,7 +87,7 @@ export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
                 hitSlop={6}
               >
                 <Ionicons
-                  name={isFocused ? config.iconFocused : config.icon}
+                  name={isFocused ? iconFocused : icon}
                   size={20}
                   color={isFocused ? c.primary : c.textSecondary}
                 />
@@ -97,7 +98,7 @@ export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
                   ]}
                   numberOfLines={1}
                 >
-                  {config.label}
+                  {label}
                 </Text>
               </Pressable>
             );

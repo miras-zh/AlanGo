@@ -30,8 +30,10 @@ import { processChatBotReply, BOT_QUICK_PROMPTS } from "@/lib/arenaChatBot";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT } from "@/lib/i18n";
 
 export default function ChatScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -78,7 +80,7 @@ export default function ChatScreen() {
     setInputText("");
 
     // 1. Send client message
-    const clientMsg = await sendChatMessage(chatId, text, "client", "Вы");
+    const clientMsg = await sendChatMessage(chatId, text, "client", t("chat.you"));
     setMessages((prev) => [...prev, clientMsg]);
 
     setTimeout(() => {
@@ -95,7 +97,7 @@ export default function ChatScreen() {
         const botMsg = await processChatBotReply(
           chatId,
           text,
-          currentDialog?.arenaTitle || params.name || "Арена",
+          currentDialog?.arenaTitle || params.name || t("chat.arenaFallback"),
           botMode
         );
         if (botMsg) {
@@ -117,11 +119,11 @@ export default function ChatScreen() {
     hapticSelection();
     const phone = dialog?.clientPhone || "+77011234567";
     Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`).catch(() => {
-      Alert.alert("Звонок", `Телефон арены: ${phone}`);
+      Alert.alert(t("chat.call"), t("chat.arenaPhone", { phone }));
     });
   };
 
-  const arenaTitle = dialog?.arenaTitle || params.name || "Спортивная Арена";
+  const arenaTitle = dialog?.arenaTitle || params.name || t("chat.arenaTitleFallback");
   const arenaAvatar =
     dialog?.arenaAvatar ||
     params.avatar ||
@@ -155,7 +157,7 @@ export default function ChatScreen() {
             <View style={styles.botIconWrap}>
               <Ionicons name="hardware-chip-outline" size={11} color={c.primary} />
             </View>
-            <Text style={styles.botStatusText}>AI-Бот ответит за 1 сек</Text>
+            <Text style={styles.botStatusText}>{t("chat.botStatus")}</Text>
           </View>
         </View>
 
@@ -261,7 +263,7 @@ export default function ChatScreen() {
                             color={c.primary}
                           />
                           <Text style={styles.widgetTitle}>
-                            Подтвержденная бронь
+                            {t("chat.confirmedBooking")}
                           </Text>
                         </View>
                         <Text style={styles.widgetHall}>
@@ -272,12 +274,12 @@ export default function ChatScreen() {
                         </Text>
                         <View style={styles.widgetFooter}>
                           <Text style={styles.widgetPrice}>
-                            {item.bookingRef.totalPrice.toLocaleString("ru-RU")}{" "}
+                            {formatNumber(item.bookingRef.totalPrice)}{" "}
                             ₸
                           </Text>
                           <View style={styles.confirmedBadge}>
                             <Text style={styles.confirmedBadgeText}>
-                              Активно
+                              {t("chat.active")}
                             </Text>
                           </View>
                         </View>
@@ -314,7 +316,7 @@ export default function ChatScreen() {
                   </View>
                   <View style={styles.typingBubble}>
                     <ActivityIndicator size="small" color={c.primary} />
-                    <Text style={styles.typingText}>Ассистент печатает...</Text>
+                    <Text style={styles.typingText}>{t("chat.typing")}</Text>
                   </View>
                 </View>
               ) : null
@@ -335,7 +337,7 @@ export default function ChatScreen() {
                 style={styles.promptChip}
                 onPress={() => {
                   hapticSelection();
-                  handleSend(prompt.text);
+                  handleSend(t(prompt.text));
                 }}
               >
                 <Ionicons
@@ -344,7 +346,7 @@ export default function ChatScreen() {
                   color={c.primary}
                   style={{ marginRight: 4 }}
                 />
-                <Text style={styles.promptChipText}>{prompt.label}</Text>
+                <Text style={styles.promptChipText}>{t(prompt.label)}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -354,7 +356,7 @@ export default function ChatScreen() {
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.textInput}
-            placeholder="Задайте вопрос или напишите время..."
+            placeholder={t("chat.inputPlaceholder")}
             placeholderTextColor={c.textMuted}
             value={inputText}
             onChangeText={setInputText}

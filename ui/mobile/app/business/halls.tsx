@@ -42,6 +42,8 @@ import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT } from "@/lib/i18n";
+import { equipmentLabel, sportLabel, surfaceLabel } from "@/lib/dataLabels";
 
 const SPORT_OPTIONS: SportType[] = [
   "Футбол",
@@ -67,6 +69,7 @@ const PRESET_EQUIPMENT = [
 
 export default function BusinessHallsScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [arenaId, setArenaId] = useState<number | null>(null);
@@ -169,7 +172,7 @@ export default function BusinessHallsScreen() {
 
   const handleAddPhoto = async () => {
     if (photoCount >= MAX_HALL_PHOTOS) {
-      Alert.alert("Максимум 5 фото", "Удалите одно из фото, чтобы добавить новое.");
+      Alert.alert(t("bizHalls.maxPhotosTitle"), t("bizHalls.maxPhotosText"));
       return;
     }
     hapticSelection();
@@ -177,7 +180,7 @@ export default function BusinessHallsScreen() {
     try {
       picked = await pickImageAsJpeg("hall");
     } catch (err) {
-      Alert.alert(pickErrorTitle(err), getErrorMessage(err, "Не удалось открыть галерею"));
+      Alert.alert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
       return;
     }
     if (!picked) return;
@@ -188,7 +191,7 @@ export default function BusinessHallsScreen() {
         const res = await uploadHallPhoto(editingId, picked);
         setPhotos(res.photos);
       } catch (err) {
-        Alert.alert("Не удалось загрузить фото", getErrorMessage(err));
+        Alert.alert(t("profile.avatarUploadError"), getErrorMessage(err));
       } finally {
         setPhotoBusy(false);
       }
@@ -204,10 +207,10 @@ export default function BusinessHallsScreen() {
       return;
     }
     if (!editingId) return;
-    Alert.alert("Удалить фото?", "Фото будет удалено из галереи зала.", [
-      { text: "Отмена", style: "cancel" },
+    Alert.alert(t("bizHalls.deletePhotoTitle"), t("bizHalls.deletePhotoText"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Удалить",
+        text: t("common.delete"),
         style: "destructive",
         onPress: async () => {
           setPhotoBusy(true);
@@ -215,7 +218,7 @@ export default function BusinessHallsScreen() {
             const res = await deleteHallPhoto(editingId, photo);
             setPhotos(res.photos);
           } catch (err) {
-            Alert.alert("Не удалось удалить фото", getErrorMessage(err));
+            Alert.alert(t("bizHalls.deletePhotoError"), getErrorMessage(err));
           } finally {
             setPhotoBusy(false);
           }
@@ -226,20 +229,20 @@ export default function BusinessHallsScreen() {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      Alert.alert("Ошибка", "Укажите название зала");
+      Alert.alert(t("common.error"), t("bizHalls.nameRequired"));
       return;
     }
     if (!surfaceType) {
-      Alert.alert("Ошибка", "Выберите тип покрытия зала");
+      Alert.alert(t("common.error"), t("bizHalls.surfaceRequired"));
       return;
     }
     const numPrice = parseInt(pricePerHour.replace(/\D/g, ""), 10) || 0;
     if (numPrice <= 0) {
-      Alert.alert("Ошибка", "Укажите цену за 1 час");
+      Alert.alert(t("common.error"), t("bizHalls.priceRequired"));
       return;
     }
     if (!arenaId) {
-      Alert.alert("Ошибка", "Не удалось определить вашу площадку. Обновите экран.");
+      Alert.alert(t("common.error"), t("bizHalls.arenaUnknown"));
       return;
     }
 
@@ -278,15 +281,15 @@ export default function BusinessHallsScreen() {
         hapticSuccess();
         if (failed > 0) {
           Alert.alert(
-            "Зал создан",
-            `Не удалось загрузить фото: ${failed}. Добавьте их снова в редактировании зала.`,
+            t("bizHalls.createdTitle"),
+            t("bizHalls.createdPhotosFailed", { n: failed }),
           );
         }
       }
       setModalVisible(false);
       loadHalls();
     } catch (e) {
-      Alert.alert("Не удалось сохранить зал", getErrorMessage(e));
+      Alert.alert(t("bizHalls.saveError"), getErrorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -299,7 +302,7 @@ export default function BusinessHallsScreen() {
       await saveUpdatedHall({ ...hall, status: nextStatus });
       loadHalls();
     } catch (e) {
-      Alert.alert("Ошибка", getErrorMessage(e));
+      Alert.alert(t("common.error"), getErrorMessage(e));
     }
   };
 
@@ -309,15 +312,15 @@ export default function BusinessHallsScreen() {
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            Залы комплекса
+            {t("bizHalls.title")}
           </Text>
           <Text style={styles.headerSubtitle} numberOfLines={1}>
-            {halls.length > 0 ? `Площадок: ${halls.length} · покрытие, оснащение, цены` : "Площадки, покрытие, оснащение, цены"}
+            {halls.length > 0 ? t("bizHalls.subtitleCount", { n: halls.length }) : t("bizHalls.subtitle")}
           </Text>
         </View>
         <Pressable style={styles.addBtn} onPress={openCreateModal}>
           <Ionicons name="add" size={20} color={c.background} />
-          <Text style={styles.addBtnText}>Добавить</Text>
+          <Text style={styles.addBtnText}>{t("common.add")}</Text>
         </Pressable>
       </View>
 
@@ -339,13 +342,13 @@ export default function BusinessHallsScreen() {
           hallsLoaded ? (
             <View style={styles.emptyWrap}>
               <Ionicons name="layers-outline" size={48} color={c.border} />
-              <Text style={styles.emptyTitle}>У вас пока нет залов</Text>
+              <Text style={styles.emptyTitle}>{t("bizHalls.empty")}</Text>
               <Text style={styles.emptySub}>
-                Добавьте первый зал или площадку: вид спорта, покрытие и цену за час.
+                {t("bizHalls.emptyText")}
               </Text>
               <Pressable style={styles.emptyBtn} onPress={openCreateModal}>
                 <Ionicons name="add" size={18} color={c.background} />
-                <Text style={styles.emptyBtnText}>Добавить зал</Text>
+                <Text style={styles.emptyBtnText}>{t("bizHalls.addHall")}</Text>
               </Pressable>
             </View>
           ) : null
@@ -357,7 +360,7 @@ export default function BusinessHallsScreen() {
             ) : (
               <Pressable style={[styles.cardImage, styles.cardImageEmpty]} onPress={() => openEditModal(item)}>
                 <Ionicons name="images-outline" size={32} color={c.textSecondary} />
-                <Text style={styles.cardImageEmptyText}>Добавьте фото зала</Text>
+                <Text style={styles.cardImageEmptyText}>{t("bizHalls.addPhoto")}</Text>
               </Pressable>
             )}
             {(item.photos?.length ?? 0) > 1 ? (
@@ -397,7 +400,7 @@ export default function BusinessHallsScreen() {
                       },
                     ]}
                   >
-                    {item.status === "active" ? "Активен" : "Техобслуживание"}
+                    {item.status === "active" ? t("bizHalls.active") : t("bizHalls.maintenance")}
                   </Text>
                 </Pressable>
               </View>
@@ -407,25 +410,25 @@ export default function BusinessHallsScreen() {
               {/* Surface type */}
               <View style={styles.metaRow}>
                 <Ionicons name="layers-outline" size={14} color={c.primary} />
-                <Text style={styles.metaLabel}>Покрытие:</Text>
+                <Text style={styles.metaLabel}>{t("bizHalls.surface")}</Text>
                 <Text style={styles.metaValue} numberOfLines={1}>
-                  {item.surfaceType}
+                  {surfaceLabel(item.surfaceType, t)}
                 </Text>
               </View>
 
               {/* Capacity */}
               <View style={styles.metaRow}>
                 <Ionicons name="people-outline" size={14} color="#60A5FA" />
-                <Text style={styles.metaLabel}>Вместимость:</Text>
+                <Text style={styles.metaLabel}>{t("bizHalls.capacity")}</Text>
                 <Text style={styles.metaValue}>
-                  {capacityLabel(item.maxPeople ?? 0) || item.capacity || "не указана"}
+                  {capacityLabel(item.maxPeople ?? 0) || item.capacity || t("bizHalls.notSpecified")}
                 </Text>
               </View>
 
               {sizeLabel(item.lengthM ?? 0, item.widthM ?? 0) ? (
                 <View style={styles.metaRow}>
                   <Ionicons name="resize-outline" size={14} color="#EAB308" />
-                  <Text style={styles.metaLabel}>Размер:</Text>
+                  <Text style={styles.metaLabel}>{t("bizHalls.size")}</Text>
                   <Text style={styles.metaValue}>{sizeLabel(item.lengthM ?? 0, item.widthM ?? 0)}</Text>
                 </View>
               ) : null}
@@ -434,7 +437,7 @@ export default function BusinessHallsScreen() {
               <View style={styles.equipWrap}>
                 {item.equipment.map((eq, i) => (
                   <View key={i} style={styles.equipChip}>
-                    <Text style={styles.equipText}>✓ {eq}</Text>
+                    <Text style={styles.equipText}>✓ {equipmentLabel(eq, t)}</Text>
                   </View>
                 ))}
               </View>
@@ -442,10 +445,10 @@ export default function BusinessHallsScreen() {
               {/* Card Footer: Price & Edit Button */}
               <View style={styles.cardFooter}>
                 <View>
-                  <Text style={styles.priceLabel}>Тариф аренды</Text>
+                  <Text style={styles.priceLabel}>{t("bizHalls.rate")}</Text>
                   <Text style={styles.priceValue}>
-                    {item.pricePerHour.toLocaleString("ru-RU")} ₸{" "}
-                    <Text style={styles.priceSub}>/ час</Text>
+                    {formatNumber(item.pricePerHour)} ₸{" "}
+                    <Text style={styles.priceSub}>{t("common.perHour")}</Text>
                   </Text>
                 </View>
 
@@ -454,7 +457,7 @@ export default function BusinessHallsScreen() {
                   <Pressable
                     style={[styles.editBtn, !item.scheduleConfigured && styles.scheduleBtnCta]}
                     hitSlop={6}
-                    accessibilityLabel="Настроить график зала"
+                    accessibilityLabel={t("bizHalls.setScheduleA11y")}
                     onPress={() => {
                       hapticSelection();
                       router.push({ pathname: "/business/schedule", params: { hallId: String(item.id) } });
@@ -462,17 +465,17 @@ export default function BusinessHallsScreen() {
                   >
                     <Ionicons name="calendar-outline" size={16} color={c.primary} />
                     {!item.scheduleConfigured ? (
-                      <Text style={styles.editBtnText}>Настроить график</Text>
+                      <Text style={styles.editBtnText}>{t("bizHalls.setSchedule")}</Text>
                     ) : null}
                   </Pressable>
                   <Pressable
                     style={styles.editBtn}
-                    accessibilityLabel="Редактировать зал"
+                    accessibilityLabel={t("bizHalls.editA11y")}
                     onPress={() => openEditModal(item)}
                   >
                     <Ionicons name="pencil-outline" size={16} color={c.primary} />
                     {item.scheduleConfigured ? (
-                      <Text style={styles.editBtnText}>Редактировать</Text>
+                      <Text style={styles.editBtnText}>{t("bizHalls.edit")}</Text>
                     ) : null}
                   </Pressable>
                 </View>
@@ -488,7 +491,7 @@ export default function BusinessHallsScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {isEditing ? "Редактирование зала" : "Добавление зала"}
+                {isEditing ? t("bizHalls.editTitle") : t("bizHalls.addTitle")}
               </Text>
               <Pressable
                 onPress={() => setModalVisible(false)}
@@ -506,17 +509,17 @@ export default function BusinessHallsScreen() {
               keyboardDismissMode="on-drag"
             >
               {/* Hall Title */}
-              <Text style={styles.inputLabel}>Название зала</Text>
+              <Text style={styles.inputLabel}>{t("bizHalls.name")}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Например: Футбольный зал Arena 1"
+                placeholder={t("bizHalls.namePlaceholder")}
                 placeholderTextColor={c.textMuted}
                 value={title}
                 onChangeText={setTitle}
               />
 
               {/* Sport Type */}
-              <Text style={styles.inputLabel}>Вид спорта</Text>
+              <Text style={styles.inputLabel}>{t("bizHalls.sport")}</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -540,7 +543,7 @@ export default function BusinessHallsScreen() {
                           sel && styles.sportOptionTextActive,
                         ]}
                       >
-                        {sport}
+                        {sportLabel(sport, t)}
                       </Text>
                     </Pressable>
                   );
@@ -549,7 +552,7 @@ export default function BusinessHallsScreen() {
 
               {/* Gallery */}
               <Text style={styles.inputLabel}>
-                Фото зала ({photoCount}/{MAX_HALL_PHOTOS})
+                {t("bizHalls.photos", { n: photoCount, max: MAX_HALL_PHOTOS })}
               </Text>
               <ScrollView
                 horizontal
@@ -562,7 +565,7 @@ export default function BusinessHallsScreen() {
                     <Image source={{ uri: url }} style={styles.galleryImage} />
                     {i === 0 ? (
                       <View style={styles.coverBadge}>
-                        <Text style={styles.coverBadgeText}>Обложка</Text>
+                        <Text style={styles.coverBadgeText}>{t("bizHalls.cover")}</Text>
                       </View>
                     ) : null}
                     <Pressable style={styles.galleryRemove} hitSlop={6} onPress={() => handleRemovePhoto(url)}>
@@ -575,7 +578,7 @@ export default function BusinessHallsScreen() {
                     <Image source={{ uri: p.uri }} style={styles.galleryImage} />
                     {photos.length === 0 && i === 0 ? (
                       <View style={styles.coverBadge}>
-                        <Text style={styles.coverBadgeText}>Обложка</Text>
+                        <Text style={styles.coverBadgeText}>{t("bizHalls.cover")}</Text>
                       </View>
                     ) : null}
                     <Pressable style={styles.galleryRemove} hitSlop={6} onPress={() => handleRemovePhoto(p)}>
@@ -590,7 +593,7 @@ export default function BusinessHallsScreen() {
                     ) : (
                       <>
                         <Ionicons name="add" size={26} color={c.primary} />
-                        <Text style={styles.galleryAddText}>Фото</Text>
+                        <Text style={styles.galleryAddText}>{t("bizHalls.photo")}</Text>
                       </>
                     )}
                   </Pressable>
@@ -600,10 +603,10 @@ export default function BusinessHallsScreen() {
               {/* Surface Type */}
               <View style={styles.fieldGap}>
                 <SelectField
-                  label="Тип покрытия"
-                  placeholder="Выберите покрытие"
+                  label={t("bizHalls.surfaceType")}
+                  placeholder={t("bizHalls.surfacePlaceholder")}
                   value={surfaceType}
-                  options={SURFACE_TYPES.map((t) => ({ value: t, label: t }))}
+                  options={SURFACE_TYPES.map((s) => ({ value: s, label: surfaceLabel(s, t) }))}
                   onChange={setSurfaceType}
                 />
               </View>
@@ -611,11 +614,11 @@ export default function BusinessHallsScreen() {
               {/* Price & Capacity in Row */}
               <View style={styles.inputRow}>
                 <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={[styles.inputLabel, { marginBottom: spacing.sm }]}>Цена за 1 час (₸)</Text>
+                  <Text style={[styles.inputLabel, { marginBottom: spacing.sm }]}>{t("bizHalls.price")}</Text>
                   <TextInput
                     style={[styles.input, styles.inputTall]}
                     keyboardType="numeric"
-                    placeholder="Например, 15000"
+                    placeholder={t("bizHalls.pricePlaceholder")}
                     placeholderTextColor={c.textMuted}
                     value={pricePerHour}
                     onChangeText={setPricePerHour}
@@ -624,9 +627,9 @@ export default function BusinessHallsScreen() {
 
                 <View style={{ flex: 1, marginLeft: 8 }}>
                   <SelectField
-                    label="Вместимость"
-                    placeholder="Человек"
-                    sheetTitle="Сколько человек вмещает зал"
+                    label={t("bizHalls.capacityLabel")}
+                    placeholder={t("bizHalls.people")}
+                    sheetTitle={t("bizHalls.capacitySheet")}
                     value={maxPeople}
                     options={CAPACITY_OPTIONS.map((n) => ({ value: n, label: capacityLabel(n) }))}
                     onChange={setMaxPeople}
@@ -638,28 +641,28 @@ export default function BusinessHallsScreen() {
               <View style={[styles.inputRow, styles.fieldGap]}>
                 <View style={{ flex: 1, marginRight: 8 }}>
                   <SelectField
-                    label="Длина, м"
-                    placeholder="Длина"
-                    sheetTitle="Длина зала"
+                    label={t("bizHalls.length")}
+                    placeholder={t("bizHalls.lengthShort")}
+                    sheetTitle={t("bizHalls.lengthSheet")}
                     value={lengthM}
-                    options={SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} м` }))}
+                    options={SIZE_OPTIONS.map((n) => ({ value: n, label: t("common.meters", { n }) }))}
                     onChange={setLengthM}
                   />
                 </View>
                 <View style={{ flex: 1, marginLeft: 8 }}>
                   <SelectField
-                    label="Ширина, м"
-                    placeholder="Ширина"
-                    sheetTitle="Ширина зала"
+                    label={t("bizHalls.width")}
+                    placeholder={t("bizHalls.widthShort")}
+                    sheetTitle={t("bizHalls.widthSheet")}
                     value={widthM}
-                    options={SIZE_OPTIONS.map((n) => ({ value: n, label: `${n} м` }))}
+                    options={SIZE_OPTIONS.map((n) => ({ value: n, label: t("common.meters", { n }) }))}
                     onChange={setWidthM}
                   />
                 </View>
               </View>
 
               {/* Equipment Selection */}
-              <Text style={styles.inputLabel}>Оснащение и инвентарь</Text>
+              <Text style={styles.inputLabel}>{t("bizHalls.equipment")}</Text>
               <View style={styles.presetEquipWrap}>
                 {PRESET_EQUIPMENT.map((item) => {
                   const active = equipment.includes(item);
@@ -683,7 +686,7 @@ export default function BusinessHallsScreen() {
                           active && styles.equipToggleTextActive,
                         ]}
                       >
-                        {item}
+                        {equipmentLabel(item, t)}
                       </Text>
                     </Pressable>
                   );
@@ -694,7 +697,7 @@ export default function BusinessHallsScreen() {
               <View style={styles.customEquipRow}>
                 <TextInput
                   style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                  placeholder="Добавить своё оснащение..."
+                  placeholder={t("bizHalls.customEquip")}
                   placeholderTextColor={c.textMuted}
                   value={customEquip}
                   onChangeText={setCustomEquip}
@@ -703,17 +706,17 @@ export default function BusinessHallsScreen() {
                   style={styles.addEquipBtn}
                   onPress={addCustomEquipment}
                 >
-                  <Text style={styles.addEquipBtnText}>+ Добавить</Text>
+                  <Text style={styles.addEquipBtnText}>{t("bizHalls.addEquip")}</Text>
                 </Pressable>
               </View>
 
               {/* Description */}
-              <Text style={[styles.inputLabel, { marginTop: 12 }]}>Описание</Text>
+              <Text style={[styles.inputLabel, { marginTop: 12 }]}>{t("bizHalls.description")}</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
                 multiline
                 numberOfLines={3}
-                placeholder="Краткое описание преимуществ зала..."
+                placeholder={t("bizHalls.descriptionPlaceholder")}
                 placeholderTextColor={c.textMuted}
                 value={description}
                 onChangeText={setDescription}
@@ -729,7 +732,7 @@ export default function BusinessHallsScreen() {
                   <ActivityIndicator color={c.background} />
                 ) : (
                   <Text style={styles.saveBtnText}>
-                    {isEditing ? "Сохранить изменения" : "Создать зал"}
+                    {isEditing ? t("account.saveChanges") : t("bizHalls.create")}
                   </Text>
                 )}
               </Pressable>

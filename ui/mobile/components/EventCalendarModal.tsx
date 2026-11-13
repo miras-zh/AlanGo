@@ -11,6 +11,8 @@ import { radii, spacing } from "@/constants/theme";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT, type TFunction } from "@/lib/i18n";
+import { monthGenitive } from "@/lib/dataLabels";
 
 interface EventCalendarModalProps {
   visible: boolean;
@@ -20,10 +22,11 @@ interface EventCalendarModalProps {
 }
 
 const DATE_OPTIONS = [
-  { id: "all", label: "Все даты", sub: "Показать все предстоящие события" },
-  { id: "today", label: "14 Ноября (Сегодня)", sub: "Ближайшие матчи и турниры" },
-  { id: "weekend", label: "В эти выходные", sub: "16 — 18 Ноября" },
-  { id: "week", label: "На этой неделе", sub: "Все события до конца недели" },
+  { id: "all", label: (t: TFunction) => t("calendar.allDates"), sub: (t: TFunction) => t("calendar.allDatesText") },
+  // Demo dates match lib/eventsData.ts (November).
+  { id: "today", label: (t: TFunction) => t("calendar.todayLabel", { date: t("date.dayMonth", { day: 14, month: monthGenitive(10, t) }) }), sub: (t: TFunction) => t("calendar.todayText") },
+  { id: "weekend", label: (t: TFunction) => t("calendar.weekend"), sub: (t: TFunction) => t("date.dayMonth", { day: "16 — 18", month: monthGenitive(10, t) }) },
+  { id: "week", label: (t: TFunction) => t("calendar.week"), sub: (t: TFunction) => t("calendar.weekText") },
 ];
 
 export function EventCalendarModal({
@@ -33,6 +36,7 @@ export function EventCalendarModal({
   onSelectDate,
 }: EventCalendarModalProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   return (
     <Modal
@@ -54,7 +58,7 @@ export function EventCalendarModal({
                 color={c.primary}
                 style={{ marginRight: 8 }}
               />
-              <Text style={styles.title}>Выберите дату</Text>
+              <Text style={styles.title}>{t("calendar.title")}</Text>
             </View>
             <Pressable hitSlop={8} onPress={onClose}>
               <Ionicons name="close" size={22} color={c.textSecondary} />
@@ -86,9 +90,9 @@ export function EventCalendarModal({
                         isSelected && styles.optionLabelSelected,
                       ]}
                     >
-                      {opt.label}
+                      {opt.label(t)}
                     </Text>
-                    <Text style={styles.optionSub}>{opt.sub}</Text>
+                    <Text style={styles.optionSub}>{opt.sub(t)}</Text>
                   </View>
                   {isSelected && (
                     <Ionicons

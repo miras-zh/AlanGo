@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { getSessionUser, updateSessionUser } from "@/lib/auth";
 import { persistAuthResponse } from "@/lib/registration";
+import { tr, type MessageKey } from "@/lib/i18n";
 
 // Self-service business account (backend: internal/user/business.go).
 
@@ -9,26 +10,26 @@ export type VenueType = "complex" | "single" | "outdoor";
 
 export const VENUE_TYPES: {
   id: VenueType;
-  title: string;
-  description: string;
+  titleKey: MessageKey;
+  descriptionKey: MessageKey;
   icon: "business-outline" | "basketball-outline" | "sunny-outline";
 }[] = [
   {
     id: "complex",
-    title: "Спорткомплекс",
-    description: "Здание с несколькими залами или площадками под разные виды спорта.",
+    titleKey: "venue.complex",
+    descriptionKey: "venue.complexDesc",
     icon: "business-outline",
   },
   {
     id: "single",
-    title: "Отдельный зал",
-    description: "Один крытый зал или площадка, которую вы сдаёте в аренду.",
+    titleKey: "venue.single",
+    descriptionKey: "venue.singleDesc",
     icon: "basketball-outline",
   },
   {
     id: "outdoor",
-    title: "Открытая площадка",
-    description: "Уличное поле или корт: футбольное поле, теннисный корт, каток.",
+    titleKey: "venue.outdoor",
+    descriptionKey: "venue.outdoorDesc",
     icon: "sunny-outline",
   },
 ];
@@ -98,7 +99,7 @@ export async function fetchMyBusiness(): Promise<BusinessState> {
 
 async function persistBusinessResponse(data: any): Promise<void> {
   const user = getSessionUser();
-  await persistAuthResponse(data, user?.name || "Пользователь AlanGo", {
+  await persistAuthResponse(data, user?.name || tr("user.defaultName"), {
     // Keep what the server response doesn't carry (avatar, etc.).
     avatar_url: user?.avatar_url,
     arenaId: data?.arena?.id ?? user?.arenaId,

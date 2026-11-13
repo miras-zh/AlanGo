@@ -1,85 +1,55 @@
 import { sendChatMessage, ChatMessage } from "@/lib/chatData";
+import { tr, type MessageKey } from "@/lib/i18n";
 
 export interface BotQuickPrompt {
   id: string;
-  label: string;
+  label: MessageKey;
   icon: string;
-  text: string;
+  text: MessageKey;
 }
 
 export const BOT_QUICK_PROMPTS: BotQuickPrompt[] = [
-  {
-    id: "shoes",
-    label: "Обувь и шипы",
-    icon: "footsteps-outline",
-    text: "Какая обувь разрешена на поле?",
-  },
-  {
-    id: "balls",
-    label: "Мячи и инвентарь",
-    icon: "basketball-outline",
-    text: "Предоставляются ли мячи и манишки?",
-  },
-  {
-    id: "parking",
-    label: "Парковка",
-    icon: "car-outline",
-    text: "Где находится парковка и платная ли она?",
-  },
-  {
-    id: "showers",
-    label: "Раздевалки и душ",
-    icon: "water-outline",
-    text: "Есть ли раздевалки, шкафчики и горячий душ?",
-  },
-  {
-    id: "booking",
-    label: "Свободные слоты",
-    icon: "calendar-outline",
-    text: "Как забронировать свободный слот на сегодня?",
-  },
+  { id: "shoes", label: "bot.shoesLabel", icon: "footsteps-outline", text: "bot.shoesText" },
+  { id: "balls", label: "bot.ballsLabel", icon: "football-outline", text: "bot.ballsText" },
+  { id: "parking", label: "bot.parkingLabel", icon: "car-outline", text: "bot.parkingText" },
+  { id: "showers", label: "bot.showersLabel", icon: "water-outline", text: "bot.showersText" },
+  { id: "slots", label: "bot.slotsLabel", icon: "calendar-outline", text: "bot.slotsText" },
 ];
 
 interface BotRule {
+  // Lower-case stems in Russian, Kazakh and English.
   keywords: string[];
-  reply: string;
+  reply: MessageKey;
 }
 
 const BOT_KNOWLEDGE_BASE: BotRule[] = [
   {
-    keywords: ["обув", "шип", "сороконожк", "бутс", "футзалк", "бамп", "покрыти"],
-    reply:
-      "На нашем искусственном газоне разрешены сороконожки (TF) и футзалки. Бутсы с металлическими шипами (SG/FG) строго запрещены для сохранности сертифицированного покрытия поля ⚽️👟",
+    keywords: ["обув", "шип", "сороконожк", "бутс", "футзалк", "бамп", "покрыти", "аяқ киім", "бутсы", "shoe", "boot", "cleat", "studs"],
+    reply: "bot.shoesReply",
   },
   {
-    keywords: ["мяч", "манишк", "инвентар", "насос", "сетк", "ракетк", "экипировк"],
-    reply:
-      "Да! При аренде зала администратор бесплатно выдает профессиональный игровой мяч (FIFA/Molten/Wilson) и два комплекта разноцветных манишек на ресепшн. Ракетки и доп. мячи можно также взять в аренду 🎾🏀",
+    keywords: ["мяч", "манишк", "инвентар", "насос", "сетк", "ракетк", "экипировк", "доп", "құрал", "ball", "bib", "equipment", "racket"],
+    reply: "bot.ballsReply",
   },
   {
-    keywords: ["парковк", "машин", "стоянк", "шлагбаум", "заезд", "проехать"],
-    reply:
-      "У комплекса есть собственная бесплатная охраняемая парковка на 50 автомобилей. Для въезда через шлагбаум просто покажите подтвержденную бронь на экране смартфона охране 🚗🅿️",
+    keywords: ["парковк", "машин", "стоянк", "шлагбаум", "заезд", "проехать", "тұрақ", "көлік", "parking", "car"],
+    reply: "bot.parkingReply",
   },
   {
-    keywords: ["душ", "раздевалк", "шкафчик", "полотенец", "вода", "саун"],
-    reply:
-      "В стоимость бронирования входят просторные раздевалки с индивидуальными электронными шкафчиками и душевые с постоянной горячей водой. Чистые полотенца доступны на ресепшн 🚿🧖‍♂️",
+    keywords: ["душ", "раздевалк", "шкафчик", "полотенец", "вода", "саун", "киім ауыстыр", "шкаф", "shower", "locker", "changing", "towel", "sauna"],
+    reply: "bot.showersReply",
   },
   {
-    keywords: ["слот", "забронироват", "записат", "свободн", "время", "сегодня", "завтра"],
-    reply:
-      "Вы можете выбрать и забронировать подходящий слот прямо в приложении во вкладке «Залы» с мгновенным подтверждением, либо напишите удобное время здесь, и дежурный менеджер подтвердит запись! 📅⚡️",
+    keywords: ["слот", "забронироват", "записат", "свободн", "время", "сегодня", "завтра", "брондау", "бос", "уақыт", "бүгін", "ертең", "slot", "book", "free", "today", "tomorrow"],
+    reply: "bot.slotsReply",
   },
   {
-    keywords: ["отмен", "перенес", "возврат", "деньги", "предоплат"],
-    reply:
-      "Бесплатная отмена или перенос бронирования возможны не позднее чем за 12 часов до начала слота. При своевременной отмене средства возвращаются в полном объеме на ваш баланс или карту 🔄💳",
+    keywords: ["отмен", "перенес", "возврат", "деньги", "предоплат", "болдырма", "ауыстыр", "қайтар", "cancel", "refund", "reschedule"],
+    reply: "bot.cancelReply",
   },
   {
-    keywords: ["привет", "салам", "здравствуй", "добрый", "хай", "hello"],
-    reply:
-      "Здравствуйте! 🤖 Я AI-ассистент спортивного комплекса. Готов быстро ответить на любые вопросы по залам, инвентарю, правилам посещения и свободным окнам. Чем могу помочь?",
+    keywords: ["привет", "салам", "здравствуй", "добрый", "хай", "hello", "сәлем", "қайырлы", "hi", "hey"],
+    reply: "bot.helloReply",
   },
 ];
 
@@ -105,13 +75,13 @@ export async function processChatBotReply(
   let matchedReply: string | null = null;
   for (const rule of BOT_KNOWLEDGE_BASE) {
     if (rule.keywords.some((kw) => normalized.includes(kw))) {
-      matchedReply = rule.reply;
+      matchedReply = tr(rule.reply);
       break;
     }
   }
 
   if (!matchedReply) {
-    matchedReply = `Спасибо за сообщение! Запрос передан дежурному администратору арены «${arenaTitle}». Также вы можете выбрать типовой вопрос из подсказок внизу экрана 🤖`;
+    matchedReply = tr("bot.fallbackReply", { arena: arenaTitle });
   }
 
   // Artificial natural delay (600 - 1000ms)
@@ -121,7 +91,7 @@ export async function processChatBotReply(
     chatId,
     matchedReply,
     "bot",
-    `${arenaTitle} (Бот)`
+    tr("bot.senderName", { arena: arenaTitle })
   );
 }
 

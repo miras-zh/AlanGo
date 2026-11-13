@@ -8,8 +8,10 @@ import { loginWithApple } from "@/lib/registration";
 import { getErrorMessage } from "@/lib/errorMessage";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 export default function AppleNameScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const { colors } = useAppTheme();
@@ -25,7 +27,7 @@ export default function AppleNameScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert("Укажите имя", "Пожалуйста, введите ваше имя для профиля.");
+      Alert.alert(t("account.nameRequiredTitle"), t("appleName.requiredText"));
       return;
     }
     setSaving(true);
@@ -42,7 +44,7 @@ export default function AppleNameScreen() {
         router.replace("/(tabs)");
       }
     } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err));
+      Alert.alert(t("common.error"), getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -51,14 +53,14 @@ export default function AppleNameScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>Как к вам обращаться?</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t("appleName.title")}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Завершите настройку профиля после входа через Apple.
+          {t("appleName.subtitle")}
         </Text>
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="Ваше имя"
+          placeholder={t("account.namePlaceholder")}
           placeholderTextColor={colors.textMuted}
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
         />
@@ -67,7 +69,7 @@ export default function AppleNameScreen() {
           disabled={saving}
           style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
         >
-          <Text style={styles.primaryBtnText}>{saving ? "Сохранение..." : "Продолжить"}</Text>
+          <Text style={styles.primaryBtnText}>{saving ? t("common.saving") : t("common.continue")}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

@@ -14,6 +14,7 @@ import { Booking } from "@/lib/sportRentData";
 import { hapticSelection, hapticImpact } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT, type MessageKey } from "@/lib/i18n";
 
 interface RejectBookingModalProps {
   visible: boolean;
@@ -22,12 +23,13 @@ interface RejectBookingModalProps {
   onConfirm: (reason: string) => void;
 }
 
-const REASONS = [
-  "Техническое обслуживание зала / ремонт",
-  "Слот занят постоянной командой / лигой",
-  "Не удалось подтвердить по телефону",
-  "Аварийное отключение электричества / воды",
-  "Другая причина",
+// The chosen reason is sent in the owner's current language.
+const REASONS: MessageKey[] = [
+  "reject.maintenance",
+  "reject.regularTeam",
+  "reject.noPhone",
+  "reject.outage",
+  "reject.other",
 ];
 
 export function RejectBookingModal({
@@ -37,6 +39,7 @@ export function RejectBookingModal({
   onConfirm,
 }: RejectBookingModalProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [selectedReason, setSelectedReason] = useState(REASONS[0]);
   const [customComment, setCustomComment] = useState("");
@@ -44,9 +47,9 @@ export function RejectBookingModal({
   const handleConfirm = () => {
     hapticImpact();
     const finalReason =
-      selectedReason === "Другая причина" && customComment.trim()
+      selectedReason === "reject.other" && customComment.trim()
         ? customComment.trim()
-        : selectedReason;
+        : t(selectedReason);
     onConfirm(finalReason);
     onClose();
   };
@@ -60,7 +63,7 @@ export function RejectBookingModal({
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <Ionicons name="close-circle" size={22} color={c.error} />
-              <Text style={styles.headerTitle}>Отклонить заявку</Text>
+              <Text style={styles.headerTitle}>{t("reject.title")}</Text>
             </View>
             <Pressable
               onPress={() => {
@@ -83,7 +86,7 @@ export function RejectBookingModal({
               </Text>
             </View>
 
-            <Text style={styles.sectionLabel}>Укажите причину отклонения:</Text>
+            <Text style={styles.sectionLabel}>{t("reject.chooseReason")}</Text>
             <View style={styles.reasonsList}>
               {REASONS.map((r) => {
                 const active = selectedReason === r;
@@ -102,19 +105,19 @@ export function RejectBookingModal({
                       color={active ? c.error : c.textMuted}
                     />
                     <Text style={[styles.reasonText, active && styles.reasonTextActive]}>
-                      {r}
+                      {t(r)}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
 
-            {selectedReason === "Другая причина" && (
+            {selectedReason === "reject.other" && (
               <TextInput
                 style={styles.customInput}
                 value={customComment}
                 onChangeText={setCustomComment}
-                placeholder="Напишите причину для клиента..."
+                placeholder={t("reject.commentPlaceholder")}
                 placeholderTextColor={c.textMuted}
                 multiline
               />
@@ -124,7 +127,7 @@ export function RejectBookingModal({
           <View style={styles.footer}>
             <Pressable style={styles.rejectBtn} onPress={handleConfirm}>
               <Ionicons name="close" size={18} color={c.textPrimary} />
-              <Text style={styles.rejectBtnText}>Отклонить бронь</Text>
+              <Text style={styles.rejectBtnText}>{t("reject.submit")}</Text>
             </Pressable>
           </View>
         </SafeAreaView>

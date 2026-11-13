@@ -15,8 +15,10 @@ import { requestPasswordReset } from "@/lib/registration";
 import { getErrorMessage } from "@/lib/errorMessage";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 export default function ForgotPasswordScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const { colors } = useAppTheme();
@@ -26,19 +28,19 @@ export default function ForgotPasswordScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim()) {
-      Alert.alert("Ошибка", "Введите ваш Email");
+      Alert.alert(t("common.error"), t("forgot.enterEmail"));
       return;
     }
     setLoading(true);
     try {
       await requestPasswordReset(email.trim());
       Alert.alert(
-        "Проверьте почту",
-        "Если аккаунт с таким Email существует, мы отправили инструкцию по сбросу пароля.",
+        t("forgot.checkMailTitle"),
+        t("forgot.checkMailText"),
         [{ text: "OK", onPress: () => router.back() }]
       );
     } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err));
+      Alert.alert(t("common.error"), getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -51,9 +53,9 @@ export default function ForgotPasswordScreen() {
           <Ionicons name="close" size={24} color={colors.text} />
         </Pressable>
 
-        <Text style={[styles.title, { color: colors.text }]}>Восстановление пароля</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t("forgot.title")}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Укажите Email вашего аккаунта, и мы пришлём ссылку для смены пароля.
+          {t("forgot.subtitle")}
         </Text>
 
         <TextInput
@@ -72,7 +74,7 @@ export default function ForgotPasswordScreen() {
           style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
         >
           <Text style={styles.primaryBtnText}>
-            {loading ? "Отправка..." : "Отправить ссылку"}
+            {loading ? t("forgot.sending") : t("forgot.submit")}
           </Text>
         </Pressable>
       </View>

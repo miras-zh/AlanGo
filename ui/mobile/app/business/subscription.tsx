@@ -23,26 +23,29 @@ import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, tr, useT } from "@/lib/i18n";
+import { dayMonthYear } from "@/lib/dataLabels";
 
 // Business subscription: the current plan, the plan catalog and a request to
 // switch. Paid plans are activated by an administrator after the request;
 // clients have no subscription (the backend answers 403 for them).
 
 function formatPrice(plan: SubscriptionPlan): string {
-  if (plan.price_on_request) return "По запросу";
-  if (plan.price === 0) return "Бесплатно";
-  return `${plan.price.toLocaleString("ru-RU")} ₸ / мес`;
+  if (plan.price_on_request) return tr("sub.onRequest");
+  if (plan.price === 0) return tr("sub.free");
+  return tr("sub.perMonth", { price: formatNumber(plan.price) });
 }
 
 function formatDate(iso?: string | null): string | null {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+  return dayMonthYear(d);
 }
 
 export default function BusinessSubscriptionScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [sub, setSub] = useState<SubscriptionInfo | null>(null);
@@ -56,7 +59,7 @@ export default function BusinessSubscriptionScreen() {
       setSub(await fetchMySubscription());
       setError(null);
     } catch (err) {
-      setError(getErrorMessage(err, "Не удалось загрузить подписку"));
+      setError(getErrorMessage(err, t("sub.loadError")));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -77,21 +80,21 @@ export default function BusinessSubscriptionScreen() {
   const handleRequest = (plan: SubscriptionPlan) => {
     hapticSelection();
     Alert.alert(
-      `Тариф «${plan.name}»`,
-      `${formatPrice(plan)}. Отправим заявку администратору — после подтверждения тариф включится.`,
+      t("sub.planTitle", { name: plan.name }),
+      t("sub.planText", { price: formatPrice(plan) }),
       [
-        { text: "Отмена", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Отправить заявку",
+          text: t("sub.sendRequest"),
           onPress: async () => {
             setBusyPlan(plan.id);
             try {
               await requestSubscriptionPlan(plan.id);
               await load();
               hapticSuccess();
-              Alert.alert("Заявка отправлена", "Ожидайте подтверждения от администратора.");
+              Alert.alert(t("sub.sentTitle"), t("sub.sentText"));
             } catch (err) {
-              Alert.alert("Не удалось отправить заявку", getErrorMessage(err));
+              Alert.alert(t("sub.sendError"), getErrorMessage(err));
             } finally {
               setBusyPlan(null);
             }
@@ -103,17 +106,17 @@ export default function BusinessSubscriptionScreen() {
 
   const handleCancel = () => {
     hapticSelection();
-    Alert.alert("Отозвать заявку?", undefined, [
-      { text: "Нет", style: "cancel" },
+    Alert.alert(t("sub.cancelTitle"), undefined, [
+      { text: t("common.no"), style: "cancel" },
       {
-        text: "Отозвать",
+        text: t("sub.cancel"),
         style: "destructive",
         onPress: async () => {
           try {
             await cancelSubscriptionRequest();
             await load();
           } catch (err) {
-            Alert.alert("Ошибка", getErrorMessage(err));
+            Alert.alert(t("common.error"), getErrorMessage(err));
           }
         },
       },
@@ -134,7 +137,7 @@ export default function BusinessSubscriptionScreen() {
         >
           <Ionicons name="chevron-back" size={22} color={c.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Подписка</Text>
+        <Text style={styles.headerTitle}>{t("sub.title")}</Text>
       </View>
 
       {loading ? (
@@ -145,7 +148,7 @@ export default function BusinessSubscriptionScreen() {
         <View style={styles.center}>
           <Text style={styles.errorText}>{error}</Text>
           <Pressable style={styles.retryBtn} onPress={() => { setLoading(true); load(); }}>
-            <Text style={styles.retryText}>Повторить</Text>
+            <Text style={styles.retryText}>{t("common.retry")}</Text>
           </Pressable>
         </View>
       ) : (
@@ -168,10 +171,10 @@ export default function BusinessSubscriptionScreen() {
               <Ionicons name="ribbon" size={22} color={c.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.currentLabel}>Текущий тариф</Text>
+              <Text style={styles.currentLabel}>{t("sub.current")}</Text>
               <Text style={styles.currentName}>{currentPlan?.name ?? sub?.current}</Text>
               <Text style={styles.currentSub}>
-                {expires ? `Действует до ${expires}` : currentPlan ? formatPrice(currentPlan) : ""}
+                {expires ? t("sub.validUntil", { date: expires }) : currentPlan ? formatPrice(currentPlan) : ""}
               </Text>
             </View>
           </View>
@@ -182,17 +185,17 @@ export default function BusinessSubscriptionScreen() {
               <Ionicons name="time-outline" size={20} color={c.primary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.pendingTitle}>
-                  Заявка на «{pendingPlan?.name ?? pending.requested_plan}»
+                  {t("sub.pendingFor", { name: pendingPlan?.name ?? pending.requested_plan })}
                 </Text>
-                <Text style={styles.pendingSub}>Ожидает подтверждения администратора</Text>
+                <Text style={styles.pendingSub}>{t("sub.pendingText")}</Text>
               </View>
               <Pressable onPress={handleCancel} hitSlop={8} style={styles.pendingCancel}>
-                <Text style={styles.pendingCancelText}>Отозвать</Text>
+                <Text style={styles.pendingCancelText}>{t("sub.cancel")}</Text>
               </Pressable>
             </View>
           ) : null}
 
-          <Text style={styles.sectionLabel}>Тарифы</Text>
+          <Text style={styles.sectionLabel}>{t("sub.plans")}</Text>
           {sub?.plans.map((plan) => {
             const isCurrent = plan.id === sub.current;
             const isPending = pending?.requested_plan === plan.id;
@@ -210,11 +213,11 @@ export default function BusinessSubscriptionScreen() {
                 ))}
                 {isCurrent ? (
                   <View style={[styles.planBtn, styles.planBtnGhost]}>
-                    <Text style={styles.planBtnGhostText}>Ваш тариф</Text>
+                    <Text style={styles.planBtnGhostText}>{t("sub.yourPlan")}</Text>
                   </View>
                 ) : isPending ? (
                   <View style={[styles.planBtn, styles.planBtnGhost]}>
-                    <Text style={styles.planBtnGhostText}>Заявка на рассмотрении</Text>
+                    <Text style={styles.planBtnGhostText}>{t("sub.underReview")}</Text>
                   </View>
                 ) : (
                   <Pressable
@@ -225,7 +228,7 @@ export default function BusinessSubscriptionScreen() {
                     {busyPlan === plan.id ? (
                       <ActivityIndicator color={c.onPrimary} />
                     ) : (
-                      <Text style={styles.planBtnText}>Отправить заявку</Text>
+                      <Text style={styles.planBtnText}>{t("sub.sendRequest")}</Text>
                     )}
                   </Pressable>
                 )}
@@ -234,7 +237,7 @@ export default function BusinessSubscriptionScreen() {
           })}
 
           <Text style={styles.footnote}>
-            Оплата пока не принимается в приложении: после заявки администратор свяжется с вами и включит тариф.
+            {t("sub.footnote")}
           </Text>
         </ScrollView>
       )}

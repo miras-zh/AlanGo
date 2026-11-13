@@ -6,6 +6,7 @@ import { hapticSelection } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 export type SelectOption<T extends string | number> = { value: T; label: string };
 
@@ -21,13 +22,14 @@ type Props<T extends string | number> = {
 // Dropdown field: tapping opens a bottom sheet with the options list.
 export function SelectField<T extends string | number>({
   label,
-  placeholder = "Выберите",
+  placeholder,
   value,
   options,
   onChange,
   sheetTitle,
 }: Props<T>) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
@@ -45,7 +47,7 @@ export function SelectField<T extends string | number>({
         }}
       >
         <Text style={[styles.value, !selected && styles.placeholder]} numberOfLines={1}>
-          {selected ? selected.label : placeholder}
+          {selected ? selected.label : placeholder ?? t("select.placeholder")}
         </Text>
         <Ionicons name="chevron-down" size={18} color={c.textSecondary} />
       </Pressable>
@@ -54,7 +56,7 @@ export function SelectField<T extends string | number>({
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
           <View style={styles.handle} />
-          <Text style={styles.sheetTitle}>{sheetTitle || label || placeholder}</Text>
+          <Text style={styles.sheetTitle}>{sheetTitle || label || placeholder || t("select.placeholder")}</Text>
           <FlatList
             data={options}
             keyExtractor={(o) => String(o.value)}

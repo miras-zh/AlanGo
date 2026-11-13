@@ -8,10 +8,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { radii, spacing } from "@/constants/theme";
-import { SportEvent } from "@/lib/eventsData";
+import { eventCategory, eventDate, eventPrice, SportEvent } from "@/lib/eventsData";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 export interface EventCardProps {
   event: SportEvent;
@@ -27,6 +28,7 @@ export function EventCard({
   onToggleFavorite,
 }: EventCardProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   return (
     <Pressable
@@ -49,7 +51,7 @@ export function EventCard({
         {/* Category Pill on Image */}
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryBadgeText} numberOfLines={1}>
-            {event.categoryLabel}
+            {eventCategory(event, t)}
           </Text>
         </View>
       </View>
@@ -87,7 +89,7 @@ export function EventCard({
             style={styles.metaIcon}
           />
           <Text style={styles.metaText} numberOfLines={1}>
-            {event.date} · {event.time}
+            {eventDate(event, t)} · {event.time}
           </Text>
         </View>
 
@@ -106,8 +108,8 @@ export function EventCard({
 
         {/* Bottom Row: Price + Join Button */}
         <View style={styles.bottomRow}>
-          <Text style={styles.priceText} numberOfLines={1}>
-            {event.price}
+          <Text style={styles.priceText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            {eventPrice(event, t)}
           </Text>
 
           <Pressable
@@ -121,7 +123,7 @@ export function EventCard({
               onRegister();
             }}
           >
-            <Text style={styles.registerBtnText}>Записаться</Text>
+            <Text style={styles.registerBtnText}>{t("events.register")}</Text>
           </Pressable>
         </View>
       </View>
@@ -219,6 +221,8 @@ const createStyles = (c: Palette) =>
     marginTop: 6,
   },
   priceText: {
+    flexShrink: 1,
+    marginRight: spacing.sm,
     fontSize: 15,
     fontWeight: "800",
     color: c.textPrimary,

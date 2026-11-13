@@ -1,5 +1,6 @@
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
+import { tr } from "@/lib/i18n";
 
 export type PickedPhoto = { uri: string; name: string; type: string };
 
@@ -18,9 +19,7 @@ const MAX_SIDE = 2048;
 // representation of type public.jpeg" (FailedToReadImageException).
 export class UnreadablePhotoError extends Error {
   constructor() {
-    super(
-      "Не удалось открыть это фото. Возможно, оно хранится в iCloud и ещё не загружено на устройство — откройте его в приложении «Фото» и попробуйте снова или выберите другое.",
-    );
+    super(tr("photo.unreadable"));
     this.name = "UnreadablePhotoError";
   }
 }
@@ -65,5 +64,5 @@ export async function pickImageAsJpeg(namePrefix: string): Promise<PickedPhoto |
 
 // Alert title for an error from pickImageAsJpeg.
 export function pickErrorTitle(err: unknown): string {
-  return err instanceof UnreadablePhotoError ? "Фото не открылось" : "Ошибка";
+  return err instanceof UnreadablePhotoError ? tr("photo.unreadableTitle") : tr("common.error");
 }

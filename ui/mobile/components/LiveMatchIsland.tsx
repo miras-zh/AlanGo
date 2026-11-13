@@ -19,6 +19,7 @@ import { getAccessToken } from "@/lib/auth";
 import { getMyActiveBooking, type ActiveBooking } from "@/lib/sportRentData";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { tr, useT } from "@/lib/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -49,7 +50,7 @@ function toMatch(b: ActiveBooking): LiveMatchData {
     arenaName: b.arenaTitle || b.hallTitle,
     hallName: b.hallTitle,
     sport: b.sportType,
-    timeSlot: `Сегодня, ${b.startTime} — ${b.endTime}`,
+    timeSlot: tr("live.today", { start: b.startTime, end: b.endTime }),
     minutesLeft: b.startsInMinutes > 0 ? b.startsInMinutes : b.endsInMinutes,
     started: b.startsInMinutes <= 0,
     qrCode: b.code,
@@ -106,6 +107,7 @@ export function LiveMatchIsland() {
 
 function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [expanded, setExpanded] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
@@ -176,13 +178,13 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
             <View style={styles.countdownBadge}>
               <Ionicons name="timer-outline" size={12} color={c.primary} />
               <Text style={styles.countdownText}>
-                {match.started ? `ещё ${match.minutesLeft} мин` : `через ${match.minutesLeft} мин`}
+                {match.started ? t("live.minutesLeft", { n: match.minutesLeft }) : t("live.startsIn", { n: match.minutesLeft })}
               </Text>
             </View>
             {onClose ? (
               <Pressable
                 hitSlop={10}
-                accessibilityLabel="Скрыть"
+                accessibilityLabel={t("live.hide")}
                 style={styles.closeBtn}
                 onPress={(e) => {
                   e.stopPropagation();
@@ -204,11 +206,11 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
 
             <View style={styles.detailsRow}>
               <View style={styles.detailCol}>
-                <Text style={styles.detailLabel}>ВРЕМЯ ИГРЫ</Text>
+                <Text style={styles.detailLabel}>{t("live.gameTime")}</Text>
                 <Text style={styles.detailValue}>{match.timeSlot}</Text>
               </View>
               <View style={styles.detailColRight}>
-                <Text style={styles.detailLabel}>КОД БРОНИ</Text>
+                <Text style={styles.detailLabel}>{t("live.bookingCode")}</Text>
                 <Text style={styles.detailValue} numberOfLines={1}>
                   {match.qrCode}
                 </Text>
@@ -222,7 +224,7 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
                 onPress={handleOpenMaps}
               >
                 <Ionicons name="navigate-outline" size={16} color={c.onPrimary} />
-                <Text style={styles.actionNavText}>Маршрут в 2GIS</Text>
+                <Text style={styles.actionNavText}>{t("live.route")}</Text>
               </Pressable>
 
               <Pressable
@@ -230,7 +232,7 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
                 onPress={handleShowQr}
               >
                 <Ionicons name="qr-code-outline" size={16} color={c.primary} />
-                <Text style={styles.actionQrText}>QR пропуск</Text>
+                <Text style={styles.actionQrText}>{t("live.qrPass")}</Text>
               </Pressable>
             </View>
           </View>
@@ -254,7 +256,7 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
             </Pressable>
 
             <Ionicons name="shield-checkmark" size={36} color={c.primary} />
-            <Text style={styles.qrModalTitle}>Пропуск на матч</Text>
+            <Text style={styles.qrModalTitle}>{t("live.passTitle")}</Text>
             <Text style={styles.qrModalArena}>{match.arenaName}</Text>
             <Text style={styles.qrModalHall}>{match.hallName}</Text>
 
@@ -264,7 +266,7 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
             </View>
 
             <Text style={styles.qrHint}>
-              Поднесите экран к сканеру на входе в спорткомплекс или покажите дежурному администратору
+              {t("live.passHint")}
             </Text>
           </View>
         </View>

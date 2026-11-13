@@ -13,7 +13,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useMyArenaId } from "@/lib/business";
-import { plural } from "@/lib/plural";
 import {
   IncomeBreakdown,
   calculateIncomeStats,
@@ -21,16 +20,19 @@ import {
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT, type MessageKey } from "@/lib/i18n";
+import { displayDate } from "@/lib/dataLabels";
 
-const PERIODS: { key: "today" | "week" | "month" | "all"; label: string }[] = [
-  { key: "today", label: "Сегодня" },
-  { key: "week", label: "7 дней" },
-  { key: "month", label: "30 дней" },
-  { key: "all", label: "Все время" },
+const PERIODS: { key: "today" | "week" | "month" | "all"; label: MessageKey }[] = [
+  { key: "today", label: "income.today" },
+  { key: "week", label: "income.week" },
+  { key: "month", label: "income.month" },
+  { key: "all", label: "income.all" },
 ];
 
 export default function BusinessIncomeScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { arenaId, loading: arenaLoading } = useMyArenaId();
@@ -62,19 +64,18 @@ export default function BusinessIncomeScreen() {
     if (!stats) return;
     try {
       await Share.share({
-        message: `📊 Финансовый отчет спорткомплекса (за ${
-          selectedPeriod === "today"
-            ? "сегодня"
-            : selectedPeriod === "week"
-            ? "неделю"
-            : "месяц"
-        }):\nОбщая выручка: ${stats.totalRevenue.toLocaleString(
-          "ru-RU"
-        )} ₸\nПодтвержденных броней: ${
-          stats.confirmedBookingsCount
-        }\nСредний чек/час: ${(stats.averageCheckPerHour ?? 0).toLocaleString(
-          "ru-RU"
-        )} ₸\nЗагрузка кортов: ${stats.utilizationRate}%\nСформировано в AlanGo.`,
+        message: t("income.report", {
+          period:
+            selectedPeriod === "today"
+              ? t("income.periodToday")
+              : selectedPeriod === "week"
+              ? t("income.periodWeek")
+              : t("income.periodMonth"),
+          revenue: formatNumber(stats.totalRevenue),
+          count: stats.confirmedBookingsCount,
+          avg: formatNumber(stats.averageCheckPerHour ?? 0),
+          util: stats.utilizationRate,
+        }),
       });
     } catch {}
   };
@@ -95,8 +96,8 @@ export default function BusinessIncomeScreen() {
         </Pressable>
 
         <View style={{ flex: 1, marginHorizontal: 8 }}>
-          <Text style={styles.headerTitle}>Финансы и выручка</Text>
-          <Text style={styles.headerSub}>Аналитика доходов спорткомплекса</Text>
+          <Text style={styles.headerTitle}>{t("income.title")}</Text>
+          <Text style={styles.headerSub}>{t("income.subtitle")}</Text>
         </View>
 
         <Pressable style={styles.shareBtn} onPress={handleShareReport} hitSlop={10}>
@@ -118,7 +119,7 @@ export default function BusinessIncomeScreen() {
               }}
             >
               <Text style={[styles.periodText, active && styles.periodTextActive]}>
-                {p.label}
+                {t(p.label)}
               </Text>
             </Pressable>
           );
@@ -146,7 +147,7 @@ export default function BusinessIncomeScreen() {
           {/* Main Hero Card */}
           <View style={styles.heroCard}>
             <View style={styles.heroTop}>
-              <Text style={styles.heroLabel}>Фактическая выручка</Text>
+              <Text style={styles.heroLabel}>{t("income.actual")}</Text>
               {stats?.growthPercent != null ? (
                 <View style={styles.growthBadge}>
                   <Ionicons
@@ -163,13 +164,13 @@ export default function BusinessIncomeScreen() {
             </View>
 
             <Text style={styles.heroAmount}>
-              {(stats?.totalRevenue || 0).toLocaleString("ru-RU")} ₸
+              {formatNumber(stats?.totalRevenue || 0)} ₸
             </Text>
 
             <Text style={styles.heroSub}>
               {stats?.confirmedBookingsCount
-                ? `По ${stats.confirmedBookingsCount} ${plural(stats.confirmedBookingsCount, ["подтверждённой брони", "подтверждённым броням", "подтверждённым броням"])}`
-                : "Подтверждённых броней за период пока нет"}
+                ? t("income.byBookings", { count: stats.confirmedBookingsCount })
+                : t("income.noBookings")}
             </Text>
           </View>
 
@@ -180,9 +181,9 @@ export default function BusinessIncomeScreen() {
                 <Ionicons name="time" size={16} color={c.primary} />
               </View>
               <Text style={styles.kpiValue}>
-                {(stats?.hoursPlayed ?? 0).toLocaleString("ru-RU")} ч
+                {t("income.hours", { n: formatNumber(stats?.hoursPlayed ?? 0) })}
               </Text>
-              <Text style={styles.kpiTitle}>Сыграно часов</Text>
+              <Text style={styles.kpiTitle}>{t("income.hoursPlayed")}</Text>
             </View>
 
             <View style={styles.kpiCard}>
@@ -191,10 +192,10 @@ export default function BusinessIncomeScreen() {
               </View>
               <Text style={styles.kpiValue}>
                 {stats?.averageCheckPerHour != null
-                  ? `${stats.averageCheckPerHour.toLocaleString("ru-RU")} ₸`
+                  ? `${formatNumber(stats.averageCheckPerHour)} ₸`
                   : "—"}
               </Text>
-              <Text style={styles.kpiTitle}>Ср. чек / час</Text>
+              <Text style={styles.kpiTitle}>{t("income.avgCheck")}</Text>
             </View>
 
             <View style={styles.kpiCard}>
@@ -202,16 +203,16 @@ export default function BusinessIncomeScreen() {
                 <Ionicons name="pie-chart" size={16} color="#EAB308" />
               </View>
               <Text style={styles.kpiValue}>{stats?.period === "all" ? "—" : `${stats?.utilizationRate ?? 0}%`}</Text>
-              <Text style={styles.kpiTitle}>Загрузка кортов</Text>
+              <Text style={styles.kpiTitle}>{t("income.utilization")}</Text>
             </View>
           </View>
 
           {/* Breakdown By Halls */}
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Выручка по площадкам</Text>
+            <Text style={styles.sectionTitle}>{t("income.byVenue")}</Text>
             <View style={styles.hallsList}>
               {!stats?.hallRevenues.length ? (
-                <Text style={styles.emptyNote}>Добавьте залы — здесь появится выручка по каждой площадке.</Text>
+                <Text style={styles.emptyNote}>{t("income.noHalls")}</Text>
               ) : null}
               {stats?.hallRevenues.map((h) => {
                 const total = stats.totalRevenue;
@@ -222,7 +223,7 @@ export default function BusinessIncomeScreen() {
                     <View style={styles.hallHeaderRow}>
                       <Text style={styles.hallTitle}>{h.hallTitle}</Text>
                       <Text style={styles.hallAmount}>
-                        {h.revenue.toLocaleString("ru-RU")} ₸
+                        {formatNumber(h.revenue)} ₸
                       </Text>
                     </View>
 
@@ -237,9 +238,9 @@ export default function BusinessIncomeScreen() {
 
                     <View style={styles.hallSubRow}>
                       <Text style={styles.hallSubText}>
-                        {h.hoursCount.toLocaleString("ru-RU")} ч аренды
+                        {t("income.rentHours", { n: formatNumber(h.hoursCount) })}
                       </Text>
-                      <Text style={styles.hallPercent}>{percent}% от выручки</Text>
+                      <Text style={styles.hallPercent}>{t("income.percentOfRevenue", { n: percent })}</Text>
                     </View>
                   </View>
                 );
@@ -249,10 +250,10 @@ export default function BusinessIncomeScreen() {
 
           {/* Recent Paid Transactions */}
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Недавние поступления</Text>
+            <Text style={styles.sectionTitle}>{t("income.recent")}</Text>
             <View style={styles.txList}>
               {!stats?.recentTransactions.length ? (
-                <Text style={styles.emptyNote}>Пока нет поступлений за выбранный период.</Text>
+                <Text style={styles.emptyNote}>{t("income.noRecent")}</Text>
               ) : null}
               {stats?.recentTransactions.map((tx) => (
                 <View key={tx.id} style={styles.txItem}>
@@ -269,9 +270,9 @@ export default function BusinessIncomeScreen() {
 
                   <View style={styles.txAmountWrap}>
                     <Text style={styles.txAmount}>
-                      +{tx.amount.toLocaleString("ru-RU")} ₸
+                      +{formatNumber(tx.amount)} ₸
                     </Text>
-                    <Text style={styles.txDate}>{tx.date}</Text>
+                    <Text style={styles.txDate}>{displayDate(tx.date, t)}</Text>
                   </View>
                 </View>
               ))}

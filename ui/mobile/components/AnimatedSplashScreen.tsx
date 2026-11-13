@@ -14,6 +14,7 @@ import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 // Prevent native splash from auto-hiding before our animation takes over
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -25,11 +26,27 @@ interface AnimatedSplashScreenProps {
   children: React.ReactNode;
 }
 
+// Lets screens wait until the splash is gone (e.g. the home banner timer).
+let splashDone = false;
+const splashListeners = new Set<() => void>();
+
+export function isSplashDone(): boolean {
+  return splashDone;
+}
+
+export function onSplashDone(cb: () => void): () => void {
+  splashListeners.add(cb);
+  return () => {
+    splashListeners.delete(cb);
+  };
+}
+
 export function AnimatedSplashScreen({
   onAnimationComplete,
   children,
 }: AnimatedSplashScreenProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [animationFinished, setAnimationFinished] = useState(false);
 
@@ -148,6 +165,8 @@ export function AnimatedSplashScreen({
       }),
     ]).start(() => {
       setAnimationFinished(true);
+      splashDone = true;
+      splashListeners.forEach((cb) => cb());
       if (onAnimationComplete) {
         onAnimationComplete();
       }
@@ -254,7 +273,7 @@ export function AnimatedSplashScreen({
             <Animated.Text
               style={[styles.subtitle, { opacity: textOpacity }]}
             >
-              Аренда спортивных залов
+              {t("splash.tagline")}
             </Animated.Text>
           </Animated.View>
 

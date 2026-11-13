@@ -38,14 +38,17 @@ import {
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT, type MessageKey } from "@/lib/i18n";
+import { workingHoursLabel } from "@/lib/dataLabels";
 
 type HoursMode = "daily" | "weekdays" | "mon_sat" | "24_7";
 
-const HOURS_MODES: { id: HoursMode; label: string; suffix: string }[] = [
-  { id: "daily", label: "Ежедневно", suffix: "ежедневно" },
-  { id: "weekdays", label: "Пн–Пт", suffix: "пн–пт" },
-  { id: "mon_sat", label: "Пн–Сб", suffix: "пн–сб" },
-  { id: "24_7", label: "24/7", suffix: "круглосуточно" },
+// `suffix` is the stored (Russian) form — see workingHoursLabel() for display.
+const HOURS_MODES: { id: HoursMode; label: MessageKey | null; suffix: string }[] = [
+  { id: "daily", label: "hours.modeDaily", suffix: "ежедневно" },
+  { id: "weekdays", label: "hours.modeWeekdays", suffix: "пн–пт" },
+  { id: "mon_sat", label: "hours.modeMonSat", suffix: "пн–сб" },
+  { id: "24_7", label: null, suffix: "круглосуточно" },
 ];
 
 function formatMinutes(total: number): string {
@@ -79,6 +82,7 @@ function parseWorkingHours(raw?: string): { openMins: number; closeMins: number;
 
 export default function BusinessProfileScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [user, setUser] = useState(getSessionUser());
@@ -136,7 +140,7 @@ export default function BusinessProfileScreen() {
       const picked = await pickImageAsJpeg("arena-logo");
       if (picked) setCropSource(picked.uri);
     } catch (err) {
-      Alert.alert(pickErrorTitle(err), getErrorMessage(err, "Не удалось открыть галерею"));
+      Alert.alert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
     }
   };
 
@@ -148,7 +152,7 @@ export default function BusinessProfileScreen() {
       await applyLogo("");
       hapticSuccess();
     } catch (err) {
-      Alert.alert("Не удалось удалить логотип", getErrorMessage(err));
+      Alert.alert(t("bizProfile.logoDeleteError"), getErrorMessage(err));
     } finally {
       setUploadingLogo(false);
     }
@@ -164,7 +168,7 @@ export default function BusinessProfileScreen() {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ["Выбрать новое фото", "Удалить логотип", "Отмена"],
+          options: [t("bizProfile.chooseNewPhoto"), t("bizProfile.deleteLogo"), t("common.cancel")],
           destructiveButtonIndex: 1,
           cancelButtonIndex: 2,
         },
@@ -174,10 +178,10 @@ export default function BusinessProfileScreen() {
         },
       );
     } else {
-      Alert.alert("Логотип арены", undefined, [
-        { text: "Выбрать новое фото", onPress: pickLogo },
-        { text: "Удалить логотип", style: "destructive", onPress: removeLogo },
-        { text: "Отмена", style: "cancel" },
+      Alert.alert(t("bizProfile.logo"), undefined, [
+        { text: t("bizProfile.chooseNewPhoto"), onPress: pickLogo },
+        { text: t("bizProfile.deleteLogo"), style: "destructive", onPress: removeLogo },
+        { text: t("common.cancel"), style: "cancel" },
       ]);
     }
   };
@@ -197,7 +201,7 @@ export default function BusinessProfileScreen() {
     try {
       picked = await pickImageAsJpeg("arena-cover");
     } catch (err) {
-      Alert.alert(pickErrorTitle(err), getErrorMessage(err, "Не удалось открыть галерею"));
+      Alert.alert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
       return;
     }
     if (!picked) return;
@@ -207,7 +211,7 @@ export default function BusinessProfileScreen() {
       await applyCover(url);
       hapticSuccess();
     } catch (err) {
-      Alert.alert("Не удалось загрузить обложку", getErrorMessage(err));
+      Alert.alert(t("bizProfile.coverUploadError"), getErrorMessage(err));
     } finally {
       setUploadingCover(false);
     }
@@ -221,7 +225,7 @@ export default function BusinessProfileScreen() {
       await applyCover("");
       hapticSuccess();
     } catch (err) {
-      Alert.alert("Не удалось удалить обложку", getErrorMessage(err));
+      Alert.alert(t("bizProfile.coverDeleteError"), getErrorMessage(err));
     } finally {
       setUploadingCover(false);
     }
@@ -237,7 +241,7 @@ export default function BusinessProfileScreen() {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ["Заменить обложку", "Удалить обложку", "Отмена"],
+          options: [t("bizProfile.replaceCover"), t("bizProfile.deleteCover"), t("common.cancel")],
           destructiveButtonIndex: 1,
           cancelButtonIndex: 2,
         },
@@ -247,10 +251,10 @@ export default function BusinessProfileScreen() {
         },
       );
     } else {
-      Alert.alert("Обложка комплекса", undefined, [
-        { text: "Заменить обложку", onPress: pickCover },
-        { text: "Удалить обложку", style: "destructive", onPress: removeCover },
-        { text: "Отмена", style: "cancel" },
+      Alert.alert(t("bizProfile.cover"), undefined, [
+        { text: t("bizProfile.replaceCover"), onPress: pickCover },
+        { text: t("bizProfile.deleteCover"), style: "destructive", onPress: removeCover },
+        { text: t("common.cancel"), style: "cancel" },
       ]);
     }
   };
@@ -264,7 +268,7 @@ export default function BusinessProfileScreen() {
       await applyLogo(url);
       hapticSuccess();
     } catch (err) {
-      Alert.alert("Не удалось загрузить логотип", getErrorMessage(err));
+      Alert.alert(t("bizProfile.logoUploadError"), getErrorMessage(err));
     } finally {
       setUploadingLogo(false);
     }
@@ -284,7 +288,7 @@ export default function BusinessProfileScreen() {
   const handleSaveArena = async () => {
     if (!arena) return;
     if (!title.trim()) {
-      Alert.alert("Ошибка", "Заполните название спорткомплекса");
+      Alert.alert(t("common.error"), t("bizProfile.nameRequired"));
       return;
     }
     setSaving(true);
@@ -301,9 +305,9 @@ export default function BusinessProfileScreen() {
       setArena(updated);
       hapticSuccess();
       setModalVisible(false);
-      Alert.alert("Успешно", "Данные спорткомплекса обновлены!");
+      Alert.alert(t("common.success"), t("bizProfile.updated"));
     } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err, "Не удалось сохранить"));
+      Alert.alert(t("common.error"), getErrorMessage(err, t("bizProfile.saveError")));
     } finally {
       setSaving(false);
     }
@@ -348,7 +352,7 @@ export default function BusinessProfileScreen() {
     if (!arena) return;
     const nextHours = hoursText.trim();
     if (!nextHours) {
-      Alert.alert("Ошибка", "Укажите часы работы комплекса");
+      Alert.alert(t("common.error"), t("bizProfile.hoursRequired"));
       return;
     }
     setSavingHours(true);
@@ -358,9 +362,9 @@ export default function BusinessProfileScreen() {
       setArena(updated);
       hapticSuccess();
       setHoursModalVisible(false);
-      Alert.alert("Успешно", "График работы комплекса обновлён!");
+      Alert.alert(t("common.success"), t("bizProfile.hoursUpdated"));
     } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err, "Не удалось сохранить график"));
+      Alert.alert(t("common.error"), getErrorMessage(err, t("sched.saveError")));
     } finally {
       setSavingHours(false);
     }
@@ -368,10 +372,10 @@ export default function BusinessProfileScreen() {
 
   const handleLogout = async () => {
     hapticImpact();
-    Alert.alert("Выход", "Выйти из бизнес-аккаунта?", [
-      { text: "Отмена", style: "cancel" },
+    Alert.alert(t("bizProfile.logoutTitle"), t("bizProfile.logoutText"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Выйти",
+        text: t("account.logout"),
         style: "destructive",
         onPress: async () => {
           await clearSession();
@@ -385,13 +389,13 @@ export default function BusinessProfileScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Top Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Профиль бизнеса</Text>
+        <Text style={styles.headerTitle}>{t("bizProfile.title")}</Text>
         <Pressable
           style={styles.editBtn}
           onPress={openEditModal}
         >
           <Ionicons name="create-outline" size={18} color={c.primary} />
-          <Text style={styles.editBtnText}>Изменить</Text>
+          <Text style={styles.editBtnText}>{t("bizProfile.edit")}</Text>
         </Pressable>
       </View>
 
@@ -403,18 +407,18 @@ export default function BusinessProfileScreen() {
           ) : null}
           <View style={[styles.arenaOverlay, !coverUrl && styles.arenaOverlayPlain]}>
             {!coverUrl ? (
-              <Text style={styles.coverHint}>Добавьте обложку комплекса — её видят клиенты в каталоге</Text>
+              <Text style={styles.coverHint}>{t("bizProfile.coverHint")}</Text>
             ) : null}
             <View style={styles.statusBadge}>
               <View style={styles.statusDot} />
-              <Text style={styles.statusText}>Арена верифицирована</Text>
+              <Text style={styles.statusText}>{t("bizProfile.verified")}</Text>
             </View>
             <View style={styles.arenaIdentity}>
               <Pressable
                 onPress={handleLogoPress}
                 disabled={!arena || uploadingLogo}
                 accessibilityRole="button"
-                accessibilityLabel="Изменить логотип арены"
+                accessibilityLabel={t("bizProfile.changeLogo")}
               >
                 {logoUrl ? (
                   <Image source={{ uri: logoUrl }} style={styles.logo} />
@@ -448,14 +452,14 @@ export default function BusinessProfileScreen() {
             disabled={!arena || uploadingCover}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Изменить обложку комплекса"
+            accessibilityLabel={t("bizProfile.changeCover")}
           >
             {uploadingCover ? (
               <ActivityIndicator size="small" color={c.textPrimary} />
             ) : (
               <Ionicons name="camera" size={15} color={c.textPrimary} />
             )}
-            <Text style={styles.coverBtnText}>Обложка</Text>
+            <Text style={styles.coverBtnText}>{t("bizProfile.coverButton")}</Text>
           </Pressable>
         </View>
 
@@ -463,20 +467,20 @@ export default function BusinessProfileScreen() {
         <View style={styles.infoGrid}>
           <View style={styles.infoTile}>
             <Ionicons name="call-outline" size={18} color={c.primary} />
-            <Text style={styles.infoTileLabel}>Телефон администратора</Text>
+            <Text style={styles.infoTileLabel}>{t("bizProfile.adminPhone")}</Text>
             <Text style={styles.infoTileValue}>{arena?.phone || "+7 (701) 111-22-33"}</Text>
           </View>
 
           <Pressable
             style={({ pressed }) => [styles.infoTile, styles.infoTileRow, pressed && { opacity: 0.85 }]}
             onPress={openHoursModal}
-            accessibilityLabel="Изменить график работы комплекса"
+            accessibilityLabel={t("bizProfile.changeHours")}
           >
             <View style={{ flex: 1 }}>
               <Ionicons name="time-outline" size={18} color={c.primary} />
-              <Text style={styles.infoTileLabel}>Часы работы комплекса</Text>
+              <Text style={styles.infoTileLabel}>{t("bizProfile.hours")}</Text>
               <Text style={styles.infoTileValue}>
-                {arena?.workingHours || "08:00 - 23:00 (ежедневно)"}
+                {workingHoursLabel(arena?.workingHours || "08:00 - 23:00 (ежедневно)", t)}
               </Text>
             </View>
             <View style={styles.tileEditBtn}>
@@ -486,21 +490,21 @@ export default function BusinessProfileScreen() {
 
           <View style={styles.infoTile}>
             <Ionicons name="mail-outline" size={18} color="#EAB308" />
-            <Text style={styles.infoTileLabel}>Логин владельца</Text>
+            <Text style={styles.infoTileLabel}>{t("bizProfile.ownerLogin")}</Text>
             <Text style={styles.infoTileValue}>{user?.email || "dev.arena1"}</Text>
           </View>
 
           <View style={styles.infoTile}>
             <Ionicons name="star" size={18} color={c.primary} />
-            <Text style={styles.infoTileLabel}>Рейтинг арены</Text>
+            <Text style={styles.infoTileLabel}>{t("bizProfile.rating")}</Text>
             <Text style={styles.infoTileValue}>
-              ★ {arena?.rating} ({arena?.reviewsCount} отзывов)
+              {t("bizProfile.ratingValue", { rating: arena?.rating ?? 0, count: arena?.reviewsCount ?? 0 })}
             </Text>
           </View>
         </View>
 
         {/* Features list */}
-        <Text style={styles.sectionTitle}>Удобства комплекса</Text>
+        <Text style={styles.sectionTitle}>{t("bizProfile.amenities")}</Text>
         <View style={styles.featuresWrap}>
           {arena?.features.map((feat, i) => (
             <View key={i} style={styles.featurePill}>
@@ -511,7 +515,7 @@ export default function BusinessProfileScreen() {
         </View>
 
         {/* Business account management (real accounts) */}
-        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Аккаунт</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t("bizProfile.account")}</Text>
         <BusinessAccountCard />
         <Pressable
           style={[styles.switchBtn, styles.switchBtnClient]}
@@ -522,8 +526,8 @@ export default function BusinessProfileScreen() {
         >
           <Ionicons name="person-outline" size={18} color={c.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.switchBtnTitle, { color: c.primary }]}>Открыть приложение как клиент</Text>
-            <Text style={styles.switchBtnSub}>Бронировать залы и смотреть события</Text>
+            <Text style={[styles.switchBtnTitle, { color: c.primary }]}>{t("bizProfile.asClient")}</Text>
+            <Text style={styles.switchBtnSub}>{t("bizProfile.asClientText")}</Text>
           </View>
           <Ionicons name="arrow-forward" size={18} color={c.primary} />
         </Pressable>
@@ -531,7 +535,7 @@ export default function BusinessProfileScreen() {
         {/* Logout */}
         <Pressable style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={c.error} />
-          <Text style={styles.logoutBtnText}>Выйти из аккаунта</Text>
+          <Text style={styles.logoutBtnText}>{t("account.logoutFull")}</Text>
         </Pressable>
 
         <View style={{ height: 40 }} />
@@ -545,7 +549,7 @@ export default function BusinessProfileScreen() {
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Параметры спорткомплекса</Text>
+              <Text style={styles.modalTitle}>{t("bizProfile.params")}</Text>
               <Pressable
                 onPress={() => setModalVisible(false)}
                 hitSlop={10}
@@ -555,7 +559,7 @@ export default function BusinessProfileScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
-              <Text style={styles.inputLabel}>Название комплекса</Text>
+              <Text style={styles.inputLabel}>{t("bizProfile.complexName")}</Text>
               <TextInput
                 style={styles.input}
                 value={title}
@@ -566,18 +570,18 @@ export default function BusinessProfileScreen() {
 
               <View style={styles.inputRow}>
                 <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={styles.inputLabel}>Город</Text>
+                  <Text style={styles.inputLabel}>{t("account.city")}</Text>
                   <TextInput
                     style={styles.input}
                     value={city}
                     onChangeText={setCity}
-                    placeholder="Астана"
+                    placeholder={t("bizProfile.cityPlaceholder")}
                     placeholderTextColor={c.textMuted}
                   />
                 </View>
 
                 <View style={{ flex: 1, marginLeft: 8 }}>
-                  <Text style={styles.inputLabel}>Телефон</Text>
+                  <Text style={styles.inputLabel}>{t("account.phone")}</Text>
                   <TextInput
                     style={styles.input}
                     value={phone}
@@ -589,23 +593,23 @@ export default function BusinessProfileScreen() {
                 </View>
               </View>
 
-              <Text style={styles.inputLabel}>Адрес комплекса</Text>
+              <Text style={styles.inputLabel}>{t("bizProfile.address")}</Text>
               <TextInput
                 style={styles.input}
                 value={address}
                 onChangeText={setAddress}
-                placeholder="ул. Кабанбай батыра 10"
+                placeholder={t("bizProfile.addressPlaceholder")}
                 placeholderTextColor={c.textMuted}
               />
 
-              <Text style={styles.inputLabel}>Описание</Text>
+              <Text style={styles.inputLabel}>{t("bizHalls.description")}</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
                 multiline
                 numberOfLines={3}
                 value={description}
                 onChangeText={setDescription}
-                placeholder="Описание спорткомплекса..."
+                placeholder={t("bizProfile.descriptionPlaceholder")}
                 placeholderTextColor={c.textMuted}
               />
 
@@ -615,7 +619,7 @@ export default function BusinessProfileScreen() {
                 disabled={saving}
               >
                 <Text style={styles.saveModalBtnText}>
-                  {saving ? "Сохранение..." : "Сохранить изменения"}
+                  {saving ? t("common.saving") : t("account.saveChanges")}
                 </Text>
               </Pressable>
             </ScrollView>
@@ -631,7 +635,7 @@ export default function BusinessProfileScreen() {
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>График работы комплекса</Text>
+              <Text style={styles.modalTitle}>{t("bizProfile.hoursTitle")}</Text>
               <Pressable onPress={() => setHoursModalVisible(false)} hitSlop={10}>
                 <Ionicons name="close" size={24} color={c.textPrimary} />
               </Pressable>
@@ -639,10 +643,10 @@ export default function BusinessProfileScreen() {
 
             <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
               <Text style={styles.hoursHint}>
-                Отображается в карточке комплекса. Графики отдельных залов и полей настраиваются независимо в разделе «Залы».
+                {t("bizProfile.hoursHint")}
               </Text>
 
-              <Text style={styles.inputLabel}>Режим работы</Text>
+              <Text style={styles.inputLabel}>{t("bizProfile.mode")}</Text>
               <View style={styles.modeChipsRow}>
                 {HOURS_MODES.map((m) => {
                   const active = hoursMode === m.id;
@@ -653,7 +657,7 @@ export default function BusinessProfileScreen() {
                       onPress={() => selectHoursMode(m.id)}
                     >
                       <Text style={[styles.modeChipText, active && styles.modeChipTextActive]}>
-                        {m.label}
+                        {m.label ? t(m.label) : "24/7"}
                       </Text>
                     </Pressable>
                   );
@@ -663,7 +667,7 @@ export default function BusinessProfileScreen() {
               {hoursMode !== "24_7" ? (
                 <View style={styles.timeSteppersRow}>
                   <View style={styles.timeStepperCard}>
-                    <Text style={styles.timeStepperLabel}>Открытие</Text>
+                    <Text style={styles.timeStepperLabel}>{t("sched.opening")}</Text>
                     <View style={styles.timeStepperControls}>
                       <Pressable
                         style={styles.stepBtn}
@@ -684,7 +688,7 @@ export default function BusinessProfileScreen() {
                   </View>
 
                   <View style={styles.timeStepperCard}>
-                    <Text style={styles.timeStepperLabel}>Закрытие</Text>
+                    <Text style={styles.timeStepperLabel}>{t("sched.closing")}</Text>
                     <View style={styles.timeStepperControls}>
                       <Pressable
                         style={styles.stepBtn}
@@ -706,7 +710,7 @@ export default function BusinessProfileScreen() {
                 </View>
               ) : null}
 
-              <Text style={styles.inputLabel}>Текст графика (можно отредактировать вручную)</Text>
+              <Text style={styles.inputLabel}>{t("bizProfile.hoursText")}</Text>
               <TextInput
                 style={styles.input}
                 value={hoursText}
@@ -722,7 +726,7 @@ export default function BusinessProfileScreen() {
                 disabled={savingHours}
               >
                 <Text style={styles.saveModalBtnText}>
-                  {savingHours ? "Сохранение..." : "Сохранить график комплекса"}
+                  {savingHours ? t("common.saving") : t("bizProfile.saveHours")}
                 </Text>
               </Pressable>
             </ScrollView>
@@ -732,7 +736,7 @@ export default function BusinessProfileScreen() {
 
       {cropSource ? (
         <AvatarCropModal
-          title="Логотип арены"
+          title={t("bizProfile.logo")}
           source={cropSource}
           onCancel={() => setCropSource(null)}
           onSave={handleCroppedLogo}

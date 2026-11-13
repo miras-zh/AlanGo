@@ -15,11 +15,13 @@ import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 // Profile card that opens, disables and re-enables the business account
 // (same three states as Vison's AccountSettings business block).
 export function BusinessAccountCard() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [state, setState] = useState<BusinessState | null>(null);
@@ -54,12 +56,12 @@ export function BusinessAccountCard() {
   const handleDisable = () => {
     hapticImpact();
     Alert.alert(
-      "Отключить бизнес-аккаунт?",
-      "Ваша площадка временно скроется из поиска и каталога, а аккаунт переключится в режим клиента. Все данные, залы и цены сохранятся — включить обратно можно в любой момент.",
+      t("biz.disableTitle"),
+      t("biz.disableText"),
       [
-        { text: "Отмена", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Отключить",
+          text: t("biz.disable"),
           style: "destructive",
           onPress: async () => {
             setBusy(true);
@@ -70,7 +72,7 @@ export function BusinessAccountCard() {
               // Leave the business cabinet if we were in it — the account is a client now.
               router.replace("/(tabs)/profile");
             } catch (err) {
-              Alert.alert("Ошибка", getErrorMessage(err, "Не удалось отключить бизнес-аккаунт"));
+              Alert.alert(t("common.error"), getErrorMessage(err, t("biz.disableError")));
             } finally {
               setBusy(false);
             }
@@ -89,7 +91,7 @@ export function BusinessAccountCard() {
       hapticSuccess();
       router.replace("/business");
     } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err, "Не удалось включить бизнес-аккаунт"));
+      Alert.alert(t("common.error"), getErrorMessage(err, t("biz.enableError")));
     } finally {
       setBusy(false);
     }
@@ -113,11 +115,11 @@ export function BusinessAccountCard() {
           const [token, refreshToken] = await Promise.all([getToken(), getRefreshToken()]);
           if (!user || user.role === "guest" || (!token && !refreshToken)) {
             Alert.alert(
-              "Требуется авторизация",
-              "Чтобы открыть бизнес-аккаунт, войдите или зарегистрируйтесь.",
+              t("biz.authRequired"),
+              t("biz.authRequiredText"),
               [
-                { text: "Отмена", style: "cancel" },
-                { text: "Войти", onPress: () => router.push("/login") },
+                { text: t("common.cancel"), style: "cancel" },
+                { text: t("login.submit"), onPress: () => router.push("/login") },
               ],
             );
             return;
@@ -130,15 +132,15 @@ export function BusinessAccountCard() {
             <Ionicons name="briefcase-outline" size={20} color={c.primary} />
           </View>
           <View style={styles.texts}>
-            <Text style={styles.title}>Бизнес-аккаунт</Text>
+            <Text style={styles.title}>{t("biz.title")}</Text>
             <Text style={styles.subtitle}>
-              Сдавайте спорткомплекс, зал или площадку в аренду и принимайте брони
+              {t("biz.subtitle")}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={c.primary} />
         </View>
         <View style={styles.primaryBtn}>
-          <Text style={styles.primaryBtnText}>Создать бизнес-аккаунт</Text>
+          <Text style={styles.primaryBtnText}>{t("biz.create")}</Text>
         </View>
       </Pressable>
     );
@@ -159,12 +161,12 @@ export function BusinessAccountCard() {
         </View>
         <View style={styles.texts}>
           <Text style={styles.title}>
-            {active ? "Бизнес-аккаунт активен" : "Бизнес-аккаунт отключён"}
+            {active ? t("biz.active") : t("biz.disabled")}
           </Text>
           <Text style={styles.subtitle}>
             {active
-              ? `«${arenaTitle}» видна в каталоге, клиенты могут бронировать.`
-              : `«${arenaTitle}» скрыта из каталога. Все данные сохранены.`}
+              ? t("biz.activeText", { arena: arenaTitle ?? "" })
+              : t("biz.disabledText", { arena: arenaTitle ?? "" })}
           </Text>
         </View>
       </View>
@@ -178,7 +180,7 @@ export function BusinessAccountCard() {
               router.push("/business");
             }}
           >
-            <Text style={styles.primaryBtnText}>Открыть бизнес-кабинет</Text>
+            <Text style={styles.primaryBtnText}>{t("biz.open")}</Text>
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.secondaryBtn, (pressed || busy) && styles.pressed]}
@@ -188,7 +190,7 @@ export function BusinessAccountCard() {
             {busy ? (
               <ActivityIndicator color={c.error} />
             ) : (
-              <Text style={styles.dangerText}>Отключить бизнес-аккаунт</Text>
+              <Text style={styles.dangerText}>{t("biz.disableButton")}</Text>
             )}
           </Pressable>
         </>
@@ -201,7 +203,7 @@ export function BusinessAccountCard() {
           {busy ? (
             <ActivityIndicator color={c.background} />
           ) : (
-            <Text style={styles.primaryBtnText}>Включить бизнес-аккаунт</Text>
+            <Text style={styles.primaryBtnText}>{t("biz.enable")}</Text>
           )}
         </Pressable>
       )}

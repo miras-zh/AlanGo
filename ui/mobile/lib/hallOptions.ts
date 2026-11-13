@@ -1,4 +1,7 @@
-// Reference lists for the business "add / edit hall" form.
+import { tr } from "@/lib/i18n";
+
+// Reference lists for the business "add / edit hall" form. Surface values are
+// stored in Russian; translate them for display with surfaceLabel().
 
 export const SURFACE_TYPES = [
   "Паркет (дерево)",
@@ -30,9 +33,9 @@ export const SIZE_OPTIONS = [...range(10, 100, 5), ...range(110, 200, 10), ...ra
 export const MAX_HALL_PHOTOS = 5;
 
 export function capacityLabel(people: number): string {
-  return people > 0 ? `до ${people} человек` : "";
+  return people > 0 ? tr("hallOptions.capacity", { n: people }) : "";
 }
 
 export function sizeLabel(lengthM: number, widthM: number): string {
-  return lengthM > 0 && widthM > 0 ? `${lengthM} × ${widthM} м` : "";
+  return lengthM > 0 && widthM > 0 ? tr("hallOptions.size", { l: lengthM, w: widthM }) : "";
 }

@@ -11,6 +11,7 @@ import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT } from "@/lib/i18n";
 
 export interface VenueCardProps {
   id: number | string;
@@ -58,8 +59,9 @@ export function VenueCard({
   onToggleFavorite,
 }: VenueCardProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
-  const formattedPrice = (pricePerHour || 0).toLocaleString("ru-RU");
+  const formattedPrice = formatNumber((pricePerHour || 0));
 
   return (
     <Pressable
@@ -200,9 +202,9 @@ export function VenueCard({
         {/* Price & Action Button */}
         <View style={styles.bottomRow}>
           <View style={styles.priceWrap}>
-            <Text style={styles.pricePrefix}>от </Text>
+            <Text style={styles.pricePrefix}>{t("venueCard.from")}</Text>
             <Text style={styles.priceAmount}>{formattedPrice} ₸</Text>
-            <Text style={styles.priceSuffix}> / час</Text>
+            <Text style={styles.priceSuffix}> {t("common.perHour")}</Text>
           </View>
 
           <Pressable

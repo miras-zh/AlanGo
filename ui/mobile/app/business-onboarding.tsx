@@ -28,14 +28,16 @@ import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT, type MessageKey } from "@/lib/i18n";
+import { cityLabel, cityMatches, sportLabel } from "@/lib/dataLabels";
 
 const TOTAL_STEPS = 5;
 const MAX_TITLE = 120;
 
-const TITLE_PLACEHOLDER: Record<VenueType, string> = {
-  complex: "Например, Astana Arena Sport",
-  single: "Например, Зал «Олимп»",
-  outdoor: "Например, Поле у парка Жастар",
+const TITLE_PLACEHOLDER: Record<VenueType, MessageKey> = {
+  complex: "onb.placeholderComplex",
+  single: "onb.placeholderSingle",
+  outdoor: "onb.placeholderOutdoor",
 };
 
 // Business account wizard: venue type → name → sports → city → confirm,
@@ -44,6 +46,7 @@ const TITLE_PLACEHOLDER: Record<VenueType, string> = {
 // the cabinet's settings.
 export default function BusinessOnboardingScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -58,11 +61,11 @@ export default function BusinessOnboardingScreen() {
 
   const promptLogin = (onCancel?: () => void) => {
     Alert.alert(
-      "Требуется авторизация",
-      "Сессия не найдена или истекла. Войдите в аккаунт, чтобы открыть бизнес-аккаунт.",
+      t("biz.authRequired"),
+      t("onb.sessionMissing"),
       [
-        { text: "Отмена", style: "cancel", onPress: onCancel },
-        { text: "Войти", onPress: () => router.replace("/login") },
+        { text: t("common.cancel"), style: "cancel", onPress: onCancel },
+        { text: t("login.submit"), onPress: () => router.replace("/login") },
       ],
     );
   };
@@ -88,8 +91,8 @@ export default function BusinessOnboardingScreen() {
   const cities = useMemo(() => {
     const q = citySearch.trim().toLowerCase();
     const all = [...TOP_CITIES, ...KZ_CITIES.filter((c) => !TOP_CITIES.includes(c))];
-    return q ? all.filter((c) => c.toLowerCase().includes(q)) : all;
-  }, [citySearch]);
+    return q ? all.filter((c) => cityMatches(c, q, t)) : all;
+  }, [citySearch, t]);
 
   const canNext =
     (step === 1 && venueType !== null) ||
@@ -132,7 +135,7 @@ export default function BusinessOnboardingScreen() {
       if ((err as any)?.response?.status === 401) {
         promptLogin();
       } else {
-        Alert.alert("Не удалось открыть бизнес-аккаунт", getErrorMessage(err));
+        Alert.alert(t("onb.openError"), getErrorMessage(err));
       }
     } finally {
       setSubmitting(false);
@@ -145,9 +148,9 @@ export default function BusinessOnboardingScreen() {
         <Animated.View style={[styles.congratsIcon, { transform: [{ scale: congratsScale }] }]}>
           <Ionicons name="trophy" size={44} color={c.background} />
         </Animated.View>
-        <Text style={styles.congratsTitle}>Поздравляем!</Text>
-        <Text style={styles.congratsText}>Вы открыли бизнес-аккаунт «{title.trim()}»</Text>
-        <Text style={styles.congratsHint}>Открываем бизнес-кабинет…</Text>
+        <Text style={styles.congratsTitle}>{t("onb.congrats")}</Text>
+        <Text style={styles.congratsText}>{t("onb.congratsText", { title: title.trim() })}</Text>
+        <Text style={styles.congratsHint}>{t("onb.opening")}</Text>
         <ActivityIndicator color={c.primary} style={{ marginTop: spacing.lg }} />
       </SafeAreaView>
     );
@@ -167,7 +170,7 @@ export default function BusinessOnboardingScreen() {
             <Ionicons name={step > 1 ? "chevron-back" : "close"} size={22} color={c.textPrimary} />
           </Pressable>
           <Text style={styles.stepLabel}>
-            Шаг {step} из {TOTAL_STEPS}
+            {t("onb.step", { step, total: TOTAL_STEPS })}
           </Text>
           <View style={styles.backBtnSpacer} />
         </View>
@@ -178,8 +181,8 @@ export default function BusinessOnboardingScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {step === 1 && (
             <>
-              <Text style={styles.title}>Что вы сдаёте в аренду?</Text>
-              <Text style={styles.subtitle}>Выберите формат — от него зависят настройки кабинета.</Text>
+              <Text style={styles.title}>{t("onb.q1")}</Text>
+              <Text style={styles.subtitle}>{t("onb.q1Text")}</Text>
               {VENUE_TYPES.map((v) => {
                 const selected = venueType === v.id;
                 return (
@@ -199,8 +202,8 @@ export default function BusinessOnboardingScreen() {
                       />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.optionTitle}>{v.title}</Text>
-                      <Text style={styles.optionDesc}>{v.description}</Text>
+                      <Text style={styles.optionTitle}>{t(v.titleKey)}</Text>
+                      <Text style={styles.optionDesc}>{t(v.descriptionKey)}</Text>
                     </View>
                     <Ionicons
                       name={selected ? "radio-button-on" : "radio-button-off"}
@@ -215,12 +218,12 @@ export default function BusinessOnboardingScreen() {
 
           {step === 2 && (
             <>
-              <Text style={styles.title}>Как называется ваша площадка?</Text>
-              <Text style={styles.subtitle}>Так её увидят клиенты в каталоге и на карте.</Text>
+              <Text style={styles.title}>{t("onb.q2")}</Text>
+              <Text style={styles.subtitle}>{t("onb.q2Text")}</Text>
               <TextInput
                 value={title}
                 onChangeText={(t) => setTitle(t.slice(0, MAX_TITLE))}
-                placeholder={venueType ? TITLE_PLACEHOLDER[venueType] : "Название"}
+                placeholder={venueType ? t(TITLE_PLACEHOLDER[venueType]) : t("onb.namePlaceholder")}
                 placeholderTextColor={c.textSecondary}
                 style={styles.input}
                 autoFocus
@@ -235,8 +238,8 @@ export default function BusinessOnboardingScreen() {
 
           {step === 3 && (
             <>
-              <Text style={styles.title}>Какие виды спорта?</Text>
-              <Text style={styles.subtitle}>Можно выбрать несколько — по ним вас найдут клиенты.</Text>
+              <Text style={styles.title}>{t("onb.q3")}</Text>
+              <Text style={styles.subtitle}>{t("onb.q3Text")}</Text>
               <View style={styles.chips}>
                 {BUSINESS_SPORTS.map((sport) => {
                   const selected = sports.includes(sport);
@@ -249,7 +252,7 @@ export default function BusinessOnboardingScreen() {
                       {selected ? (
                         <Ionicons name="checkmark" size={14} color={c.background} />
                       ) : null}
-                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{sport}</Text>
+                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{sportLabel(sport, t)}</Text>
                     </Pressable>
                   );
                 })}
@@ -259,14 +262,14 @@ export default function BusinessOnboardingScreen() {
 
           {step === 4 && (
             <>
-              <Text style={styles.title}>В каком городе?</Text>
-              <Text style={styles.subtitle}>Адрес и район можно указать позже в настройках.</Text>
+              <Text style={styles.title}>{t("onb.q4")}</Text>
+              <Text style={styles.subtitle}>{t("onb.q4Text")}</Text>
               <View style={styles.searchBox}>
                 <Ionicons name="search" size={18} color={c.textSecondary} />
                 <TextInput
                   value={citySearch}
                   onChangeText={setCitySearch}
-                  placeholder="Найти город"
+                  placeholder={t("onb.findCity")}
                   placeholderTextColor={c.textSecondary}
                   style={styles.searchInput}
                 />
@@ -283,7 +286,7 @@ export default function BusinessOnboardingScreen() {
                       }}
                       style={[styles.chip, selected && styles.chipSelected]}
                     >
-                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{c}</Text>
+                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{cityLabel(c, t)}</Text>
                     </Pressable>
                   );
                 })}
@@ -293,15 +296,15 @@ export default function BusinessOnboardingScreen() {
 
           {step === 5 && (
             <>
-              <Text style={styles.title}>Проверьте данные</Text>
+              <Text style={styles.title}>{t("onb.q5")}</Text>
               <Text style={styles.subtitle}>
-                После подтверждения аккаунт переключится в бизнес-режим. Отключить его можно в профиле.
+                {t("onb.q5Text")}
               </Text>
               <View style={styles.summary}>
-                <SummaryRow label="Формат" value={venue?.title ?? ""} onEdit={() => setStep(1)} />
-                <SummaryRow label="Название" value={title.trim()} onEdit={() => setStep(2)} />
-                <SummaryRow label="Виды спорта" value={sports.join(", ")} onEdit={() => setStep(3)} />
-                <SummaryRow label="Город" value={city} onEdit={() => setStep(4)} last />
+                <SummaryRow label={t("onb.format")} value={venue ? t(venue.titleKey) : ""} onEdit={() => setStep(1)} />
+                <SummaryRow label={t("onb.name")} value={title.trim()} onEdit={() => setStep(2)} />
+                <SummaryRow label={t("onb.sports")} value={sports.map((s) => sportLabel(s, t)).join(", ")} onEdit={() => setStep(3)} />
+                <SummaryRow label={t("onb.city")} value={cityLabel(city, t)} onEdit={() => setStep(4)} last />
               </View>
             </>
           )}
@@ -315,7 +318,7 @@ export default function BusinessOnboardingScreen() {
               disabled={!canNext}
               style={[styles.primaryBtn, !canNext && styles.disabled]}
             >
-              <Text style={styles.primaryBtnText}>Далее</Text>
+              <Text style={styles.primaryBtnText}>{t("onb.next")}</Text>
             </Pressable>
           ) : (
             <Pressable
@@ -326,7 +329,7 @@ export default function BusinessOnboardingScreen() {
               {submitting ? (
                 <ActivityIndicator color={c.background} />
               ) : (
-                <Text style={styles.primaryBtnText}>Подтвердить и переключиться</Text>
+                <Text style={styles.primaryBtnText}>{t("onb.confirm")}</Text>
               )}
             </Pressable>
           )}

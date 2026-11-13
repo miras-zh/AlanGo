@@ -28,11 +28,14 @@ import { hapticSelection } from "@/lib/haptics";
 import { StandaloneTabBar } from "@/components/LiquidGlassTabBar";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT } from "@/lib/i18n";
+import { surfaceLabel, weekdayName, workingHoursLabel } from "@/lib/dataLabels";
 
 const { width } = Dimensions.get("window");
 
 export default function ArenaDetailScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -59,7 +62,7 @@ export default function ArenaDetailScreen() {
   const handleCall = () => {
     hapticSelection();
     Linking.openURL(`tel:${arena.phone.replace(/[^0-9+]/g, "")}`).catch(() => {
-      Alert.alert("Контакты", `Телефон арены: ${arena.phone}`);
+      Alert.alert(t("arena.contacts"), t("chat.arenaPhone", { phone: arena.phone }));
     });
   };
 
@@ -86,7 +89,7 @@ export default function ArenaDetailScreen() {
             <Ionicons name="star" size={13} color={c.primary} />
             <Text style={styles.ratingText}>
               {arena.rating}
-              {arena.reviewsCount ? ` (${arena.reviewsCount} отзывов)` : ""}
+              {arena.reviewsCount ? t("arena.reviews", { count: arena.reviewsCount }) : ""}
             </Text>
           </View>
         </View>
@@ -105,7 +108,7 @@ export default function ArenaDetailScreen() {
           </View>
           <View style={styles.row}>
             <Ionicons name="time-outline" size={15} color={c.textSecondary} />
-            <Text style={styles.hoursText}>{arena.workingHours}</Text>
+            <Text style={styles.hoursText}>{workingHoursLabel(arena.workingHours, t)}</Text>
           </View>
 
           {/* Quick Chat with Arena / AI Bot */}
@@ -128,9 +131,9 @@ export default function ArenaDetailScreen() {
                 <Ionicons name="chatbubbles" size={18} color={c.primary} />
               </View>
               <View>
-                <Text style={styles.chatActionTitle}>Чат с ареной</Text>
+                <Text style={styles.chatActionTitle}>{t("arena.chat")}</Text>
                 <Text style={styles.chatActionSub}>
-                  AI-бот ответит на вопросы мгновенно 24/7
+                  {t("arena.chatText")}
                 </Text>
               </View>
             </View>
@@ -144,21 +147,21 @@ export default function ArenaDetailScreen() {
             <Ionicons name="sunny" size={20} color={c.primary} />
           </View>
           <View style={styles.promoCalloutTextWrap}>
-            <Text style={styles.promoCalloutTitle}>Счастливые часы: -20%</Text>
+            <Text style={styles.promoCalloutTitle}>{t("arena.happyHours")}</Text>
             <Text style={styles.promoCalloutSub}>
-              Дневной тариф с 10:00 до 16:00 в будни рассчитывается со скидкой
+              {t("arena.happyHoursText")}
             </Text>
           </View>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>О спорткомплексе</Text>
+          <Text style={styles.sectionTitle}>{t("arena.about")}</Text>
           <Text style={styles.descText}>{arena.description}</Text>
         </View>
 
         {/* Features / Infrastructure */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Инфраструктура и удобства</Text>
+          <Text style={styles.sectionTitle}>{t("arena.infrastructure")}</Text>
           <View style={styles.featuresGrid}>
             {arena.features.map((feat, idx) => (
               <View key={idx} style={styles.featItem}>
@@ -172,7 +175,7 @@ export default function ArenaDetailScreen() {
         {/* HALLS LIST OF THIS ARENA */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.sectionTitle}>Залы арены ({halls.length})</Text>
+            <Text style={styles.sectionTitle}>{t("arena.halls", { n: halls.length })}</Text>
           </View>
 
           <View style={styles.hallsList}>
@@ -188,9 +191,9 @@ export default function ArenaDetailScreen() {
                 <Image source={{ uri: h.imageUrl }} style={styles.hallThumb} />
                 <View style={styles.hallItemInfo}>
                   <Text style={styles.hallItemTitle}>{h.title}</Text>
-                  <Text style={styles.hallItemSurface}>{h.surfaceType}</Text>
+                  <Text style={styles.hallItemSurface}>{surfaceLabel(h.surfaceType, t)}</Text>
                   <Text style={styles.hallItemPrice}>
-                    {h.pricePerHour.toLocaleString("ru-RU")} ₸ <Text style={{ fontSize: 11, color: c.textSecondary }}>/ час</Text>
+                    {formatNumber(h.pricePerHour)} ₸ <Text style={{ fontSize: 11, color: c.textSecondary }}>{t("common.perHour")}</Text>
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={c.primary} />
@@ -201,13 +204,13 @@ export default function ArenaDetailScreen() {
 
         {/* Schedule per day (Vison Pattern) */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>График работы по дням</Text>
+          <Text style={styles.sectionTitle}>{t("arena.schedule")}</Text>
           <View style={styles.scheduleList}>
             {schedule.map((s, idx) => (
               <View key={`${s.dayOfWeek}-${idx}`} style={styles.scheduleRow}>
-                <Text style={styles.scheduleDayName}>{s.dayName}</Text>
+                <Text style={styles.scheduleDayName}>{weekdayName(s.dayOfWeek, t)}</Text>
                 {s.isClosed ? (
-                  <Text style={styles.scheduleClosed}>Выходной</Text>
+                  <Text style={styles.scheduleClosed}>{t("common.dayOff")}</Text>
                 ) : (
                   <Text style={styles.scheduleTime}>
                     {s.startTime} - {s.endTime}

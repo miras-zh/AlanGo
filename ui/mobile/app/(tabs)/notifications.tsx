@@ -26,10 +26,13 @@ import {
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
+import { chatTimeLabel, dayMonth, timeHM } from "@/lib/dataLabels";
 
 type TabType = "chats" | "notifications";
 
 export default function NotificationsScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -116,7 +119,7 @@ export default function NotificationsScreen() {
                 activeTab === "chats" && styles.tabBtnTextActive,
               ]}
             >
-              Сообщения
+              {t("chats.messages")}
             </Text>
             {totalUnreadChats > 0 && (
               <View style={styles.tabBadgeCount}>
@@ -141,7 +144,7 @@ export default function NotificationsScreen() {
                 activeTab === "notifications" && styles.tabBtnTextActive,
               ]}
             >
-              Уведомления
+              {t("chats.notifications")}
             </Text>
             {totalUnreadNotifs > 0 && <View style={styles.tabBadgeDot} />}
           </Pressable>
@@ -149,7 +152,7 @@ export default function NotificationsScreen() {
 
         {activeTab === "notifications" && totalUnreadNotifs > 0 && (
           <Pressable onPress={handleMarkAll} hitSlop={10}>
-            <Text style={styles.readAllText}>Прочитано</Text>
+            <Text style={styles.readAllText}>{t("chats.markRead")}</Text>
           </Pressable>
         )}
       </View>
@@ -173,9 +176,9 @@ export default function NotificationsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons name="chatbubbles-outline" size={48} color={c.border} />
-              <Text style={styles.emptyTitle}>Нет диалогов</Text>
+              <Text style={styles.emptyTitle}>{t("chats.empty")}</Text>
               <Text style={styles.emptySub}>
-                Напишите спортивному комплексу, чтобы уточнить детали игры.
+                {t("chats.emptyText")}
               </Text>
             </View>
           }
@@ -197,7 +200,7 @@ export default function NotificationsScreen() {
                   <Text style={styles.chatName} numberOfLines={1}>
                     {item.arenaTitle}
                   </Text>
-                  <Text style={styles.chatTime}>{item.lastMessageTime}</Text>
+                  <Text style={styles.chatTime}>{chatTimeLabel(item.lastMessageTime, t)}</Text>
                 </View>
                 <View style={styles.chatMsgRow}>
                   <Text style={styles.chatMessage} numberOfLines={1}>
@@ -236,9 +239,9 @@ export default function NotificationsScreen() {
                 size={48}
                 color={c.border}
               />
-              <Text style={styles.emptyTitle}>Нет уведомлений</Text>
+              <Text style={styles.emptyTitle}>{t("chats.noNotifications")}</Text>
               <Text style={styles.emptySub}>
-                Здесь будут статусы ваших броней и важные события.
+                {t("chats.noNotificationsText")}
               </Text>
             </View>
           }
@@ -274,12 +277,7 @@ export default function NotificationsScreen() {
                 <Text style={styles.notifTitle}>{item.title}</Text>
                 <Text style={styles.notifText}>{item.body}</Text>
                 <Text style={styles.notifDate}>
-                  {new Date(item.created_at).toLocaleDateString("ru-RU", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {`${dayMonth(new Date(item.created_at), t)}, ${timeHM(new Date(item.created_at))}`}
                 </Text>
               </View>
             </Pressable>

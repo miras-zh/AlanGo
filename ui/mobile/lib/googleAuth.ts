@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Platform, TurboModuleRegistry } from "react-native";
 import { loginWithGoogle } from "@/lib/registration";
 import { getErrorMessage } from "@/lib/errorMessage";
+import { tr } from "@/lib/i18n";
 
 // Client IDs from Google Cloud Console (OAuth 2.0 Client IDs):
 //   iOS client  — bundle id kz.alango.app; its reversed form is the
@@ -54,7 +55,7 @@ export function useGoogleSignIn() {
   async function signIn(): Promise<GoogleSignInOutcome> {
     const native = getNativeGoogle();
     if (!native) {
-      setError("Вход через Google недоступен в этой сборке.");
+      setError(tr("errors.googleUnavailable"));
       return { type: "cancelled" };
     }
     setError(null);
@@ -68,7 +69,7 @@ export function useGoogleSignIn() {
 
       const idToken = res.data?.idToken;
       if (!idToken) {
-        setError("Google не вернул токен авторизации. Попробуйте ещё раз.");
+        setError(tr("errors.googleNoToken"));
         return { type: "cancelled" };
       }
       const data = await loginWithGoogle(idToken);
@@ -82,11 +83,11 @@ export function useGoogleSignIn() {
           return { type: "cancelled" };
         }
         if (err.code === native.statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-          setError("Сервисы Google Play недоступны на этом устройстве.");
+          setError(tr("errors.playServices"));
           return { type: "cancelled" };
         }
       }
-      setError(getErrorMessage(err) || "Не удалось войти через Google.");
+      setError(getErrorMessage(err, tr("errors.googleFailed")));
       return { type: "cancelled" };
     } finally {
       setLoading(false);

@@ -5,57 +5,59 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { hapticSelection } from "@/lib/haptics";
 import { SUPPORT_EMAIL } from "@/lib/site";
+import { useT, type MessageKey } from "@/lib/i18n";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
-const SECTIONS: { title: string; items: { q: string; a: string }[] }[] = [
+const SECTIONS: { title: MessageKey; items: { q: MessageKey; a: MessageKey }[] }[] = [
   {
-    title: "Бронирование",
+    title: "faq.booking",
     items: [
       {
-        q: "Как забронировать зал?",
-        a: "Откройте зал, перейдите во вкладку «Расписание», выберите день, длительность и свободный (яркий) слот, затем нажмите «Забронировать» и подтвердите имя и телефон.",
+        q: "faq.q1",
+        a: "faq.a1",
       },
       {
-        q: "Почему некоторые слоты тусклые?",
-        a: "Тусклые слоты недоступны: время уже занято другой бронью, выходит за график работы зала или уже прошло.",
+        q: "faq.q2",
+        a: "faq.a2",
       },
       {
-        q: "Как отменить или перенести бронь?",
-        a: "Свяжитесь с администратором площадки через чат или по телефону из карточки комплекса — он отменит или перенесёт бронь.",
+        q: "faq.q3",
+        a: "faq.a3",
       },
     ],
   },
   {
-    title: "Оплата",
+    title: "faq.payment",
     items: [
       {
-        q: "Как оплатить аренду?",
-        a: "Сейчас оплата производится на месте у администратора площадки. Сумма брони рассчитывается по тарифу зала и показывается до подтверждения.",
+        q: "faq.q4",
+        a: "faq.a4",
       },
     ],
   },
   {
-    title: "Бизнес-аккаунт",
+    title: "faq.business",
     items: [
       {
-        q: "Как сдавать свой зал в аренду?",
-        a: "Профиль → «Создать бизнес-аккаунт». Пройдите 5 шагов: формат, название, виды спорта и город. Затем добавьте залы, фото, цены и график.",
+        q: "faq.q5",
+        a: "faq.a5",
       },
       {
-        q: "У каждого зала свой график?",
-        a: "Да. В бизнес-кабинете на карточке зала нажмите «Настроить график» или выберите зал во вкладке «График». Можно скопировать график на все залы.",
+        q: "faq.q6",
+        a: "faq.a6",
       },
       {
-        q: "Можно ли временно скрыть площадку?",
-        a: "Да: Профиль → «Отключить бизнес-аккаунт». Площадка пропадёт из каталога, а все данные сохранятся — включить можно в любой момент.",
+        q: "faq.q7",
+        a: "faq.a7",
       },
     ],
   },
 ];
 
 export default function FaqScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -76,13 +78,13 @@ export default function FaqScreen() {
         >
           <Ionicons name="chevron-back" size={22} color={c.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Частые вопросы</Text>
+        <Text style={styles.headerTitle}>{t("faq.title")}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
         {SECTIONS.map((section) => (
           <View key={section.title}>
-            <Text style={styles.sectionLabel}>{section.title}</Text>
+            <Text style={styles.sectionLabel}>{t(section.title)}</Text>
             <View style={styles.card}>
               {section.items.map((item, i) => {
                 const expanded = open === item.q;
@@ -97,21 +99,21 @@ export default function FaqScreen() {
                     }}
                   >
                     <View style={styles.qRow}>
-                      <Text style={styles.q}>{item.q}</Text>
+                      <Text style={styles.q}>{t(item.q)}</Text>
                       <Ionicons
                         name={expanded ? "chevron-up" : "chevron-down"}
                         size={18}
                         color={c.textSecondary}
                       />
                     </View>
-                    {expanded ? <Text style={styles.a}>{item.a}</Text> : null}
+                    {expanded ? <Text style={styles.a}>{t(item.a)}</Text> : null}
                   </Pressable>
                 );
               })}
             </View>
           </View>
         ))}
-        <Text style={styles.footer}>Не нашли ответ? Напишите нам: {SUPPORT_EMAIL}</Text>
+        <Text style={styles.footer}>{t("faq.footer", { email: SUPPORT_EMAIL })}</Text>
       </ScrollView>
     </SafeAreaView>
   );

@@ -19,16 +19,18 @@ import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useLocaleTag, useT, type MessageKey } from "@/lib/i18n";
+import { cityLabel } from "@/lib/dataLabels";
 
 const { width, height } = Dimensions.get("window");
 
 const SPORT_FILTERS = [
-  { id: "all", name: "Все залы", icon: "grid-outline" },
-  { id: "Футбол", name: "Футбол", icon: "football-outline" },
-  { id: "Баскетбол", name: "Баскетбол", icon: "basketball-outline" },
-  { id: "Теннис", name: "Теннис", icon: "tennisball-outline" },
-  { id: "Волейбол", name: "Волейбол", icon: "baseball-outline" },
-  { id: "Сквош и падл", name: "Падел / Сквош", icon: "fitness-outline" },
+  { id: "all", name: "map.allHalls" as MessageKey, icon: "grid-outline" },
+  { id: "Футбол", name: "sport.football" as MessageKey, icon: "football-outline" },
+  { id: "Баскетбол", name: "sport.basketball" as MessageKey, icon: "basketball-outline" },
+  { id: "Теннис", name: "sport.tennis" as MessageKey, icon: "tennisball-outline" },
+  { id: "Волейбол", name: "sport.volleyball" as MessageKey, icon: "baseball-outline" },
+  { id: "Сквош и падл", name: "map.padelSquash" as MessageKey, icon: "fitness-outline" },
 ];
 
 const CITY_COORDINATES: Record<string, { lat: number; lng: number; zoom: number }> = {
@@ -43,6 +45,8 @@ const WebViewComponent = WebView as any;
 
 export default function MapScreen() {
   const c = usePalette();
+  const t = useT();
+  const localeTag = useLocaleTag();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const webViewRef = useRef<any>(null);
@@ -252,7 +256,7 @@ export default function MapScreen() {
 </head>
 <body>
   <div id="map"></div>
-  <button class="locate-btn" id="locateBtn" title="Мое местоположение">
+  <button class="locate-btn" id="locateBtn" title="${t("map.myLocation")}">
     <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
   </button>
 
@@ -295,8 +299,8 @@ export default function MapScreen() {
     venues.forEach(function(v, index) {
       if (!v.lat || !v.lng) return;
 
-      var formattedPrice = Number(v.price).toLocaleString('ru-RU');
-      var priceHtml = '<div class="custom-price-badge">от <span>' + formattedPrice + ' ₸</span></div>';
+      var formattedPrice = Number(v.price).toLocaleString('${localeTag}');
+      var priceHtml = '<div class="custom-price-badge">' + ${JSON.stringify(t("map.priceFrom"))}.replace('{price}', '<span>' + formattedPrice + ' ₸</span>') + '</div>';
 
       var priceIcon = L.divIcon({
         className: 'price-wrapper',
@@ -350,7 +354,7 @@ export default function MapScreen() {
 </body>
 </html>
     `;
-  }, [filteredArenas, cityCoords]);
+  }, [filteredArenas, cityCoords, t, localeTag]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -368,11 +372,11 @@ export default function MapScreen() {
         </Pressable>
 
         <View style={styles.titleWrap}>
-          <Text style={styles.titleText}>Залы рядом</Text>
+          <Text style={styles.titleText}>{t("map.title")}</Text>
           <View style={styles.cityPill}>
             <Ionicons name="location-sharp" size={12} color={c.primary} />
-            <Text style={styles.cityName}>{currentCity}</Text>
-            <Text style={styles.venueCount}>• {filteredArenas.length} залов</Text>
+            <Text style={styles.cityName}>{cityLabel(currentCity, t)}</Text>
+            <Text style={styles.venueCount}>{t("map.venueCount", { count: filteredArenas.length })}</Text>
           </View>
         </View>
 
@@ -384,7 +388,7 @@ export default function MapScreen() {
           }}
         >
           <Ionicons name="list" size={18} color={c.primary} />
-          <Text style={styles.listToggleText}>Списком</Text>
+          <Text style={styles.listToggleText}>{t("map.list")}</Text>
         </Pressable>
       </View>
 
@@ -413,7 +417,7 @@ export default function MapScreen() {
                   color={active ? c.background : c.textSecondary}
                 />
                 <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
-                  {s.name}
+                  {t(s.name)}
                 </Text>
               </Pressable>
             );
@@ -474,8 +478,8 @@ export default function MapScreen() {
                 </View>
 
                 <Text style={styles.previewPrice}>
-                  от {selectedArena.minPrice.toLocaleString("ru-RU")} ₸
-                  <Text style={styles.previewPriceUnit}> / ч</Text>
+                  {t("common.priceFrom", { price: formatNumber(selectedArena.minPrice) })}
+                  <Text style={styles.previewPriceUnit}> {t("map.perHourShort")}</Text>
                 </Text>
               </View>
 
@@ -486,7 +490,7 @@ export default function MapScreen() {
                   router.push(`/arena/${selectedArena.id}`);
                 }}
               >
-                <Text style={styles.bookBtnText}>Посмотреть залы и бронь</Text>
+                <Text style={styles.bookBtnText}>{t("map.viewHalls")}</Text>
                 <Ionicons name="arrow-forward" size={15} color={c.background} />
               </Pressable>
             </View>

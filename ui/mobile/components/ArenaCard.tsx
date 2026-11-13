@@ -1,16 +1,17 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { ArenaWithHalls, Hall } from "@/lib/sportRentData";
-import { plural } from "@/lib/plural";
 import { hapticSelection } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT, type MessageKey } from "@/lib/i18n";
+import { categoryLabel, sportLabel, workingHoursLabel } from "@/lib/dataLabels";
 
-const VENUE_LABEL: Record<string, string> = {
-  complex: "Спорткомплекс",
-  single: "Отдельный зал",
-  outdoor: "Открытая площадка",
+const VENUE_LABEL: Record<string, MessageKey> = {
+  complex: "venue.complex",
+  single: "venue.single",
+  outdoor: "venue.outdoor",
 };
 
 type Props = {
@@ -29,6 +30,7 @@ export function arenaMinPrice(arena: ArenaWithHalls): number | null {
 // strip of the halls inside — a complex is a set of halls, not one venue.
 export function ArenaCard({ arena, onPress, onHallPress }: Props) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const minPrice = arenaMinPrice(arena);
   const hallsCount = arena.halls.length;
@@ -58,7 +60,7 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
           <View style={styles.typeBadge}>
             <Ionicons name="business" size={12} color={c.primary} />
             <Text style={styles.typeBadgeText}>
-              {VENUE_LABEL[arena.venueType ?? "complex"] ?? arena.category ?? "Спорткомплекс"}
+              {VENUE_LABEL[arena.venueType ?? "complex"] ? t(VENUE_LABEL[arena.venueType ?? "complex"]) : categoryLabel(arena.category ?? "Спорткомплекс", t)}
             </Text>
           </View>
           {arena.rating > 0 ? (
@@ -92,7 +94,7 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
         {arena.workingHours ? (
           <View style={styles.metaRow}>
             <Ionicons name="time-outline" size={14} color={c.textSecondary} />
-            <Text style={styles.hoursText}>{arena.workingHours}</Text>
+            <Text style={styles.hoursText}>{workingHoursLabel(arena.workingHours, t)}</Text>
           </View>
         ) : null}
 
@@ -100,7 +102,7 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
           <View style={styles.sportsRow}>
             {sports.map((s) => (
               <View key={s} style={styles.sportChip}>
-                <Text style={styles.sportText}>{s}</Text>
+                <Text style={styles.sportText}>{sportLabel(s, t)}</Text>
               </View>
             ))}
           </View>
@@ -108,8 +110,8 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
 
         <Text style={styles.sectionLabel}>
           {hallsCount > 0
-            ? `Внутри ${hallsCount} ${plural(hallsCount, ["зал", "зала", "залов"])}`
-            : "Залы ещё не добавлены"}
+            ? t("arenaCard.hallsInside", { count: hallsCount })
+            : t("arenaCard.noHalls")}
         </Text>
         {hallsCount > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hallsRow}>
@@ -133,8 +135,8 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
                   {h.title}
                 </Text>
                 <Text style={styles.hallMeta} numberOfLines={1}>
-                  {h.sportType}
-                  {h.pricePerHour > 0 ? ` · ${h.pricePerHour.toLocaleString("ru-RU")} ₸` : ""}
+                  {sportLabel(h.sportType, t)}
+                  {h.pricePerHour > 0 ? ` · ${formatNumber(h.pricePerHour)} ₸` : ""}
                 </Text>
               </Pressable>
             ))}
@@ -145,17 +147,17 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
           <View>
             {minPrice !== null ? (
               <>
-                <Text style={styles.priceLabel}>Аренда</Text>
+                <Text style={styles.priceLabel}>{t("arenaCard.rent")}</Text>
                 <Text style={styles.price}>
-                  от {minPrice.toLocaleString("ru-RU")} ₸<Text style={styles.priceSub}> / час</Text>
+                  {t("common.priceFrom", { price: formatNumber(minPrice) })}<Text style={styles.priceSub}> {t("common.perHour")}</Text>
                 </Text>
               </>
             ) : (
-              <Text style={styles.priceLabel}>Цены уточняются</Text>
+              <Text style={styles.priceLabel}>{t("arenaCard.pricesTbd")}</Text>
             )}
           </View>
           <View style={styles.cta}>
-            <Text style={styles.ctaText}>Смотреть комплекс</Text>
+            <Text style={styles.ctaText}>{t("arenaCard.cta")}</Text>
             <Ionicons name="arrow-forward" size={16} color={c.background} />
           </View>
         </View>

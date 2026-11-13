@@ -21,6 +21,9 @@ import {
   SPORT_CATEGORIES,
   SportEvent,
   filterEvents,
+  eventCategory,
+  eventDate,
+  eventDetails,
 } from "@/lib/eventsData";
 import { EventCard } from "@/components/EventCard";
 import { EventsFilterModal } from "@/components/EventsFilterModal";
@@ -29,6 +32,7 @@ import { GlassSurface } from "@/components/GlassSurface";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 function AllDotsIcon({ color }: { color: string }) {
   const c = usePalette();
@@ -62,6 +66,7 @@ function getCategoryIcon(id: SportCategoryId, color: string) {
 }
 
 export default function EventsScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -86,9 +91,9 @@ export default function EventsScreen() {
 
   const handleRegister = (event: SportEvent) => {
     Alert.alert(
-      "Запись на событие",
-      `Вы успешно записались на участие в «${event.title}» (${event.date}, ${event.time}).\nЛокация: ${event.location}`,
-      [{ text: "Отлично" }]
+      t("events.registerTitle"),
+      t("events.registeredText", { title: event.title, date: eventDate(event, t), time: event.time, location: event.location }),
+      [{ text: t("home.great") }]
     );
   };
 
@@ -107,9 +112,9 @@ export default function EventsScreen() {
       {/* 1. Top Header */}
       <View style={styles.header}>
         <View style={styles.headerTitles}>
-          <Text style={styles.title}>Спортивные события</Text>
+          <Text style={styles.title}>{t("events.title")}</Text>
           <Text style={styles.subtitle}>
-            Турниры, открытые игры и мастер-классы
+            {t("events.subtitle")}
           </Text>
         </View>
 
@@ -202,7 +207,7 @@ export default function EventsScreen() {
                     ]}
                     numberOfLines={1}
                   >
-                    {cat.label}
+                    {t(cat.label)}
                   </Text>
                 </GlassSurface>
               </Pressable>
@@ -213,7 +218,7 @@ export default function EventsScreen() {
 
       {/* 3. Section Title & "Все события >" Navigation */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Ближайшие события</Text>
+        <Text style={styles.sectionTitle}>{t("events.upcoming")}</Text>
         <Pressable
           style={styles.allEventsLink}
           onPress={() => {
@@ -222,7 +227,7 @@ export default function EventsScreen() {
           }}
           hitSlop={8}
         >
-          <Text style={styles.allEventsText}>Все события</Text>
+          <Text style={styles.allEventsText}>{t("events.all")}</Text>
           <Ionicons
             name="chevron-forward"
             size={16}
@@ -251,7 +256,7 @@ export default function EventsScreen() {
             onPress={() => {
               Alert.alert(
                 item.title,
-                `${item.categoryLabel}\n${item.date} · ${item.time}\n${item.location}\nЦена: ${item.price}`
+                eventDetails(item, t)
               );
             }}
             onRegister={() => handleRegister(item)}
@@ -265,9 +270,9 @@ export default function EventsScreen() {
               size={48}
               color={c.textSecondary}
             />
-            <Text style={styles.emptyTitle}>Нет событий в данной категории</Text>
+            <Text style={styles.emptyTitle}>{t("events.emptyCategory")}</Text>
             <Text style={styles.emptySubtitle}>
-              Попробуйте выбрать другой вид спорта или сбросить фильтры
+              {t("events.emptyCategoryText")}
             </Text>
             <Pressable
               style={styles.resetBtn}
@@ -276,7 +281,7 @@ export default function EventsScreen() {
                 setFilters(DEFAULT_EVENT_FILTERS);
               }}
             >
-              <Text style={styles.resetBtnText}>Сбросить категорию</Text>
+              <Text style={styles.resetBtnText}>{t("events.resetCategory")}</Text>
             </Pressable>
           </View>
         }

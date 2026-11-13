@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
+import { tr } from "@/lib/i18n";
 
 // Ensure handler is set
 if (Platform.OS !== "web") {
@@ -52,8 +53,8 @@ export async function notifyBookingConfirmed(
   timeSlot: string
 ): Promise<void> {
   await triggerLocalNotification(
-    "Бронь подтверждена 🎉",
-    `Арена «${arenaTitle}» подтвердила запись на ${date} (${timeSlot}). Приятной игры!`,
+    tr("push.confirmedTitle"),
+    tr("push.confirmedBody", { arena: arenaTitle, date, time: timeSlot }),
     { type: "booking_confirmed" }
   );
 }
@@ -63,8 +64,8 @@ export async function notifyBookingRejected(
   reason: string
 ): Promise<void> {
   await triggerLocalNotification(
-    "Бронь отклонена ⚠️",
-    `Арена «${arenaTitle}» отклонила бронирование. Причина: ${reason}`,
+    tr("push.rejectedTitle"),
+    tr("push.rejectedBody", { arena: arenaTitle, reason }),
     { type: "booking_rejected" }
   );
 }
@@ -74,8 +75,8 @@ export async function notifyUpcomingGame(
   timeSlot: string
 ): Promise<void> {
   await triggerLocalNotification(
-    "Напоминание об игре ⚽️",
-    `Через 2 часа у вас игра в «${arenaTitle}» (${timeSlot}). Не забудьте форму!`,
+    tr("push.reminderTitle"),
+    tr("push.reminderBody", { arena: arenaTitle, time: timeSlot }),
     { type: "upcoming_game" }
   );
 }
@@ -85,7 +86,7 @@ export async function notifyNewChatMessage(
   message: string
 ): Promise<void> {
   await triggerLocalNotification(
-    `Новое сообщение: ${senderName}`,
+    tr("push.newMessage", { name: senderName }),
     message,
     { type: "new_chat_message" }
   );

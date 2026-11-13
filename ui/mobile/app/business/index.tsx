@@ -13,7 +13,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { getSessionUser } from "@/lib/auth";
-import { plural } from "@/lib/plural";
 import { fetchMyBusiness, type BusinessArena } from "@/lib/business";
 import {
   Arena,
@@ -27,9 +26,12 @@ import {
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT } from "@/lib/i18n";
+import { cityLabel, displayDate, sportLabel, surfaceLabel } from "@/lib/dataLabels";
 
 export default function BusinessDashboardScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [user, setUser] = useState(getSessionUser());
@@ -106,14 +108,14 @@ export default function BusinessDashboardScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.badgeLabel}>
-            {user?.staffRole ? `СОТРУДНИК СМЕНЫ 🔑` : "БИЗНЕС-КАБИНЕТ"}
+            {user?.staffRole ? t("bizHome.staffBadge") : t("bizHome.badge")}
           </Text>
           <Text style={styles.arenaTitle} numberOfLines={1}>
-            {arena?.title || "Мой спорткомплекс"}
+            {arena?.title || t("bizHome.myComplex")}
           </Text>
           <View style={styles.cityRow}>
             <Ionicons name="location-sharp" size={13} color={c.primary} />
-            <Text style={styles.cityText}>{arena?.address || (arena?.city ? `г. ${arena.city}` : "Адрес не указан")}</Text>
+            <Text style={styles.cityText}>{arena?.address || (arena?.city ? t("bizHome.cityPrefix", { city: cityLabel(arena.city, t) }) : t("bizHome.noAddress"))}</Text>
             {user?.staffMemberId && (
               <View style={styles.staffActivePill}>
                 <Ionicons name="person-circle" size={13} color={c.primary} />
@@ -131,7 +133,7 @@ export default function BusinessDashboardScreen() {
           }}
         >
           <Ionicons name="eye-outline" size={18} color={c.primary} />
-          <Text style={styles.previewBtnText}>Вид для клиентов</Text>
+          <Text style={styles.previewBtnText}>{t("bizHome.clientView")}</Text>
         </Pressable>
       </View>
 
@@ -161,10 +163,10 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="cash-outline" size={20} color={c.primary} />
             </View>
             <Text style={styles.kpiValue}>
-              {todayRevenue.toLocaleString("ru-RU")} ₸
+              {formatNumber(todayRevenue)} ₸
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-              <Text style={styles.kpiTitle}>Выручка</Text>
+              <Text style={styles.kpiTitle}>{t("bizHome.revenue")}</Text>
               <Ionicons name="chevron-forward" size={10} color={c.textMuted} />
             </View>
           </Pressable>
@@ -179,8 +181,8 @@ export default function BusinessDashboardScreen() {
             <View style={[styles.kpiIconWrap, { backgroundColor: "rgba(59, 130, 246, 0.15)" }]}>
               <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
             </View>
-            <Text style={styles.kpiValue}>{bookings.length} брони</Text>
-            <Text style={styles.kpiTitle}>Заказов</Text>
+            <Text style={styles.kpiValue}>{t("bizHome.bookingsCount", { count: bookings.length })}</Text>
+            <Text style={styles.kpiTitle}>{t("bizHome.orders")}</Text>
           </Pressable>
 
           <Pressable
@@ -194,12 +196,12 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="people-outline" size={20} color="#F59E0B" />
             </View>
             <Text style={styles.kpiValue}>CRM</Text>
-            <Text style={styles.kpiTitle}>Клиенты</Text>
+            <Text style={styles.kpiTitle}>{t("bizHome.clients")}</Text>
           </Pressable>
         </View>
 
         {/* CRM & Financial Intelligence Section */}
-        <Text style={styles.sectionTitle}>Спортивная CRM и Аналитика</Text>
+        <Text style={styles.sectionTitle}>{t("bizHome.crmSection")}</Text>
         <View style={styles.actionsGrid}>
           <Pressable
             style={styles.actionCard}
@@ -212,9 +214,9 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="cash" size={24} color={c.primary} />
             </View>
             <View style={styles.actionInfo}>
-              <Text style={styles.actionTitle}>Финансы и выручка</Text>
+              <Text style={styles.actionTitle}>{t("bizHome.finance")}</Text>
               <Text style={styles.actionSubtitle}>
-                Калькуляция доходов за день/неделю/месяц, средний чек и загрузка
+                {t("bizHome.financeText")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
@@ -231,9 +233,9 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="people" size={24} color="#3B82F6" />
             </View>
             <View style={styles.actionInfo}>
-              <Text style={styles.actionTitle}>Клиентская база (CRM)</Text>
+              <Text style={styles.actionTitle}>{t("bizHome.crm")}</Text>
               <Text style={styles.actionSubtitle}>
-                Капитаны команд, постоянные игроки, LTV, звонки и WhatsApp
+                {t("bizHome.crmText")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
@@ -250,9 +252,9 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="id-card" size={24} color="#A855F7" />
             </View>
             <View style={styles.actionInfo}>
-              <Text style={styles.actionTitle}>Персонал и смены</Text>
+              <Text style={styles.actionTitle}>{t("bizHome.staff")}</Text>
               <Text style={styles.actionSubtitle}>
-                Администраторы, смены, дежурные тренеры и доступ к кассе
+                {t("bizHome.staffText")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
@@ -269,9 +271,9 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="pricetags" size={24} color="#F59E0B" />
             </View>
             <View style={styles.actionInfo}>
-              <Text style={styles.actionTitle}>Акции и маркетинг</Text>
+              <Text style={styles.actionTitle}>{t("bizHome.promo")}</Text>
               <Text style={styles.actionSubtitle}>
-                Счастливые часы (-20%), горящие слоты, управление скидками
+                {t("bizHome.promoText")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
@@ -288,9 +290,9 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="ribbon" size={24} color={c.primary} />
             </View>
             <View style={styles.actionInfo}>
-              <Text style={styles.actionTitle}>Подписка</Text>
+              <Text style={styles.actionTitle}>{t("bizHome.subscription")}</Text>
               <Text style={styles.actionSubtitle}>
-                Тариф AlanGo для бизнеса: залы, продвижение и поддержка
+                {t("bizHome.subscriptionText")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
@@ -298,7 +300,7 @@ export default function BusinessDashboardScreen() {
         </View>
 
         {/* Quick Management Shortcuts */}
-        <Text style={styles.sectionTitle}>Управление комплексом</Text>
+        <Text style={styles.sectionTitle}>{t("bizHome.manageSection")}</Text>
         <View style={styles.actionsGrid}>
           <Pressable
             style={styles.actionCard}
@@ -311,11 +313,14 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="basketball-outline" size={24} color={c.primary} />
             </View>
             <View style={styles.actionInfo}>
-              <Text style={styles.actionTitle}>Управление залами</Text>
+              <Text style={styles.actionTitle}>{t("bizHome.halls")}</Text>
               <Text style={styles.actionSubtitle}>
                 {halls.length > 0
-                  ? `${halls.length} ${plural(halls.length, ["зал", "зала", "залов"])}: ${[...new Set(halls.map((h) => h.sportType))].join(", ")}. Цены и инвентарь.`
-                  : "Залов пока нет — добавьте первый зал, вид спорта и цену."}
+                  ? t("bizHome.hallsText", {
+                      halls: t("common.hallsCount", { count: halls.length }),
+                      sports: [...new Set(halls.map((h) => sportLabel(h.sportType, t)))].join(", "),
+                    })
+                  : t("bizHome.noHalls")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
@@ -332,9 +337,9 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="time-outline" size={24} color="#3B82F6" />
             </View>
             <View style={styles.actionInfo}>
-              <Text style={styles.actionTitle}>График работы</Text>
+              <Text style={styles.actionTitle}>{t("bizHome.schedule")}</Text>
               <Text style={styles.actionSubtitle}>
-                Режим работы по дням, время и длительность слотов
+                {t("bizHome.scheduleText")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
@@ -351,9 +356,9 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="receipt-outline" size={24} color="#A855F7" />
             </View>
             <View style={styles.actionInfo}>
-              <Text style={styles.actionTitle}>Журнал броней</Text>
+              <Text style={styles.actionTitle}>{t("bizHome.bookings")}</Text>
               <Text style={styles.actionSubtitle}>
-                {bookings.length} записей: подтверждение и контакты клиентов
+                {t("bizHome.bookingsText", { count: bookings.length })}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
@@ -362,14 +367,14 @@ export default function BusinessDashboardScreen() {
 
         {/* Halls Status */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Площадки комплекса ({halls.length})</Text>
+          <Text style={styles.sectionTitle}>{t("bizHome.venues", { n: halls.length })}</Text>
           <Pressable
             onPress={() => {
               hapticSelection();
               router.push("/business/halls");
             }}
           >
-            <Text style={styles.linkText}>Настроить</Text>
+            <Text style={styles.linkText}>{t("bizHome.configure")}</Text>
           </Pressable>
         </View>
 
@@ -379,19 +384,19 @@ export default function BusinessDashboardScreen() {
             <View style={styles.hallInfo}>
               <View style={styles.hallBadgeRow}>
                 <View style={styles.sportBadge}>
-                  <Text style={styles.sportBadgeText}>{hall.sportType}</Text>
+                  <Text style={styles.sportBadgeText}>{sportLabel(hall.sportType, t)}</Text>
                 </View>
                 <View style={styles.statusDotRow}>
                   <View style={styles.statusDot} />
-                  <Text style={styles.statusText}>Свободен</Text>
+                  <Text style={styles.statusText}>{t("bizHome.free")}</Text>
                 </View>
               </View>
               <Text style={styles.hallName}>{hall.title}</Text>
               <Text style={styles.hallSurface} numberOfLines={1}>
-                {hall.surfaceType}
+                {surfaceLabel(hall.surfaceType, t)}
               </Text>
               <Text style={styles.hallPrice}>
-                {hall.pricePerHour.toLocaleString("ru-RU")} ₸ <Text style={styles.perHour}>/ час</Text>
+                {formatNumber(hall.pricePerHour)} ₸ <Text style={styles.perHour}>{t("common.perHour")}</Text>
               </Text>
             </View>
           </View>
@@ -399,14 +404,14 @@ export default function BusinessDashboardScreen() {
 
         {/* Incoming Bookings Preview */}
         <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
-          <Text style={styles.sectionTitle}>Ближайшие брони</Text>
+          <Text style={styles.sectionTitle}>{t("bizHome.upcoming")}</Text>
           <Pressable
             onPress={() => {
               hapticSelection();
               router.push("/business/bookings");
             }}
           >
-            <Text style={styles.linkText}>Все ({bookings.length})</Text>
+            <Text style={styles.linkText}>{t("home.allCount", { n: bookings.length })}</Text>
           </Pressable>
         </View>
 
@@ -429,7 +434,7 @@ export default function BusinessDashboardScreen() {
                     b.status === "confirmed" ? styles.badgeTextConfirmed : styles.badgeTextPending,
                   ]}
                 >
-                  {b.status === "confirmed" ? "Подтверждено" : "Ожидает"}
+                  {b.status === "confirmed" ? t("status.confirmed") : t("status.pending")}
                 </Text>
               </View>
             </View>
@@ -442,14 +447,14 @@ export default function BusinessDashboardScreen() {
               <View style={styles.bookingDetailItem}>
                 <Ionicons name="time-outline" size={14} color={c.textMuted} />
                 <Text style={styles.bookingDetailText}>
-                  {b.date}, {b.timeSlot}
+                  {displayDate(b.date, t)}, {b.timeSlot}
                 </Text>
               </View>
             </View>
 
             <View style={styles.bookingFooter}>
               <Text style={styles.bookingPrice}>
-                Итого: <Text style={styles.bookingPriceBold}>{b.totalPrice.toLocaleString("ru-RU")} ₸</Text>
+                {t("bizHome.total")} <Text style={styles.bookingPriceBold}>{formatNumber(b.totalPrice)} ₸</Text>
               </Text>
               {b.status !== "confirmed" && (
                 <Pressable
@@ -458,10 +463,10 @@ export default function BusinessDashboardScreen() {
                     await updateBookingStatus(b.id, "confirmed");
                     hapticSuccess();
                     loadData();
-                    Alert.alert("Подтверждено", `Бронь ${b.id} успешно подтверждена!`);
+                    Alert.alert(t("status.confirmed"), t("bizHome.confirmedText", { id: b.id }));
                   }}
                 >
-                  <Text style={styles.confirmBtnText}>Подтвердить</Text>
+                  <Text style={styles.confirmBtnText}>{t("common.confirm")}</Text>
                 </Pressable>
               )}
             </View>

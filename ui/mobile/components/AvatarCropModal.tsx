@@ -14,6 +14,7 @@ import type { PickedPhoto } from "@/lib/pickImage";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 const OUTPUT_SIZE = 640; // px, the exported square avatar's side
 const MAX_ZOOM = 3; // multiple of the "cover" fit scale
@@ -29,8 +30,10 @@ type Props = {
 // Pan-and-zoom circular cropper (ported from Vison). Drag the photo inside
 // the circular viewport, zoom with the slider, then crop exactly what's
 // visible via expo-image-manipulator. Output is a square JPEG for uploadAvatar.
-export function AvatarCropModal({ source, onCancel, onSave, title = "Фото профиля" }: Props) {
+export function AvatarCropModal({ source, onCancel, onSave, title: titleProp }: Props) {
   const c = usePalette();
+  const t = useT();
+  const title = titleProp ?? t("avatar.title");
   const styles = useThemedStyles(createStyles);
   const viewport = Math.min(280, Dimensions.get("window").width - spacing.lg * 2 - 40);
 
@@ -159,9 +162,9 @@ export function AvatarCropModal({ source, onCancel, onSave, title = "Фото п
       <View style={styles.overlay}>
         <View style={styles.card}>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.hint}>Перетащите фото и настройте масштаб</Text>
+          <Text style={styles.hint}>{t("avatar.hint")}</Text>
           {loadError ? (
-            <Text style={styles.loadError}>Не удалось обработать изображение. Выберите другое фото.</Text>
+            <Text style={styles.loadError}>{t("avatar.loadError")}</Text>
           ) : null}
 
           <View style={styles.viewportRow}>
@@ -220,14 +223,14 @@ export function AvatarCropModal({ source, onCancel, onSave, title = "Фото п
               onPress={onCancel}
               style={({ pressed }) => [styles.cancelBtn, pressed && styles.pressed]}
             >
-              <Text style={styles.cancelText}>Отмена</Text>
+              <Text style={styles.cancelText}>{t("common.cancel")}</Text>
             </Pressable>
             <Pressable
               onPress={handleSave}
               disabled={saveDisabled}
               style={({ pressed }) => [styles.saveBtn, (saveDisabled || pressed) && styles.pressed]}
             >
-              <Text style={styles.saveText}>{saving ? "Сохранение..." : "Сохранить"}</Text>
+              <Text style={styles.saveText}>{saving ? t("common.saving") : t("common.save")}</Text>
             </Pressable>
           </View>
         </View>

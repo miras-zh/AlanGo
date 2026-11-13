@@ -22,10 +22,12 @@ import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 // Account settings: personal data (moved out of the profile screen), logout
 // and account deletion (App Store Guideline 5.1.1(v)).
 export default function AccountSettingsScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -46,16 +48,16 @@ export default function AccountSettingsScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert("Укажите имя", "Имя видят администраторы площадок при бронировании.");
+      Alert.alert(t("account.nameRequiredTitle"), t("account.nameRequiredText"));
       return;
     }
     setSaving(true);
     try {
       await updateMyProfile({ name: name.trim(), phone: phone.trim(), city: city.trim() });
       hapticSuccess();
-      Alert.alert("Сохранено", "Данные аккаунта обновлены.");
+      Alert.alert(t("account.savedTitle"), t("account.savedText"));
     } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err));
+      Alert.alert(t("common.error"), getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -63,10 +65,10 @@ export default function AccountSettingsScreen() {
 
   const handleLogout = () => {
     hapticImpact();
-    Alert.alert("Выход из аккаунта", "Вы действительно хотите выйти?", [
-      { text: "Отмена", style: "cancel" },
+    Alert.alert(t("account.logoutTitle"), t("account.logoutText"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Выйти",
+        text: t("account.logout"),
         style: "destructive",
         onPress: async () => {
           await logoutCurrentSession();
@@ -79,21 +81,21 @@ export default function AccountSettingsScreen() {
   const handleDeleteAccount = () => {
     hapticImpact();
     Alert.alert(
-      "Удаление аккаунта",
-      "Аккаунт, брони и персональные данные будут удалены без возможности восстановления.",
+      t("account.deleteTitle"),
+      t("account.deleteText"),
       [
-        { text: "Отмена", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Удалить навсегда",
+          text: t("account.deleteForever"),
           style: "destructive",
           onPress: async () => {
             try {
               await deleteAccountApi();
               hapticSuccess();
-              Alert.alert("Аккаунт удалён", "Ваш аккаунт и данные удалены.");
+              Alert.alert(t("account.deletedTitle"), t("account.deletedText"));
               router.replace("/login");
             } catch (e) {
-              Alert.alert("Ошибка", getErrorMessage(e));
+              Alert.alert(t("common.error"), getErrorMessage(e));
             }
           },
         },
@@ -114,25 +116,25 @@ export default function AccountSettingsScreen() {
         >
           <Ionicons name="chevron-back" size={22} color={c.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Настройки аккаунта</Text>
+        <Text style={styles.headerTitle}>{t("account.title")}</Text>
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Персональные данные</Text>
+            <Text style={styles.sectionTitle}>{t("account.personal")}</Text>
             {user?.email ? <Text style={styles.email}>{user.email}</Text> : null}
 
-            <Text style={styles.label}>ФИО</Text>
+            <Text style={styles.label}>{t("account.fullName")}</Text>
             <TextInput
               value={name}
               onChangeText={setName}
               style={styles.input}
-              placeholder="Ваше имя"
+              placeholder={t("account.namePlaceholder")}
               placeholderTextColor={c.textSecondary}
             />
 
-            <Text style={styles.label}>Телефон</Text>
+            <Text style={styles.label}>{t("account.phone")}</Text>
             <TextInput
               value={phone}
               onChangeText={setPhone}
@@ -142,12 +144,12 @@ export default function AccountSettingsScreen() {
               keyboardType="phone-pad"
             />
 
-            <Text style={styles.label}>Город</Text>
+            <Text style={styles.label}>{t("account.city")}</Text>
             <TextInput
               value={city}
               onChangeText={setCity}
               style={styles.input}
-              placeholder="Город"
+              placeholder={t("account.city")}
               placeholderTextColor={c.textSecondary}
             />
 
@@ -159,7 +161,7 @@ export default function AccountSettingsScreen() {
               {saving ? (
                 <ActivityIndicator color={c.background} />
               ) : (
-                <Text style={styles.saveBtnText}>Сохранить изменения</Text>
+                <Text style={styles.saveBtnText}>{t("account.saveChanges")}</Text>
               )}
             </Pressable>
           </View>
@@ -167,11 +169,11 @@ export default function AccountSettingsScreen() {
           <View style={styles.card}>
             <Pressable style={styles.logoutBtn} onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={18} color={c.textPrimary} />
-              <Text style={styles.logoutText}>Выйти из аккаунта</Text>
+              <Text style={styles.logoutText}>{t("account.logoutFull")}</Text>
             </Pressable>
             <Pressable style={styles.deleteBtn} onPress={handleDeleteAccount}>
               <Ionicons name="trash-outline" size={17} color={c.error} />
-              <Text style={styles.deleteText}>Удалить аккаунт</Text>
+              <Text style={styles.deleteText}>{t("account.delete")}</Text>
             </Pressable>
           </View>
         </ScrollView>

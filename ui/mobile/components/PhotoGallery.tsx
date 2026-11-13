@@ -17,6 +17,7 @@ import { hapticSelection } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 type Props = {
   photos: string[];
@@ -30,6 +31,7 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 // Swipeable hall photo gallery with a page counter; tap opens full screen.
 export function PhotoGallery({ photos, height, overlay }: Props) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
@@ -44,7 +46,7 @@ export function PhotoGallery({ photos, height, overlay }: Props) {
     return (
       <View style={[styles.empty, { height }]}>
         <Ionicons name="images-outline" size={40} color={c.textSecondary} />
-        <Text style={styles.emptyText}>Фото зала пока не добавлены</Text>
+        <Text style={styles.emptyText}>{t("gallery.empty")}</Text>
         {overlay}
       </View>
     );

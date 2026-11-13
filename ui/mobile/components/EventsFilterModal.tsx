@@ -13,6 +13,7 @@ import { EventFilterState, EventType } from "@/lib/eventsData";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT, type MessageKey } from "@/lib/i18n";
 
 interface EventsFilterModalProps {
   visible: boolean;
@@ -23,18 +24,18 @@ interface EventsFilterModalProps {
   onReset: () => void;
 }
 
-const EVENT_TYPES: { id: EventType; label: string }[] = [
-  { id: "all", label: "Все форматы" },
-  { id: "tournament", label: "Турниры" },
-  { id: "open_game", label: "Открытые игры" },
-  { id: "master_class", label: "Мастер-классы" },
+const EVENT_TYPES: { id: EventType; label: MessageKey }[] = [
+  { id: "all", label: "events.formatAll" },
+  { id: "tournament", label: "events.tournaments" },
+  { id: "open_game", label: "events.openGames" },
+  { id: "master_class", label: "events.masterClasses" },
 ];
 
-const PRICE_RANGES: { id: EventFilterState["priceRange"]; label: string }[] = [
-  { id: "all", label: "Любая цена" },
-  { id: "under5", label: "До 5 000 ₸" },
-  { id: "5to15", label: "5 000 — 15 000 ₸" },
-  { id: "above15", label: "От 15 000 ₸" },
+const PRICE_RANGES: { id: EventFilterState["priceRange"]; label: MessageKey }[] = [
+  { id: "all", label: "price.any" },
+  { id: "under5", label: "price.under5" },
+  { id: "5to15", label: "price.5to15" },
+  { id: "above15", label: "price.above15" },
 ];
 
 export function EventsFilterModal({
@@ -46,6 +47,7 @@ export function EventsFilterModal({
   onReset,
 }: EventsFilterModalProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [draft, setDraft] = useState<EventFilterState>(filters);
 
@@ -85,29 +87,29 @@ export function EventsFilterModal({
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Фильтры событий</Text>
+            <Text style={styles.headerTitle}>{t("events.filtersTitle")}</Text>
             <Pressable hitSlop={8} onPress={handleReset}>
-              <Text style={styles.resetText}>Сбросить</Text>
+              <Text style={styles.resetText}>{t("filters.reset")}</Text>
             </Pressable>
           </View>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* 1. Format / Type */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Формат события</Text>
+              <Text style={styles.sectionLabel}>{t("events.format")}</Text>
               <View style={styles.chipsRow}>
-                {EVENT_TYPES.map((t) => {
-                  const selected = draft.eventType === t.id;
+                {EVENT_TYPES.map((type) => {
+                  const selected = draft.eventType === type.id;
                   return (
                     <Pressable
-                      key={t.id}
+                      key={type.id}
                       style={[
                         styles.chip,
                         selected && styles.chipSelected,
                       ]}
                       onPress={() => {
                         hapticSelection();
-                        setDraft((prev) => ({ ...prev, eventType: t.id }));
+                        setDraft((prev) => ({ ...prev, eventType: type.id }));
                       }}
                     >
                       <Text
@@ -116,7 +118,7 @@ export function EventsFilterModal({
                           selected && styles.chipTextSelected,
                         ]}
                       >
-                        {t.label}
+                        {t(type.label)}
                       </Text>
                     </Pressable>
                   );
@@ -126,7 +128,7 @@ export function EventsFilterModal({
 
             {/* 2. Price Range */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Стоимость участия</Text>
+              <Text style={styles.sectionLabel}>{t("events.participationCost")}</Text>
               <View style={styles.chipsRow}>
                 {PRICE_RANGES.map((pr) => {
                   const selected = draft.priceRange === pr.id;
@@ -148,7 +150,7 @@ export function EventsFilterModal({
                           selected && styles.chipTextSelected,
                         ]}
                       >
-                        {pr.label}
+                        {t(pr.label)}
                       </Text>
                     </Pressable>
                   );
@@ -169,8 +171,8 @@ export function EventsFilterModal({
                 }}
               >
                 <View>
-                  <Text style={styles.toggleTitle}>Только со свободными местами</Text>
-                  <Text style={styles.toggleSub}>Скрыть события, где запись завершена</Text>
+                  <Text style={styles.toggleTitle}>{t("events.onlyFree")}</Text>
+                  <Text style={styles.toggleSub}>{t("events.onlyFreeText")}</Text>
                 </View>
                 <View
                   style={[
@@ -196,7 +198,7 @@ export function EventsFilterModal({
               onPress={handleApply}
             >
               <Text style={styles.applyBtnText}>
-                Показать результаты ({matchedCount})
+                {t("events.showResults", { n: matchedCount })}
               </Text>
             </Pressable>
           </View>

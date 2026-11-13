@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Booking, Hall, getOwnArenaBookings, getStoredHalls } from "@/lib/sportRentData";
+import { tr } from "@/lib/i18n";
 
 export interface ClientProfile {
   id: string;
@@ -212,7 +213,7 @@ export async function getClientProfiles(arenaId: number): Promise<ClientProfile[
     } else {
       clientMap.set(phone, {
         id: `client-${phone.replace(/[^\d]/g, "")}`,
-        name: b.clientName || "Клиент",
+        name: b.clientName || tr("user.client"),
         phone,
         totalBookings: 1,
         totalSpent: b.totalPrice,

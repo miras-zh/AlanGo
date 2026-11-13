@@ -41,16 +41,26 @@ import {
 } from "@/lib/pushNotificationsService";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT, type MessageKey } from "@/lib/i18n";
+import { displayDate } from "@/lib/dataLabels";
 
+// Internal filter ids (Russian) → display keys.
 const STATUS_FILTERS = ["Все", "Подтверждено", "В ожидании", "Отменено / Отклонено"];
+const STATUS_FILTER_LABEL: Record<string, MessageKey> = {
+  "Все": "bookings.filterAll",
+  "Подтверждено": "bookings.filterConfirmed",
+  "В ожидании": "bookings.filterPending",
+  "Отменено / Отклонено": "bookings.filterCancelled",
+};
 
-const OUTCOME_LABELS: Record<string, { label: string; color: string }> = {
-  completed: { label: "Игра состоялась ⚽️", color: "#00C968" },
-  no_show: { label: "Неявка / Срыв ❌", color: "#EF4444" },
+const OUTCOME_LABELS: Record<string, { label: MessageKey; color: string }> = {
+  completed: { label: "bookings.outcomeCompleted", color: "#00C968" },
+  no_show: { label: "bookings.outcomeNoShow", color: "#EF4444" },
 };
 
 export default function BusinessBookingsScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [halls, setHalls] = useState<Hall[]>([]);
@@ -68,7 +78,7 @@ export default function BusinessBookingsScreen() {
 
   const user = getSessionUser();
   const { arenaId, loading: arenaLoading } = useMyArenaId();
-  const arenaTitle = user?.name || "Арена";
+  const arenaTitle = user?.name || t("chat.arenaFallback");
 
   const loadData = useCallback(async () => {
     if (arenaLoading) return;
@@ -104,14 +114,14 @@ export default function BusinessBookingsScreen() {
       hapticSuccess();
     } catch (err) {
       setBookings((list) => list.map((b) => (b.id === booking.id ? { ...b, clientRating: prev } : b)));
-      Alert.alert("Не удалось сохранить оценку", getErrorMessage(err));
+      Alert.alert(t("bookings.rateError"), getErrorMessage(err));
     }
   };
 
   const handleSavePayment = async (bookingId: string, paidAmount: number) => {
     await updateBookingPayment(bookingId, paidAmount);
     await loadData();
-    Alert.alert("Оплата обновлена", `Внесено: ${paidAmount.toLocaleString("ru-RU")} ₸`);
+    Alert.alert(t("bookings.paymentUpdated"), t("bookings.paidAmount", { price: formatNumber(paidAmount) }));
   };
 
   const handleSaveBookingEdit = async (
@@ -120,7 +130,7 @@ export default function BusinessBookingsScreen() {
   ) => {
     await updateBookingDetails(bookingId, updates);
     await loadData();
-    Alert.alert("Сохранено", "Данные бронирования успешно обновлены.");
+    Alert.alert(t("account.savedTitle"), t("bookings.updated"));
   };
 
   const filteredBookings = bookings.filter((b) => {
@@ -149,15 +159,15 @@ export default function BusinessBookingsScreen() {
     }
     await loadData();
     Alert.alert(
-      status === "confirmed" ? "Бронь подтверждена 🎉" : "Бронь отменена",
-      `Статус бронирования ${id} успешно изменен.`
+      status === "confirmed" ? t("bookings.confirmedTitle") : t("bookings.cancelledTitle"),
+      t("bookings.statusChanged", { id })
     );
   };
 
   const handleCall = (phone: string) => {
     hapticSelection();
     Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`).catch(() => {
-      Alert.alert("Звонок", `Номер телефона клиента: ${phone}`);
+      Alert.alert(t("chat.call"), t("bookings.clientPhone", { phone }));
     });
   };
 
@@ -178,7 +188,7 @@ export default function BusinessBookingsScreen() {
     await rejectBookingWithReason(rejectTarget.id, reason);
     setRejectTarget(null);
     await loadData();
-    Alert.alert("Бронь отклонена", `Причина: ${reason}`);
+    Alert.alert(t("bookings.rejectedTitle"), t("bookings.reason", { reason }));
   };
 
   const handleOutcomeChange = async (
@@ -195,9 +205,9 @@ export default function BusinessBookingsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Управление бронями</Text>
+          <Text style={styles.headerTitle}>{t("bookings.title")}</Text>
           <Text style={styles.headerSubtitle}>
-            Календарь, каскады и запись ({bookings.length})
+            {t("bookings.subtitle", { n: bookings.length })}
           </Text>
         </View>
 
@@ -209,7 +219,7 @@ export default function BusinessBookingsScreen() {
           }}
         >
           <Ionicons name="add" size={18} color={c.background} />
-          <Text style={styles.addBtnText}>Записать</Text>
+          <Text style={styles.addBtnText}>{t("bookings.add")}</Text>
         </Pressable>
       </View>
 
@@ -233,7 +243,7 @@ export default function BusinessBookingsScreen() {
               screenMode === "calendar" && styles.modeTabTextActive,
             ]}
           >
-            Календарь (3-в-1)
+            {t("bookings.calendarTab")}
           </Text>
         </Pressable>
 
@@ -255,7 +265,7 @@ export default function BusinessBookingsScreen() {
               screenMode === "list" && styles.modeTabTextActive,
             ]}
           >
-            Список ({bookings.length})
+            {t("bookings.listTab", { n: bookings.length })}
           </Text>
         </Pressable>
       </View>
@@ -302,7 +312,7 @@ export default function BusinessBookingsScreen() {
                         active && styles.filterChipTextActive,
                       ]}
                     >
-                      {f}
+                      {t(STATUS_FILTER_LABEL[f])}
                     </Text>
                   </Pressable>
                 );
@@ -328,12 +338,12 @@ export default function BusinessBookingsScreen() {
               <View style={styles.emptyWrap}>
                 <Ionicons name="calendar-outline" size={48} color={c.border} />
                 <Text style={styles.emptyTitle}>
-                  {bookings.length === 0 ? "Пока нет броней" : "Нет броней"}
+                  {bookings.length === 0 ? t("bookings.emptyAll") : t("bookings.empty")}
                 </Text>
                 <Text style={styles.emptySub}>
                   {bookings.length === 0
-                    ? "Брони клиентов появятся здесь. Добавьте залы и цены, чтобы вашу площадку могли забронировать."
-                    : "В этой категории пока нет бронирований."}
+                    ? t("bookings.emptyAllText")
+                    : t("bookings.emptyText")}
                 </Text>
               </View>
             }
@@ -381,12 +391,12 @@ export default function BusinessBookingsScreen() {
                         ]}
                       >
                         {isConfirmed
-                          ? "Подтверждено"
+                          ? t("status.confirmed")
                           : isPending
-                          ? "В ожидании"
+                          ? t("bookings.filterPending")
                           : isRejected
-                          ? "Отклонено"
-                          : "Отменено"}
+                          ? t("status.rejected")
+                          : t("status.cancelled")}
                       </Text>
                     </View>
                   </View>
@@ -400,7 +410,7 @@ export default function BusinessBookingsScreen() {
                     <View style={styles.infoRow}>
                       <Ionicons name="time-outline" size={14} color={c.primary} />
                       <Text style={styles.slotTime}>
-                        {item.date}, {item.timeSlot} ({item.durationMinutes} мин)
+                        {t("bookings.slotLine", { date: displayDate(item.date, t), time: item.timeSlot, n: item.durationMinutes })}
                       </Text>
                     </View>
 
@@ -445,15 +455,15 @@ export default function BusinessBookingsScreen() {
                           ]}
                         >
                           {isPaid100
-                            ? `Оплачено 100% (${total.toLocaleString("ru-RU")} ₸)`
+                            ? t("bookings.paidFull", { price: formatNumber(total) })
                             : isPartial
-                            ? `Предоплата: ${paid.toLocaleString("ru-RU")} ₸ (остаток ${remaining.toLocaleString("ru-RU")} ₸)`
-                            : `Не оплачено (${total.toLocaleString("ru-RU")} ₸)`}
+                            ? t("bookings.prepaid", { paid: formatNumber(paid), remaining: formatNumber(remaining) })
+                            : t("bookings.notPaid", { price: formatNumber(total) })}
                         </Text>
                       </View>
                       <View style={styles.paymentEditTag}>
                         <Ionicons name="card" size={12} color={c.textSecondary} />
-                        <Text style={styles.paymentEditText}>Оплата</Text>
+                        <Text style={styles.paymentEditText}>{t("bookings.payment")}</Text>
                       </View>
                     </Pressable>
 
@@ -461,7 +471,7 @@ export default function BusinessBookingsScreen() {
                       <View style={styles.reasonBox}>
                         <Ionicons name="alert-circle" size={14} color={c.error} />
                         <Text style={styles.reasonText}>
-                          Причина: {item.rejectionReason}
+                          {t("bookings.reason", { reason: item.rejectionReason })}
                         </Text>
                       </View>
                     )}
@@ -474,7 +484,7 @@ export default function BusinessBookingsScreen() {
                             { color: OUTCOME_LABELS[item.gameOutcome].color },
                           ]}
                         >
-                          {OUTCOME_LABELS[item.gameOutcome].label}
+                          {t(OUTCOME_LABELS[item.gameOutcome].label)}
                         </Text>
                       </View>
                     )}
@@ -482,9 +492,9 @@ export default function BusinessBookingsScreen() {
 
                   <View style={styles.cardFooter}>
                     <View>
-                      <Text style={styles.priceLabel}>Стоимость</Text>
+                      <Text style={styles.priceLabel}>{t("bookings.cost")}</Text>
                       <Text style={styles.priceValue}>
-                        {item.totalPrice.toLocaleString("ru-RU")} ₸
+                        {formatNumber(item.totalPrice)} ₸
                       </Text>
                     </View>
 
@@ -497,7 +507,7 @@ export default function BusinessBookingsScreen() {
                         }}
                       >
                         <Ionicons name="create-outline" size={15} color={c.primary} />
-                        <Text style={styles.editBtnText}>Изменить</Text>
+                        <Text style={styles.editBtnText}>{t("bizProfile.edit")}</Text>
                       </Pressable>
 
                       <Pressable
@@ -513,7 +523,7 @@ export default function BusinessBookingsScreen() {
                           onPress={() => handleStatusChange(item.id, "confirmed")}
                         >
                           <Ionicons name="checkmark" size={16} color={c.background} />
-                          <Text style={styles.confirmBtnText}>Принять</Text>
+                          <Text style={styles.confirmBtnText}>{t("bookings.accept")}</Text>
                         </Pressable>
                       )}
 
@@ -534,7 +544,7 @@ export default function BusinessBookingsScreen() {
                   {item.userId && item.dbId && isBookingFinished(item) ? (
                     <View style={styles.rateRow}>
                       <Text style={styles.rateLabel}>
-                        {item.clientRating ? "Оценка клиента" : "Оцените клиента"}
+                        {item.clientRating ? t("bookings.clientRating") : t("bookings.rateClient")}
                       </Text>
                       <View style={styles.rateStars}>
                         {[1, 2, 3, 4, 5].map((n) => (

@@ -2,9 +2,11 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Platform, StyleSheet } from "react-native";
 import { usePalette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 export default function BusinessTabsLayout() {
   const c = usePalette();
+  const t = useT();
   return (
     <Tabs
       screenOptions={{
@@ -28,7 +30,7 @@ export default function BusinessTabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Моя Арена",
+          title: t("bizTabs.arena"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "business" : "business-outline"}
@@ -41,7 +43,7 @@ export default function BusinessTabsLayout() {
       <Tabs.Screen
         name="halls"
         options={{
-          title: "Залы",
+          title: t("bizTabs.halls"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "layers" : "layers-outline"}
@@ -54,7 +56,7 @@ export default function BusinessTabsLayout() {
       <Tabs.Screen
         name="schedule"
         options={{
-          title: "График",
+          title: t("bizTabs.schedule"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "time" : "time-outline"}
@@ -67,7 +69,7 @@ export default function BusinessTabsLayout() {
       <Tabs.Screen
         name="bookings"
         options={{
-          title: "Брони",
+          title: t("bizTabs.bookings"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "calendar" : "calendar-outline"}
@@ -80,7 +82,7 @@ export default function BusinessTabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Профиль",
+          title: t("bizTabs.profile"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "person" : "person-outline"}
@@ -95,35 +97,35 @@ export default function BusinessTabsLayout() {
         name="income"
         options={{
           href: null,
-          title: "Выручка",
+          title: t("bizTabs.income"),
         }}
       />
       <Tabs.Screen
         name="clients"
         options={{
           href: null,
-          title: "Клиенты",
+          title: t("bizTabs.clients"),
         }}
       />
       <Tabs.Screen
         name="staff"
         options={{
           href: null,
-          title: "Персонал",
+          title: t("bizTabs.staff"),
         }}
       />
       <Tabs.Screen
         name="promotions"
         options={{
           href: null,
-          title: "Акции и скидки",
+          title: t("bizTabs.promotions"),
         }}
       />
       <Tabs.Screen
         name="subscription"
         options={{
           href: null,
-          title: "Подписка",
+          title: t("bizTabs.subscription"),
         }}
       />
     </Tabs>

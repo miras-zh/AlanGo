@@ -20,8 +20,10 @@ import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 export default function LoginScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const { colors } = useAppTheme();
@@ -32,7 +34,7 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     const trimmed = email.trim();
     if (!trimmed || !password) {
-      Alert.alert("Ошибка", "Введите email и пароль");
+      Alert.alert(t("common.error"), t("login.enterEmailPassword"));
       return;
     }
     setLoading(true);
@@ -45,7 +47,7 @@ export default function LoginScreen() {
         router.replace("/(tabs)");
       }
     } catch (err) {
-      Alert.alert("Ошибка входа", getErrorMessage(err));
+      Alert.alert(t("login.errorTitle"), getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -81,9 +83,9 @@ export default function LoginScreen() {
             style={styles.headerLogo}
             resizeMode="contain"
           />
-          <Text style={styles.title}>Вход в Alan Go</Text>
+          <Text style={styles.title}>{t("login.title")}</Text>
           <Text style={styles.subtitle}>
-            Войдите в свой аккаунт, чтобы бронировать площадки и участвовать в событиях
+            {t("login.subtitle")}
           </Text>
         </View>
 
@@ -100,9 +102,9 @@ export default function LoginScreen() {
             style={styles.input}
           />
 
-          <Text style={styles.label}>Пароль</Text>
+          <Text style={styles.label}>{t("login.password")}</Text>
           <PasswordInput
-            placeholder="Введите пароль"
+            placeholder={t("login.passwordPlaceholder")}
             placeholderTextColor={c.textMuted}
             value={password}
             onChangeText={setPassword}
@@ -114,7 +116,7 @@ export default function LoginScreen() {
             style={styles.primaryBtn}
           >
             <Text style={styles.primaryBtnText}>
-              {loading ? "Авторизация..." : "Войти"}
+              {loading ? t("login.submitting") : t("login.submit")}
             </Text>
           </Pressable>
 
@@ -125,8 +127,8 @@ export default function LoginScreen() {
             style={styles.registerLinkWrap}
           >
             <Text style={styles.registerLinkText}>
-              Впервые в AlanGo?{" "}
-              <Text style={styles.registerLinkAccent}>Создать аккаунт</Text>
+              {t("login.noAccount")}{" "}
+              <Text style={styles.registerLinkAccent}>{t("login.createAccount")}</Text>
             </Text>
           </Pressable>
         </View>

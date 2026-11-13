@@ -1,5 +1,6 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { usePalette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 // iOS tab bar: the system UITabBar (Expo Router NativeTabs). On iOS 26+ the
 // OS draws it in Liquid Glass — a floating glass bar with a glass lens that
@@ -11,28 +12,29 @@ import { usePalette } from "@/theme/palette";
 // a visible tab here.
 export default function TabsLayout() {
   const c = usePalette();
+  const t = useT();
   return (
     <NativeTabs tintColor={c.primary}>
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Главная</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>{t("tabs.home")}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: "house", selected: "house.fill" }} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="items">
-        <NativeTabs.Trigger.Label>Залы</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>{t("tabs.halls")}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: "sportscourt", selected: "sportscourt.fill" }} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="events">
-        <NativeTabs.Trigger.Label>События</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>{t("tabs.events")}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: "trophy", selected: "trophy.fill" }} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="notifications">
-        <NativeTabs.Trigger.Label>Чат</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>{t("tabs.chat")}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf={{ default: "bubble.left.and.bubble.right", selected: "bubble.left.and.bubble.right.fill" }}
         />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
-        <NativeTabs.Trigger.Label>Профиль</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>{t("tabs.profile")}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: "person", selected: "person.fill" }} />
       </NativeTabs.Trigger>
     </NativeTabs>

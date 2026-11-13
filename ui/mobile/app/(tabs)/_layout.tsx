@@ -1,7 +1,9 @@
 import { Tabs } from "expo-router";
 import { LiquidGlassTabBar } from "@/components/LiquidGlassTabBar";
+import { useT } from "@/lib/i18n";
 
 export default function TabsLayout() {
+  const t = useT();
   return (
     <Tabs
       tabBar={(props) => <LiquidGlassTabBar {...props} />}
@@ -12,31 +14,31 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Главная",
+          title: t("tabs.home"),
         }}
       />
       <Tabs.Screen
         name="items"
         options={{
-          title: "Залы",
+          title: t("tabs.halls"),
         }}
       />
       <Tabs.Screen
         name="events"
         options={{
-          title: "События",
+          title: t("tabs.events"),
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
-          title: "Чат",
+          title: t("tabs.chat"),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Профиль",
+          title: t("tabs.profile"),
         }}
       />
     </Tabs>

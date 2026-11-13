@@ -55,8 +55,8 @@ export default function RegisterScreen() {
 
     if (!trimmedName || !trimmedEmail || password.length < 8) {
       Alert.alert(
-        "Ошибка",
-        "Заполните имя, корректный email и пароль (минимум 8 символов, содержащий буквы и цифры)"
+        t("common.error"),
+        t("register.fillForm")
       );
       return;
     }
@@ -73,7 +73,7 @@ export default function RegisterScreen() {
       setStep("code");
       setCooldown(60);
     } catch (err) {
-      Alert.alert("Ошибка регистрации", getErrorMessage(err));
+      Alert.alert(t("register.errorTitle"), getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -82,7 +82,7 @@ export default function RegisterScreen() {
   const handleVerifyCode = async () => {
     const trimmedCode = code.trim();
     if (trimmedCode.length < 4) {
-      Alert.alert("Ошибка", "Введите полученный из письма код");
+      Alert.alert(t("common.error"), t("register.enterCode"));
       return;
     }
 
@@ -90,14 +90,14 @@ export default function RegisterScreen() {
     try {
       await verifyRegistration(regToken, trimmedCode);
       hapticSuccess();
-      Alert.alert("Успешно! 🎉", "Добро пожаловать в AlanGo!", [
+      Alert.alert(t("register.successTitle"), t("register.successText"), [
         {
-          text: "Начать",
+          text: t("register.start"),
           onPress: () => router.replace("/(tabs)"),
         },
       ]);
     } catch (err) {
-      Alert.alert("Ошибка подтверждения", getErrorMessage(err));
+      Alert.alert(t("register.verifyErrorTitle"), getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -111,9 +111,9 @@ export default function RegisterScreen() {
       await resendRegistrationCode(regToken);
       hapticSuccess();
       setCooldown(60);
-      Alert.alert("Отправлено", "Новый код подтверждения отправлен на вашу почту");
+      Alert.alert(t("register.sentTitle"), t("register.sentText"));
     } catch (err) {
-      Alert.alert("Ошибка", getErrorMessage(err));
+      Alert.alert(t("common.error"), getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -142,23 +142,23 @@ export default function RegisterScreen() {
             <Ionicons name="chevron-back" size={24} color={c.textPrimary} />
           </Pressable>
           <Text style={styles.stepIndicator}>
-            {step === "form" ? "Шаг 1 из 2" : "Шаг 2 из 2"}
+            {t("register.step", { n: step === "form" ? 1 : 2 })}
           </Text>
         </View>
 
         {step === "form" ? (
           <>
-            <Text style={styles.title}>Создать аккаунт</Text>
+            <Text style={styles.title}>{t("register.title")}</Text>
             <Text style={styles.subtitle}>
-              Введите данные для регистрации. Мы отправим код подтверждения на ваш email.
+              {t("register.subtitle")}
             </Text>
 
             <View style={styles.form}>
-              <Text style={styles.fieldLabel}>Ваше имя</Text>
+              <Text style={styles.fieldLabel}>{t("register.name")}</Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Иван Иванов"
+                placeholder={t("register.namePlaceholder")}
                 placeholderTextColor={c.textMuted}
                 style={styles.input}
               />
@@ -174,11 +174,11 @@ export default function RegisterScreen() {
                 style={styles.input}
               />
 
-              <Text style={styles.fieldLabel}>Пароль</Text>
+              <Text style={styles.fieldLabel}>{t("login.password")}</Text>
               <PasswordInput
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Минимум 8 символов, буквы и цифры"
+                placeholder={t("register.passwordPlaceholder")}
               />
 
               <Pressable
@@ -187,7 +187,7 @@ export default function RegisterScreen() {
                 style={styles.primaryBtn}
               >
                 <Text style={styles.primaryBtnText}>
-                  {loading ? "Отправка кода..." : "Получить код на email"}
+                  {loading ? t("register.sendingCode") : t("register.getCode")}
                 </Text>
               </Pressable>
 
@@ -196,8 +196,8 @@ export default function RegisterScreen() {
 
             <Pressable onPress={() => router.replace("/login")} style={styles.switchBtn}>
               <Text style={{ color: c.textSecondary, fontSize: 14 }}>
-                Уже есть аккаунт?{" "}
-                <Text style={{ color: c.primary, fontWeight: "700" }}>Войти</Text>
+                {t("register.haveAccount")}{" "}
+                <Text style={{ color: c.primary, fontWeight: "700" }}>{t("login.submit")}</Text>
               </Text>
             </Pressable>
           </>
@@ -207,14 +207,14 @@ export default function RegisterScreen() {
               <Ionicons name="mail-open-outline" size={36} color={c.primary} />
             </View>
 
-            <Text style={styles.title}>Введите код</Text>
+            <Text style={styles.title}>{t("register.codeTitle")}</Text>
             <Text style={styles.subtitle}>
-              Мы отправили 6-значный код подтверждения на почту{"\n"}
+              {t("register.codeSent")}{"\n"}
               <Text style={{ color: c.primary, fontWeight: "700" }}>{email}</Text>
             </Text>
 
             <View style={styles.form}>
-              <Text style={styles.fieldLabel}>Код из письма</Text>
+              <Text style={styles.fieldLabel}>{t("register.codeLabel")}</Text>
               <TextInput
                 value={code}
                 onChangeText={(val) => {
@@ -238,18 +238,18 @@ export default function RegisterScreen() {
                 ]}
               >
                 <Text style={styles.primaryBtnText}>
-                  {loading ? "Проверка..." : "Подтвердить и войти"}
+                  {loading ? t("register.checking") : t("register.confirmAndLogin")}
                 </Text>
               </Pressable>
 
               <View style={styles.resendRow}>
                 {cooldown > 0 ? (
                   <Text style={styles.cooldownText}>
-                    Отправить повторно через {cooldown} сек
+                    {t("register.resendIn", { n: cooldown })}
                   </Text>
                 ) : (
                   <Pressable onPress={handleResendCode} disabled={loading}>
-                    <Text style={styles.resendBtnText}>Отправить код повторно</Text>
+                    <Text style={styles.resendBtnText}>{t("register.resend")}</Text>
                   </Pressable>
                 )}
               </View>
@@ -259,7 +259,7 @@ export default function RegisterScreen() {
                 style={styles.changeEmailBtn}
               >
                 <Ionicons name="pencil-outline" size={14} color={c.textSecondary} />
-                <Text style={styles.changeEmailText}>Изменить email адрес</Text>
+                <Text style={styles.changeEmailText}>{t("register.changeEmail")}</Text>
               </Pressable>
             </View>
           </>

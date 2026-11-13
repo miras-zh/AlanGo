@@ -1,3 +1,5 @@
+import { monthGenitive, sportLabel } from "@/lib/dataLabels";
+import { formatNumber, type MessageKey, type TFunction } from "@/lib/i18n";
 export type SportCategoryId =
   | "all"
   | "football"
@@ -26,16 +28,50 @@ export interface SportEvent {
 
 export const SPORT_CATEGORIES: {
   id: SportCategoryId;
-  label: string;
+  label: MessageKey;
   iconName: string;
 }[] = [
-  { id: "all", label: "Все", iconName: "apps-outline" },
-  { id: "football", label: "Футбол", iconName: "football-outline" },
-  { id: "tennis", label: "Теннис", iconName: "tennisball-outline" },
-  { id: "basketball", label: "Баскетбол", iconName: "basketball-outline" },
-  { id: "padel", label: "Падл", iconName: "disc-outline" },
-  { id: "other", label: "Другое", iconName: "ellipsis-horizontal" },
+  { id: "all", label: "sport.all", iconName: "apps-outline" },
+  { id: "football", label: "sport.football", iconName: "football-outline" },
+  { id: "tennis", label: "sport.tennis", iconName: "tennisball-outline" },
+  { id: "basketball", label: "sport.basketball", iconName: "basketball-outline" },
+  { id: "padel", label: "sport.padel", iconName: "disc-outline" },
+  { id: "other", label: "sport.other", iconName: "ellipsis-horizontal" },
 ];
+
+// Demo events keep Russian strings (date "14 Ноября", category, price); these
+// helpers render them in the selected language.
+const RU_MONTHS_GEN = [
+  "января", "февраля", "марта", "апреля", "мая", "июня",
+  "июля", "августа", "сентября", "октября", "ноября", "декабря",
+];
+
+export function eventCategory(ev: SportEvent, t: TFunction): string {
+  return sportLabel(ev.categoryLabel, t);
+}
+
+export function eventDate(ev: SportEvent, t: TFunction): string {
+  const m = /^(\d{1,2})\s+(\S+)/.exec(ev.date);
+  const month = m ? RU_MONTHS_GEN.indexOf(m[2].toLowerCase()) : -1;
+  return m && month >= 0 ? t("date.dayMonth", { day: m[1], month: monthGenitive(month, t) }) : ev.date;
+}
+
+export function eventPrice(ev: SportEvent, t: TFunction): string {
+  const price = formatNumber(ev.rawPrice);
+  if (ev.price.includes("команда")) return t("events.perTeam", { price });
+  if (ev.price.includes("игрок")) return t("events.perPlayer", { price });
+  return t("events.price", { price });
+}
+
+export function eventDetails(ev: SportEvent, t: TFunction): string {
+  return t("events.details", {
+    category: eventCategory(ev, t),
+    date: eventDate(ev, t),
+    time: ev.time,
+    location: ev.location,
+    price: eventPrice(ev, t),
+  });
+}
 
 export const INITIAL_EVENTS: SportEvent[] = [
   {

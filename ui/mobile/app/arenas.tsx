@@ -17,18 +17,19 @@ import { ArenaCard, arenaMinPrice } from "@/components/ArenaCard";
 import { StandaloneTabBar } from "@/components/LiquidGlassTabBar";
 import { ArenaWithHalls, getArenasWithHalls } from "@/lib/sportRentData";
 import { getSelectedCity } from "@/lib/cities";
-import { plural } from "@/lib/plural";
 import { hapticSelection } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT, type MessageKey } from "@/lib/i18n";
+import { cityLabel, sportLabel } from "@/lib/dataLabels";
 
 const SPORTS = ["Все", "Футбол", "Мини-футбол", "Баскетбол", "Волейбол", "Теннис", "Сквош и падл", "Хоккей"];
 
 const SORTS = [
-  { key: "rating", label: "Рейтинг" },
-  { key: "halls", label: "Больше залов" },
-  { key: "price", label: "Дешевле" },
+  { key: "rating", label: "arenas.sortRating" as MessageKey },
+  { key: "halls", label: "arenas.sortHalls" as MessageKey },
+  { key: "price", label: "arenas.sortPrice" as MessageKey },
 ] as const;
 type SortKey = (typeof SORTS)[number]["key"];
 
@@ -36,6 +37,7 @@ type SortKey = (typeof SORTS)[number]["key"];
 // a whole venue with several halls inside.
 export default function ArenasScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const params = useLocalSearchParams<{ sport?: string }>();
@@ -96,10 +98,10 @@ export default function ArenasScreen() {
           <Ionicons name="chevron-back" size={22} color={c.textPrimary} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Спорткомплексы</Text>
+          <Text style={styles.headerTitle}>{t("arenas.title")}</Text>
           <Text style={styles.headerSub} numberOfLines={1}>
-            {city ? `г. ${city} · ` : ""}
-            {visible.length} {plural(visible.length, ["комплекс", "комплекса", "комплексов"])}
+            {city ? t("arenas.cityPrefix", { city: cityLabel(city, t) }) : ""}
+            {t("arenas.count", { count: visible.length })}
           </Text>
         </View>
       </View>
@@ -125,7 +127,7 @@ export default function ArenasScreen() {
               <TextInput
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Название или адрес"
+                placeholder={t("arenas.searchPlaceholder")}
                 placeholderTextColor={c.textSecondary}
                 style={styles.searchInput}
               />
@@ -142,13 +144,13 @@ export default function ArenasScreen() {
                       setSport(s);
                     }}
                   >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{s}</Text>
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{sportLabel(s, t)}</Text>
                   </Pressable>
                 );
               })}
             </ScrollView>
             <View style={styles.sortRow}>
-              <Text style={styles.sortLabel}>Сортировка:</Text>
+              <Text style={styles.sortLabel}>{t("arenas.sortLabel")}</Text>
               {SORTS.map((o) => {
                 const active = o.key === sort;
                 return (
@@ -160,7 +162,7 @@ export default function ArenasScreen() {
                       setSort(o.key);
                     }}
                   >
-                    <Text style={[styles.sortOption, active && styles.sortOptionActive]}>{o.label}</Text>
+                    <Text style={[styles.sortOption, active && styles.sortOptionActive]}>{t(o.label)}</Text>
                   </Pressable>
                 );
               })}
@@ -174,8 +176,8 @@ export default function ArenasScreen() {
           ) : (
             <View style={styles.empty}>
               <Ionicons name="business-outline" size={44} color={c.border} />
-              <Text style={styles.emptyTitle}>Спорткомплексы не найдены</Text>
-              <Text style={styles.emptySub}>Попробуйте другой вид спорта или запрос.</Text>
+              <Text style={styles.emptyTitle}>{t("arenas.empty")}</Text>
+              <Text style={styles.emptySub}>{t("arenas.emptyText")}</Text>
             </View>
           )
         }

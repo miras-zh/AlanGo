@@ -14,6 +14,7 @@ import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT } from "@/lib/i18n";
 
 interface PaymentModalProps {
   visible: boolean;
@@ -29,6 +30,7 @@ export function PaymentModal({
   onSavePayment,
 }: PaymentModalProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [amountStr, setAmountStr] = useState("0");
   const [saving, setSaving] = useState(false);
@@ -58,7 +60,7 @@ export function PaymentModal({
       hapticSuccess();
       onClose();
     } catch {
-      Alert.alert("Ошибка", "Не удалось обновить оплату");
+      Alert.alert(t("common.error"), t("payment.updateError"));
     } finally {
       setSaving(false);
     }
@@ -80,9 +82,9 @@ export function PaymentModal({
                 <Ionicons name="card" size={20} color={c.primary} />
               </View>
               <View>
-                <Text style={styles.title}>Учет оплаты брони</Text>
+                <Text style={styles.title}>{t("payment.title")}</Text>
                 <Text style={styles.subTitle}>
-                  Запись #{booking.id} • {booking.clientName}
+                  {t("payment.booking", { id: booking.id, client: booking.clientName })}
                 </Text>
               </View>
             </View>
@@ -94,32 +96,32 @@ export function PaymentModal({
           {/* Price Overview Banner */}
           <View style={styles.overviewBox}>
             <View style={styles.overviewCol}>
-              <Text style={styles.overviewLabel}>Общая сумма</Text>
-              <Text style={styles.overviewTotal}>{total.toLocaleString("ru-RU")} ₸</Text>
+              <Text style={styles.overviewLabel}>{t("payment.total")}</Text>
+              <Text style={styles.overviewTotal}>{formatNumber(total)} ₸</Text>
             </View>
             <View style={styles.overviewDivider} />
             <View style={styles.overviewCol}>
-              <Text style={styles.overviewLabel}>Внесено</Text>
+              <Text style={styles.overviewLabel}>{t("payment.paid")}</Text>
               <Text style={styles.overviewPaid}>
-                {currentPaid.toLocaleString("ru-RU")} ₸
+                {formatNumber(currentPaid)} ₸
               </Text>
             </View>
             <View style={styles.overviewDivider} />
             <View style={styles.overviewCol}>
-              <Text style={styles.overviewLabel}>Остаток</Text>
+              <Text style={styles.overviewLabel}>{t("payment.remaining")}</Text>
               <Text
                 style={[
                   styles.overviewRemaining,
                   remaining === 0 ? styles.remainingZero : styles.remainingDue,
                 ]}
               >
-                {remaining.toLocaleString("ru-RU")} ₸
+                {formatNumber(remaining)} ₸
               </Text>
             </View>
           </View>
 
           {/* Quick Preset Buttons */}
-          <Text style={styles.sectionLabel}>Быстрый выбор суммы:</Text>
+          <Text style={styles.sectionLabel}>{t("payment.quickPick")}</Text>
           <View style={styles.presetsGrid}>
             <Pressable
               style={[
@@ -139,7 +141,7 @@ export function PaymentModal({
                   currentPaid === total && styles.presetBtnTextActive,
                 ]}
               >
-                100% (Вся сумма)
+                {t("payment.fullAmount")}
               </Text>
             </Pressable>
 
@@ -156,7 +158,7 @@ export function PaymentModal({
                   currentPaid === Math.round(total / 2) && styles.presetBtnTextActive,
                 ]}
               >
-                50% ({Math.round(total / 2).toLocaleString("ru-RU")} ₸)
+                50% ({formatNumber(Math.round(total / 2))} ₸)
               </Text>
             </Pressable>
 
@@ -173,7 +175,7 @@ export function PaymentModal({
                   currentPaid === 2000 && styles.presetBtnTextActive,
                 ]}
               >
-                Предоплата 2 000 ₸
+                {t("payment.prepay2000")}
               </Text>
             </Pressable>
 
@@ -190,13 +192,13 @@ export function PaymentModal({
                   currentPaid === 0 && styles.presetBtnTextActive,
                 ]}
               >
-                Сброс (0 ₸)
+                {t("payment.resetZero")}
               </Text>
             </Pressable>
           </View>
 
           {/* Manual Input */}
-          <Text style={styles.sectionLabel}>Сумма фактически оплачена (₸):</Text>
+          <Text style={styles.sectionLabel}>{t("payment.actualPaid")}</Text>
           <View style={styles.inputWrap}>
             <TextInput
               style={styles.input}
@@ -211,23 +213,23 @@ export function PaymentModal({
 
           {/* Status preview tag */}
           <View style={styles.statusPreviewRow}>
-            <Text style={styles.statusPreviewLabel}>Итоговый статус:</Text>
+            <Text style={styles.statusPreviewLabel}>{t("payment.resultStatus")}</Text>
             {remaining === 0 && total > 0 ? (
               <View style={[styles.statusBadge, styles.statusBadgePaid]}>
                 <Ionicons name="checkmark-done" size={14} color={c.primary} />
-                <Text style={styles.statusBadgeTextPaid}>Оплачено 100%</Text>
+                <Text style={styles.statusBadgeTextPaid}>{t("payment.paidFull")}</Text>
               </View>
             ) : currentPaid > 0 ? (
               <View style={[styles.statusBadge, styles.statusBadgePartial]}>
                 <Ionicons name="pie-chart" size={14} color="#F59E0B" />
                 <Text style={styles.statusBadgeTextPartial}>
-                  Предоплата ({currentPaid.toLocaleString("ru-RU")} ₸)
+                  {t("payment.prepaid", { price: formatNumber(currentPaid) })}
                 </Text>
               </View>
             ) : (
               <View style={[styles.statusBadge, styles.statusBadgeNotPaid]}>
                 <Ionicons name="time-outline" size={14} color={c.error} />
-                <Text style={styles.statusBadgeTextNotPaid}>Не оплачено</Text>
+                <Text style={styles.statusBadgeTextNotPaid}>{t("payment.notPaid")}</Text>
               </View>
             )}
           </View>
@@ -239,7 +241,7 @@ export function PaymentModal({
             onPress={handleSave}
           >
             <Text style={styles.saveBtnText}>
-              {saving ? "Сохранение..." : "Сохранить оплату"}
+              {saving ? t("common.saving") : t("payment.save")}
             </Text>
           </Pressable>
         </Pressable>

@@ -15,6 +15,7 @@ import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT, type MessageKey } from "@/lib/i18n";
 
 interface EditBookingModalProps {
   visible: boolean;
@@ -36,10 +37,10 @@ const COMMON_SLOTS = [
   "21:30 - 23:00",
 ];
 
-const STATUS_OPTIONS: { id: Booking["status"]; label: string; color: string }[] = [
-  { id: "confirmed", label: "Подтверждено", color: "#00C968" },
-  { id: "pending", label: "В ожидании", color: "#F59E0B" },
-  { id: "cancelled", label: "Отменено", color: "#EF4444" },
+const STATUS_OPTIONS: { id: Booking["status"]; label: MessageKey; color: string }[] = [
+  { id: "confirmed", label: "status.confirmed", color: "#00C968" },
+  { id: "pending", label: "bookings.filterPending", color: "#F59E0B" },
+  { id: "cancelled", label: "status.cancelled", color: "#EF4444" },
 ];
 
 export function EditBookingModal({
@@ -50,6 +51,7 @@ export function EditBookingModal({
   onSave,
 }: EditBookingModalProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
@@ -84,7 +86,7 @@ export function EditBookingModal({
 
   const handleSave = async () => {
     if (!clientName.trim() || !clientPhone.trim()) {
-      Alert.alert("Ошибка", "Укажите имя и телефон клиента");
+      Alert.alert(t("common.error"), t("edit.nameAndPhone"));
       return;
     }
 
@@ -109,7 +111,7 @@ export function EditBookingModal({
       hapticSuccess();
       onClose();
     } catch {
-      Alert.alert("Ошибка", "Не удалось сохранить изменения");
+      Alert.alert(t("common.error"), t("edit.saveError"));
     } finally {
       setSaving(false);
     }
@@ -131,8 +133,8 @@ export function EditBookingModal({
                 <Ionicons name="create-outline" size={20} color={c.primary} />
               </View>
               <View>
-                <Text style={styles.title}>Редактирование брони</Text>
-                <Text style={styles.subTitle}>Номер записи: #{booking.id}</Text>
+                <Text style={styles.title}>{t("edit.title")}</Text>
+                <Text style={styles.subTitle}>{t("edit.number", { id: booking.id })}</Text>
               </View>
             </View>
             <Pressable onPress={onClose} hitSlop={10} style={styles.closeBtn}>
@@ -142,20 +144,20 @@ export function EditBookingModal({
 
           <ScrollView style={styles.scrollBody} showsVerticalScrollIndicator={false}>
             {/* 1. Client Information */}
-            <Text style={styles.sectionTitle}>Данные клиента</Text>
+            <Text style={styles.sectionTitle}>{t("edit.client")}</Text>
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Имя клиента</Text>
+              <Text style={styles.label}>{t("edit.clientName")}</Text>
               <TextInput
                 style={styles.input}
                 value={clientName}
                 onChangeText={setClientName}
-                placeholder="Имя Фамилия"
+                placeholder={t("edit.clientNamePlaceholder")}
                 placeholderTextColor={c.textMuted}
               />
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Телефон</Text>
+              <Text style={styles.label}>{t("account.phone")}</Text>
               <TextInput
                 style={styles.input}
                 value={clientPhone}
@@ -169,7 +171,7 @@ export function EditBookingModal({
             {/* 2. Hall Selector */}
             {halls.length > 0 && (
               <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Спортивный зал / Поле</Text>
+                <Text style={styles.label}>{t("edit.hall")}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
                   {halls.map((h) => {
                     const active = selectedHallId === h.id;
@@ -195,17 +197,17 @@ export function EditBookingModal({
             {/* 3. Date & Time */}
             <View style={styles.row}>
               <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Дата</Text>
+                <Text style={styles.label}>{t("edit.date")}</Text>
                 <TextInput
                   style={styles.input}
                   value={date}
                   onChangeText={setDate}
-                  placeholder="Сегодня"
+                  placeholder={t("date.today")}
                   placeholderTextColor={c.textMuted}
                 />
               </View>
               <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Время слота</Text>
+                <Text style={styles.label}>{t("edit.slot")}</Text>
                 <TextInput
                   style={styles.input}
                   value={timeSlot}
@@ -238,10 +240,10 @@ export function EditBookingModal({
             </ScrollView>
 
             {/* 4. Payment & Price */}
-            <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Стоимость и оплата</Text>
+            <Text style={[styles.sectionTitle, { marginTop: 16 }]}>{t("edit.payment")}</Text>
             <View style={styles.row}>
               <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Общая сумма (₸)</Text>
+                <Text style={styles.label}>{t("edit.total")}</Text>
                 <TextInput
                   style={styles.input}
                   value={totalPriceStr}
@@ -252,7 +254,7 @@ export function EditBookingModal({
                 />
               </View>
               <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Оплачено (₸)</Text>
+                <Text style={styles.label}>{t("edit.paid")}</Text>
                 <TextInput
                   style={[styles.input, { color: c.primary }]}
                   value={paidAmountStr}
@@ -267,14 +269,14 @@ export function EditBookingModal({
             {/* Live Payment Summary Box */}
             <View style={styles.paymentSummaryBox}>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>К доплате (остаток):</Text>
+                <Text style={styles.summaryLabel}>{t("edit.due")}</Text>
                 <Text
                   style={[
                     styles.summaryValue,
                     remaining === 0 ? styles.remainingZero : styles.remainingDue,
                   ]}
                 >
-                  {remaining.toLocaleString("ru-RU")} ₸
+                  {formatNumber(remaining)} ₸
                 </Text>
               </View>
               <View style={styles.quickPaymentRow}>
@@ -285,7 +287,7 @@ export function EditBookingModal({
                     setPaidAmountStr(String(total));
                   }}
                 >
-                  <Text style={styles.quickFillText}>Оплачено 100%</Text>
+                  <Text style={styles.quickFillText}>{t("payment.paidFull")}</Text>
                 </Pressable>
                 <Pressable
                   style={styles.quickFillBtn}
@@ -294,7 +296,7 @@ export function EditBookingModal({
                     setPaidAmountStr("2000");
                   }}
                 >
-                  <Text style={styles.quickFillText}>Предоплата 2 000 ₸</Text>
+                  <Text style={styles.quickFillText}>{t("payment.prepay2000")}</Text>
                 </Pressable>
                 <Pressable
                   style={styles.quickFillBtn}
@@ -303,13 +305,13 @@ export function EditBookingModal({
                     setPaidAmountStr("0");
                   }}
                 >
-                  <Text style={styles.quickFillText}>Сброс (0 ₸)</Text>
+                  <Text style={styles.quickFillText}>{t("payment.resetZero")}</Text>
                 </Pressable>
               </View>
             </View>
 
             {/* 5. Status Selector */}
-            <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Статус бронирования</Text>
+            <Text style={[styles.sectionTitle, { marginTop: 16 }]}>{t("edit.status")}</Text>
             <View style={styles.statusRow}>
               {STATUS_OPTIONS.map((opt) => {
                 const active = status === opt.id;
@@ -340,7 +342,7 @@ export function EditBookingModal({
                         active && { color: opt.color, fontWeight: "700" },
                       ]}
                     >
-                      {opt.label}
+                      {t(opt.label)}
                     </Text>
                   </Pressable>
                 );
@@ -349,12 +351,12 @@ export function EditBookingModal({
 
             {/* 6. Notes */}
             <View style={[styles.fieldGroup, { marginTop: 14 }]}>
-              <Text style={styles.label}>Заметки администратора</Text>
+              <Text style={styles.label}>{t("edit.notes")}</Text>
               <TextInput
                 style={[styles.input, styles.notesInput]}
                 value={notes}
                 onChangeText={setNotes}
-                placeholder="Например: Kaspi предоплата 2 000 ₸, просят 2 манишки..."
+                placeholder={t("edit.notesPlaceholder")}
                 placeholderTextColor={c.textMuted}
                 multiline
                 numberOfLines={2}
@@ -370,7 +372,7 @@ export function EditBookingModal({
               onPress={handleSave}
             >
               <Text style={styles.saveBtnText}>
-                {saving ? "Сохранение..." : "Сохранить изменения"}
+                {saving ? t("common.saving") : t("account.saveChanges")}
               </Text>
             </Pressable>
           </View>

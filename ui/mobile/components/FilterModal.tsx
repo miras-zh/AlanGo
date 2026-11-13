@@ -12,6 +12,7 @@ import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT, type MessageKey } from "@/lib/i18n";
 
 export interface FilterState {
   sport: string;
@@ -30,19 +31,19 @@ export interface FilterModalProps {
 }
 
 const SPORTS_GRID = [
-  { key: "Футбол", label: "Футбол", icon: "football-outline" },
-  { key: "Теннис", label: "Теннис", icon: "tennisball-outline" },
-  { key: "Баскетбол", label: "Баскетбол", icon: "basketball-outline" },
-  { key: "Волейбол", label: "Волейбол", icon: "fitness-outline" },
-  { key: "Сквош", label: "Сквош", icon: "disc-outline" },
-  { key: "Падл", label: "Падл", icon: "baseball-outline" },
+  { key: "Футбол", label: "sport.football" as MessageKey, icon: "football-outline" },
+  { key: "Теннис", label: "sport.tennis" as MessageKey, icon: "tennisball-outline" },
+  { key: "Баскетбол", label: "sport.basketball" as MessageKey, icon: "basketball-outline" },
+  { key: "Волейбол", label: "sport.volleyball" as MessageKey, icon: "fitness-outline" },
+  { key: "Сквош", label: "sport.squash" as MessageKey, icon: "disc-outline" },
+  { key: "Падл", label: "sport.padel" as MessageKey, icon: "baseball-outline" },
 ];
 
 const AMENITIES_LIST = [
-  { key: "Парковка", label: "Парковка", icon: "car-outline" },
-  { key: "Раздевалка", label: "Раздевалка", icon: "shirt-outline" },
-  { key: "Душ", label: "Душ", icon: "water-outline" },
-  { key: "Wi-Fi", label: "Wi-Fi", icon: "wifi-outline" },
+  { key: "Парковка", label: "amenity.parkingShort" as MessageKey, icon: "car-outline" },
+  { key: "Раздевалка", label: "amenity.lockerShort" as MessageKey, icon: "shirt-outline" },
+  { key: "Душ", label: "amenity.showerShort" as MessageKey, icon: "water-outline" },
+  { key: "Wi-Fi", label: null as MessageKey | null, icon: "wifi-outline" },
 ];
 
 const PRICE_PRESETS = [
@@ -60,6 +61,7 @@ export function FilterModal({
   totalResultsCount,
 }: FilterModalProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [localFilters, setLocalFilters] = useState<FilterState>(filters);
 
@@ -130,7 +132,7 @@ export function FilterModal({
         <View style={styles.sheet}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Фильтры</Text>
+            <Text style={styles.headerTitle}>{t("filters.title")}</Text>
             <Pressable
               style={styles.closeBtn}
               onPress={onClose}
@@ -147,7 +149,7 @@ export function FilterModal({
           >
             {/* Section 1: Sport Type */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Вид спорта</Text>
+              <Text style={styles.sectionTitle}>{t("filters.sport")}</Text>
               <View style={styles.sportsGrid}>
                 {SPORTS_GRID.map((s) => {
                   const isSelected = localFilters.sport === s.key;
@@ -176,7 +178,7 @@ export function FilterModal({
                           isSelected && styles.sportTextSelected,
                         ]}
                       >
-                        {s.label}
+                        {t(s.label)}
                       </Text>
                     </Pressable>
                   );
@@ -186,7 +188,7 @@ export function FilterModal({
 
             {/* Section 2: Facility Type */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Тип объекта</Text>
+              <Text style={styles.sectionTitle}>{t("filters.facilityType")}</Text>
               <View style={styles.segmentedRow}>
                 <Pressable
                   style={[
@@ -202,7 +204,7 @@ export function FilterModal({
                         styles.segmentTextActive,
                     ]}
                   >
-                    Спорткомплекс
+                    {t("venue.complex")}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -219,7 +221,7 @@ export function FilterModal({
                         styles.segmentTextActive,
                     ]}
                   >
-                    Отдельный зал
+                    {t("venue.single")}
                   </Text>
                 </Pressable>
               </View>
@@ -228,9 +230,9 @@ export function FilterModal({
             {/* Section 3: Price Per Hour */}
             <View style={styles.section}>
               <View style={styles.priceHeaderRow}>
-                <Text style={styles.sectionTitle}>Цена за час</Text>
+                <Text style={styles.sectionTitle}>{t("filters.pricePerHourShort")}</Text>
                 <Text style={styles.priceRangeLabel}>
-                  до {localFilters.maxPrice.toLocaleString("ru-RU")} ₸
+                  {t("price.upTo", { price: formatNumber(localFilters.maxPrice) })}
                 </Text>
               </View>
 
@@ -256,7 +258,7 @@ export function FilterModal({
                           isSelected && styles.presetTextActive,
                         ]}
                       >
-                        {p.label}
+                        {t("price.upTo", { price: formatNumber(p.max) })}
                       </Text>
                     </Pressable>
                   );
@@ -266,7 +268,7 @@ export function FilterModal({
 
             {/* Section 4: Amenities */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Удобства</Text>
+              <Text style={styles.sectionTitle}>{t("filters.amenitiesShort")}</Text>
               <View style={styles.amenitiesGrid}>
                 {AMENITIES_LIST.map((a) => {
                   const isSelected = localFilters.amenities.includes(a.key);
@@ -290,7 +292,7 @@ export function FilterModal({
                           isSelected && styles.amenityTextSelected,
                         ]}
                       >
-                        {a.label}
+                        {a.label ? t(a.label) : a.key}
                       </Text>
                     </Pressable>
                   );
@@ -302,12 +304,12 @@ export function FilterModal({
           {/* Sticky Actions Footer */}
           <View style={styles.footer}>
             <Pressable style={styles.resetBtn} onPress={handleReset}>
-              <Text style={styles.resetBtnText}>Сбросить</Text>
+              <Text style={styles.resetBtnText}>{t("filters.reset")}</Text>
             </Pressable>
 
             <Pressable style={styles.applyBtn} onPress={handleApply}>
               <Text style={styles.applyBtnText}>
-                Показать ({totalResultsCount})
+                {t("filters.showN", { n: totalResultsCount })}
               </Text>
             </Pressable>
           </View>

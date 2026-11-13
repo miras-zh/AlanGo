@@ -22,10 +22,12 @@ import { ProfilePreferences } from "@/components/ProfilePreferences";
 
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getErrorMessage } from "@/lib/errorMessage";
+import { useT } from "@/lib/i18n";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 export default function ProfileScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -47,7 +49,7 @@ export default function ProfileScreen() {
       const picked = await pickImageAsJpeg("avatar");
       if (picked) setCropSource(picked.uri);
     } catch (err) {
-      Alert.alert(pickErrorTitle(err), getErrorMessage(err, "Не удалось открыть галерею"));
+      Alert.alert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
     }
   };
 
@@ -60,7 +62,7 @@ export default function ProfileScreen() {
       await updateSessionUser({ photo, avatar_url: photo });
       hapticSuccess();
     } catch (err) {
-      Alert.alert("Не удалось загрузить фото", getErrorMessage(err));
+      Alert.alert(t("profile.avatarUploadError"), getErrorMessage(err));
     } finally {
       setUploadingAvatar(false);
     }
@@ -94,7 +96,7 @@ export default function ProfileScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: c.background }]} edges={["top"]}>
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <Text style={styles.topBarTitle}>Мой профиль</Text>
+        <Text style={styles.topBarTitle}>{t("profile.title")}</Text>
         <Pressable
           style={styles.settingsBtn}
           onPress={() => {
@@ -114,9 +116,9 @@ export default function ProfileScreen() {
               <View style={styles.guestIconWrap}>
                 <Ionicons name="person-circle-outline" size={54} color={c.primary} />
               </View>
-              <Text style={styles.guestTitle}>Войдите в аккаунт</Text>
+              <Text style={styles.guestTitle}>{t("profile.guestTitle")}</Text>
               <Text style={styles.guestSubtitle}>
-                Авторизуйтесь, чтобы бронировать площадки и сохранять избранное.
+                {t("profile.guestText")}
               </Text>
               <Pressable
                 style={styles.guestLoginBtn}
@@ -126,7 +128,7 @@ export default function ProfileScreen() {
                 }}
               >
                 <Ionicons name="log-in-outline" size={20} color={c.background} />
-                <Text style={styles.guestLoginBtnText}>Войти / Зарегистрироваться</Text>
+                <Text style={styles.guestLoginBtnText}>{t("profile.guestButton")}</Text>
               </Pressable>
             </View>
 
@@ -163,7 +165,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.userInfo}>
                 <View style={styles.userNameRow}>
-                  <Text style={styles.userName}>{name || user.email?.split("@")[0] || "Пользователь"}</Text>
+                  <Text style={styles.userName}>{name || user.email?.split("@")[0] || t("profile.userFallback")}</Text>
                 </View>
                 <Text style={styles.userEmail}>{user.email}</Text>
                 {city ? <Text style={styles.userLocation}>📍 {city}</Text> : null}
@@ -174,15 +176,15 @@ export default function ProfileScreen() {
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
                 <Text style={styles.statNumber}>{stats.games_played}</Text>
-                <Text style={styles.statLabel}>Игр сыграно</Text>
+                <Text style={styles.statLabel}>{t("profile.gamesPlayed")}</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={styles.statNumber}>{hoursPlayed} ч</Text>
-                <Text style={styles.statLabel}>На корте</Text>
+                <Text style={styles.statNumber}>{t("profile.hoursShort", { n: hoursPlayed })}</Text>
+                <Text style={styles.statLabel}>{t("profile.onCourt")}</Text>
               </View>
               <View style={styles.statBox}>
                 <Text style={styles.statNumber}>★ {stats.rating.toFixed(1)}</Text>
-                <Text style={styles.statLabel}>Рейтинг</Text>
+                <Text style={styles.statLabel}>{t("profile.rating")}</Text>
               </View>
             </View>
 

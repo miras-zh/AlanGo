@@ -19,6 +19,7 @@ import { isHapticsEnabled, setHapticsEnabled, hapticSelection } from "@/lib/hapt
 import { requestNotificationPermissions } from "@/lib/pushNotificationsService";
 import { PRIVACY_URL, SITE_NAME, SUPPORT_EMAIL, TERMS_URL } from "@/lib/site";
 import { getSessionUser } from "@/lib/auth";
+import { tr, useT } from "@/lib/i18n";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
@@ -39,19 +40,20 @@ async function cacheKeys(): Promise<string[]> {
 }
 
 function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} Б`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
+  if (bytes < 1024) return tr("settings.bytes", { n: bytes });
+  if (bytes < 1024 * 1024) return tr("settings.kb", { n: (bytes / 1024).toFixed(1) });
+  return tr("settings.mb", { n: (bytes / 1024 / 1024).toFixed(1) });
 }
 
 function openMail(subject: string, body = "") {
   const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   Linking.openURL(url).catch(() =>
-    Alert.alert("Почта не настроена", `Напишите нам на ${SUPPORT_EMAIL}`),
+    Alert.alert(tr("settings.mailNotSet"), tr("settings.mailWriteUs", { email: SUPPORT_EMAIL })),
   );
 }
 
 export default function SettingsScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -104,17 +106,17 @@ export default function SettingsScreen() {
   const handleClearCache = () => {
     hapticSelection();
     Alert.alert(
-      "Очистить кэш?",
-      "Сохранённые списки залов, броней и графиков будут загружены заново. Вход в аккаунт и настройки сохранятся.",
+      t("settings.clearCacheTitle"),
+      t("settings.clearCacheText"),
       [
-        { text: "Отмена", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Очистить",
+          text: t("settings.clear"),
           style: "destructive",
           onPress: async () => {
             await AsyncStorage.multiRemove(await cacheKeys());
             await refresh();
-            Alert.alert(SITE_NAME, "Кэш очищен");
+            Alert.alert(SITE_NAME, t("settings.cacheCleared"));
           },
         },
       ],
@@ -123,7 +125,7 @@ export default function SettingsScreen() {
 
   const user = getSessionUser();
   const notifLabel =
-    notifStatus === "granted" ? "Включены" : notifStatus === "denied" ? "Выключены" : "Не настроены";
+    notifStatus === "granted" ? t("settings.notifOn") : notifStatus === "denied" ? t("settings.notifOff") : t("settings.notifUnset");
 
   return (
     <SafeAreaView style={styles.container}>
@@ -140,30 +142,30 @@ export default function SettingsScreen() {
         >
           <Ionicons name="chevron-back" size={22} color={c.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Настройки</Text>
+        <Text style={styles.headerTitle}>{t("settings.title")}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.sectionLabel}>Общие</Text>
+        <Text style={styles.sectionLabel}>{t("settings.general")}</Text>
         <View style={styles.card}>
           <Row
             icon="notifications-outline"
-            title="Уведомления"
-            subtitle="Напоминания о бронях и сообщения"
+            title={t("settings.notifications")}
+            subtitle={t("settings.notificationsDesc")}
             value={notifLabel}
             onPress={handleNotifications}
           />
           <Row
             icon="calendar-outline"
-            title="Календарь"
-            subtitle="Синхронизация с Google Calendar"
-            value="Скоро"
+            title={t("settings.calendar")}
+            subtitle={t("settings.calendarDesc")}
+            value={t("settings.soon")}
             disabled
           />
           <Row
             icon="phone-portrait-outline"
-            title="Тактильный отклик"
-            subtitle="Вибрация при нажатиях и переключениях"
+            title={t("settings.haptics")}
+            subtitle={t("settings.hapticsDesc")}
             // The whole row toggles: a Switch inside a disabled Pressable
             // didn't receive taps reliably.
             onPress={() => toggleHaptics(!hapticsOn)}
@@ -178,20 +180,20 @@ export default function SettingsScreen() {
           />
           <Row
             icon="trash-bin-outline"
-            title="Кэш приложения"
-            subtitle={cacheSize === null ? "Сохранённые данные" : `Сохранённые данные · ${formatBytes(cacheSize)}`}
-            value="Очистить"
+            title={t("settings.cache")}
+            subtitle={cacheSize === null ? t("settings.savedData") : t("settings.savedDataSize", { size: formatBytes(cacheSize) })}
+            value={t("settings.clear")}
             onPress={handleClearCache}
             last
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Помощь и отзывы</Text>
+        <Text style={styles.sectionLabel}>{t("settings.help")}</Text>
         <View style={styles.card}>
           <Row
             icon="help-circle-outline"
-            title="Частые вопросы"
-            subtitle="Бронирование, оплата, бизнес-аккаунт"
+            title={t("settings.faq")}
+            subtitle={t("settings.faqDesc")}
             onPress={() => {
               hapticSelection();
               router.push("/settings/faq");
@@ -199,44 +201,44 @@ export default function SettingsScreen() {
           />
           <Row
             icon="chatbubbles-outline"
-            title="Служба поддержки"
+            title={t("settings.support")}
             subtitle={SUPPORT_EMAIL}
             onPress={() => {
               hapticSelection();
               openMail(
-                `${SITE_NAME}: обращение в поддержку`,
-                `\n\n—\nАккаунт: ${user?.email ?? "гость"}\nВерсия: ${version}${build ? ` (${build})` : ""}`,
+                t("settings.supportSubject", { site: SITE_NAME }),
+                t("settings.supportBody", { account: user?.email ?? t("settings.guest"), version: `${version}${build ? ` (${build})` : ""}` }),
               );
             }}
           />
           <Row
             icon="create-outline"
-            title="Написать отзыв"
-            subtitle="Что улучшить в приложении"
+            title={t("settings.feedback")}
+            subtitle={t("settings.feedbackDesc")}
             onPress={() => {
               hapticSelection();
-              openMail(`${SITE_NAME}: отзыв о приложении`);
+              openMail(t("settings.feedbackSubject", { site: SITE_NAME }));
             }}
             last
           />
         </View>
 
-        <Text style={styles.sectionLabel}>О приложении</Text>
+        <Text style={styles.sectionLabel}>{t("settings.about")}</Text>
         <View style={styles.card}>
           <Row
             icon="information-circle-outline"
-            title="Версия"
+            title={t("settings.version")}
             value={`${version}${build ? ` (${build})` : ""}`}
             disabled
           />
           <Row
             icon="shield-checkmark-outline"
-            title="Политика конфиденциальности"
+            title={t("settings.privacy")}
             onPress={() => Linking.openURL(PRIVACY_URL)}
           />
           <Row
             icon="document-text-outline"
-            title="Условия использования"
+            title={t("settings.terms")}
             onPress={() => Linking.openURL(TERMS_URL)}
             last
           />

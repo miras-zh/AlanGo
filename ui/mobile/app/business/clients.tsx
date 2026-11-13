@@ -15,21 +15,23 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useMyArenaId } from "@/lib/business";
-import { plural } from "@/lib/plural";
 import { ClientProfile, getClientProfiles } from "@/lib/businessCrmData";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT, type MessageKey } from "@/lib/i18n";
+import { displayDate } from "@/lib/dataLabels";
 
 const STATUS_FILTERS = [
-  { key: "all", label: "Все клиенты" },
-  { key: "vip", label: "⭐ VIP" },
-  { key: "regular", label: "Постоянные" },
-  { key: "new", label: "Новички" },
+  { key: "all", label: "clients.all" as MessageKey | null },
+  { key: "vip", label: null as MessageKey | null },
+  { key: "regular", label: "clients.regular" as MessageKey | null },
+  { key: "new", label: "clients.new" as MessageKey | null },
 ];
 
 export default function BusinessClientsScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { arenaId, loading: arenaLoading } = useMyArenaId();
@@ -68,7 +70,7 @@ export default function BusinessClientsScreen() {
   const handleCall = (phone: string) => {
     hapticImpact();
     Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`).catch(() => {
-      Alert.alert("Звонок", `Номер клиента: ${phone}`);
+      Alert.alert(t("chat.call"), t("clients.phone", { phone }));
     });
   };
 
@@ -76,7 +78,7 @@ export default function BusinessClientsScreen() {
     hapticSelection();
     const cleanPhone = phone.replace(/[^\d]/g, "");
     const text = encodeURIComponent(
-      `Здравствуйте, ${clientName}! Вас беспокоит администратор спорткомплекса. Напоминаем о возможности бронирования залов в AlanGo!`
+      t("clients.whatsapp", { name: clientName })
     );
     const waUrl = `whatsapp://send?phone=${cleanPhone}&text=${text}`;
 
@@ -89,7 +91,7 @@ export default function BusinessClientsScreen() {
         }
       })
       .catch(() => {
-        Alert.alert("WhatsApp", `Номер клиента: ${phone}`);
+        Alert.alert("WhatsApp", t("clients.phone", { phone }));
       });
   };
 
@@ -117,9 +119,9 @@ export default function BusinessClientsScreen() {
         </Pressable>
 
         <View style={{ flex: 1, marginHorizontal: 8 }}>
-          <Text style={styles.headerTitle}>Клиентская база (CRM)</Text>
+          <Text style={styles.headerTitle}>{t("clients.title")}</Text>
           <Text style={styles.headerSub}>
-            {totalClientsCount} {plural(totalClientsCount, ["клиент", "клиента", "клиентов"])} • LTV {totalLtv.toLocaleString("ru-RU")} ₸
+            {t("clients.count", { count: totalClientsCount })} • LTV {formatNumber(totalLtv)} ₸
           </Text>
         </View>
       </View>
@@ -129,7 +131,7 @@ export default function BusinessClientsScreen() {
         <Ionicons name="search" size={18} color={c.textMuted} style={{ marginLeft: 8 }} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Поиск по имени или номеру телефона..."
+          placeholder={t("clients.search")}
           placeholderTextColor={c.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -157,7 +159,7 @@ export default function BusinessClientsScreen() {
               <Text
                 style={[styles.filterText, active && styles.filterTextActive]}
               >
-                {f.label}
+                {f.label ? t(f.label) : "⭐ VIP"}
               </Text>
             </Pressable>
           );
@@ -187,12 +189,12 @@ export default function BusinessClientsScreen() {
             <View style={styles.emptyWrap}>
               <Ionicons name="people-outline" size={48} color={c.border} />
               <Text style={styles.emptyTitle}>
-                {clients.length === 0 ? "Пока нет клиентов" : "Клиенты не найдены"}
+                {clients.length === 0 ? t("clients.emptyAll") : t("clients.notFound")}
               </Text>
               <Text style={styles.emptySub}>
                 {clients.length === 0
-                  ? "Клиенты появятся здесь автоматически после первых бронирований вашей площадки."
-                  : "Попробуйте изменить поисковый запрос или фильтр."}
+                  ? t("clients.emptyAllText")
+                  : t("clients.notFoundText")}
               </Text>
             </View>
           }
@@ -228,10 +230,10 @@ export default function BusinessClientsScreen() {
                       {isVip
                         ? "⭐ VIP"
                         : isRegular
-                        ? "Постоянный"
+                        ? t("clients.statusRegular")
                         : isNew
-                        ? "Новый"
-                        : "Ненадежный"}
+                        ? t("clients.statusNew")
+                        : t("clients.statusUnreliable")}
                     </Text>
                   </View>
                 </View>
@@ -239,20 +241,20 @@ export default function BusinessClientsScreen() {
                 {/* Metrics */}
                 <View style={styles.metricsRow}>
                   <View style={styles.metricItem}>
-                    <Text style={styles.metricLabel}>Броней</Text>
+                    <Text style={styles.metricLabel}>{t("clients.bookings")}</Text>
                     <Text style={styles.metricVal}>{item.totalBookings}</Text>
                   </View>
 
                   <View style={styles.metricItem}>
-                    <Text style={styles.metricLabel}>Общий оборот</Text>
+                    <Text style={styles.metricLabel}>{t("clients.turnover")}</Text>
                     <Text style={[styles.metricVal, { color: c.primary }]}>
-                      {item.totalSpent.toLocaleString("ru-RU")} ₸
+                      {formatNumber(item.totalSpent)} ₸
                     </Text>
                   </View>
 
                   <View style={styles.metricItem}>
-                    <Text style={styles.metricLabel}>Посл. активность</Text>
-                    <Text style={styles.metricVal}>{item.lastBookingDate}</Text>
+                    <Text style={styles.metricLabel}>{t("clients.lastActivity")}</Text>
+                    <Text style={styles.metricVal}>{displayDate(item.lastBookingDate, t)}</Text>
                   </View>
                 </View>
 
@@ -270,7 +272,7 @@ export default function BusinessClientsScreen() {
                     onPress={() => handleCall(item.phone)}
                   >
                     <Ionicons name="call" size={15} color={c.textPrimary} />
-                    <Text style={styles.callBtnText}>Позвонить</Text>
+                    <Text style={styles.callBtnText}>{t("staff.call")}</Text>
                   </Pressable>
 
                   <Pressable

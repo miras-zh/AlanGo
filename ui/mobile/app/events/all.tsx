@@ -20,6 +20,9 @@ import {
   SPORT_CATEGORIES,
   SportEvent,
   filterEvents,
+  eventCategory,
+  eventDate,
+  eventDetails,
 } from "@/lib/eventsData";
 import { EventCard } from "@/components/EventCard";
 import { EventsFilterModal } from "@/components/EventsFilterModal";
@@ -27,8 +30,10 @@ import { EventCalendarModal } from "@/components/EventCalendarModal";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useT } from "@/lib/i18n";
 
 export default function AllEventsScreen() {
+  const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -50,9 +55,9 @@ export default function AllEventsScreen() {
   // Join action
   const handleRegister = (event: SportEvent) => {
     Alert.alert(
-      "Запись на событие",
-      `Вы успешно подали заявку на участие в «${event.title}». Организатор свяжется с вами для подтверждения.`,
-      [{ text: "Отлично" }]
+      t("events.registerTitle"),
+      t("events.appliedText", { title: event.title }),
+      [{ text: t("home.great") }]
     );
   };
 
@@ -65,7 +70,8 @@ export default function AllEventsScreen() {
         (e) =>
           e.title.toLowerCase().includes(q) ||
           e.location.toLowerCase().includes(q) ||
-          e.categoryLabel.toLowerCase().includes(q)
+          e.categoryLabel.toLowerCase().includes(q) ||
+          eventCategory(e, t).toLowerCase().includes(q)
       );
     }
     return list;
@@ -91,7 +97,7 @@ export default function AllEventsScreen() {
           <Ionicons name="chevron-back" size={24} color={c.textPrimary} />
         </Pressable>
 
-        <Text style={styles.screenTitle}>Все события</Text>
+        <Text style={styles.screenTitle}>{t("events.all")}</Text>
 
         <View style={styles.headerControls}>
           <Pressable
@@ -123,7 +129,7 @@ export default function AllEventsScreen() {
           <Ionicons name="search" size={18} color={c.textSecondary} style={{ marginRight: 8 }} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Поиск по турнирам и играм..."
+            placeholder={t("events.searchPlaceholder")}
             placeholderTextColor={c.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -162,7 +168,7 @@ export default function AllEventsScreen() {
                     isSelected && styles.categoryChipTextSelected,
                   ]}
                 >
-                  {item.label}
+                  {t(item.label)}
                 </Text>
               </Pressable>
             );
@@ -180,7 +186,7 @@ export default function AllEventsScreen() {
           <EventCard
             event={item}
             onPress={() => {
-              Alert.alert(item.title, `${item.categoryLabel}\n${item.date} · ${item.time}\n${item.location}\nЦена: ${item.price}`);
+              Alert.alert(item.title, eventDetails(item, t));
             }}
             onRegister={() => handleRegister(item)}
             onToggleFavorite={() => handleToggleFavorite(item.id)}
@@ -189,9 +195,9 @@ export default function AllEventsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="calendar-clear-outline" size={48} color={c.textSecondary} />
-            <Text style={styles.emptyTitle}>Событий не найдено</Text>
+            <Text style={styles.emptyTitle}>{t("events.notFound")}</Text>
             <Text style={styles.emptySub}>
-              Попробуйте изменить категорию или сбросить фильтры
+              {t("events.notFoundText")}
             </Text>
             <Pressable
               style={styles.resetFiltersBtn}
@@ -201,7 +207,7 @@ export default function AllEventsScreen() {
                 setSearchQuery("");
               }}
             >
-              <Text style={styles.resetFiltersBtnText}>Сбросить фильтры</Text>
+              <Text style={styles.resetFiltersBtnText}>{t("common.resetFilters")}</Text>
             </Pressable>
           </View>
         }

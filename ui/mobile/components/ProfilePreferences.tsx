@@ -3,18 +3,20 @@ import { Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme, type ThemeMode } from "@/theme/ThemeProvider";
-import { useI18n, type AppLocale } from "@/lib/i18n";
+import { useI18n, type AppLocale, type MessageKey } from "@/lib/i18n";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { hapticSelection } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
-const THEMES: { id: ThemeMode; label: string }[] = [
-  { id: "system", label: "Системная" },
-  { id: "light", label: "Светлая" },
-  { id: "dark", label: "Тёмная" },
+const THEMES: { id: ThemeMode; labelKey: MessageKey }[] = [
+  { id: "system", labelKey: "prefs.themeSystem" },
+  { id: "light", labelKey: "prefs.themeLight" },
+  { id: "dark", labelKey: "prefs.themeDark" },
 ];
+
+// Language names are always shown in their own language.
 
 const LANGUAGES: { id: AppLocale; label: string }[] = [
   { id: "kk", label: "Қазақша" },
@@ -68,13 +70,14 @@ export function ProfilePreferences({ signedIn }: { signedIn: boolean }) {
   // commit so the switch is visible immediately.
   const [, setTick] = useState(0);
   const flush = () => requestAnimationFrame(() => setTick((t) => t + 1));
-  const { locale, setLocale } = useI18n();
+  const { locale, setLocale, t } = useI18n();
+  const themeOptions = THEMES.map((o) => ({ id: o.id, label: t(o.labelKey) }));
 
   const invite = async () => {
     hapticSelection();
     try {
       await Share.share({
-        message: `Бронирую спортзалы и площадки в ${SITE_NAME} — попробуй и ты: ${SITE_URL}`,
+        message: t("prefs.inviteMessage", { site: SITE_NAME, url: SITE_URL }),
       });
     } catch {
       // user dismissed the share sheet
@@ -84,29 +87,26 @@ export function ProfilePreferences({ signedIn }: { signedIn: boolean }) {
   return (
     <View style={styles.wrap}>
       <View style={styles.card}>
-        <Text style={styles.label}>Тема оформления</Text>
-        <Segmented options={THEMES} value={mode} onChange={(m) => {
+        <Text style={styles.label}>{t("prefs.theme")}</Text>
+        <Segmented options={themeOptions} value={mode} onChange={(m) => {
             setMode(m);
             flush();
           }}
         />
-        <Text style={[styles.label, { marginTop: spacing.lg }]}>Язык приложения</Text>
+        <Text style={[styles.label, { marginTop: spacing.lg }]}>{t("prefs.language")}</Text>
         <Segmented options={LANGUAGES} value={locale} onChange={(l) => {
             setLocale(l);
             flush();
           }}
         />
-        {locale === "kk" ? (
-          <Text style={styles.note}>Қазақша аударма дайындалуда — әзірге мәтіндер орыс тілінде.</Text>
-        ) : null}
       </View>
 
       <View style={styles.card}>
         {signedIn ? (
           <Row
             icon="person-circle-outline"
-            title="Настройки аккаунта"
-            subtitle="Имя, телефон, город, выход и удаление"
+            title={t("prefs.account")}
+            subtitle={t("prefs.accountDesc")}
             onPress={() => {
               hapticSelection();
               router.push("/settings/account");
@@ -115,8 +115,8 @@ export function ProfilePreferences({ signedIn }: { signedIn: boolean }) {
         ) : null}
         <Row
           icon="gift-outline"
-          title="Пригласить друга"
-          subtitle={`Поделитесь ${SITE_NAME} с командой`}
+          title={t("prefs.invite")}
+          subtitle={t("prefs.inviteDesc", { site: SITE_NAME })}
           onPress={invite}
           last
         />

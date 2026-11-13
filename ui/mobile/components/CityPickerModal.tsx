@@ -13,6 +13,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { KZ_CITIES, TOP_CITIES, setSelectedCity } from "@/lib/cities";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
+import { useT } from "@/lib/i18n";
+import { cityLabel, cityMatches } from "@/lib/dataLabels";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
@@ -30,14 +32,15 @@ export function CityPickerModal({
   onSelect,
 }: CityPickerModalProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [query, setQuery] = useState("");
 
   const filteredCities = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return KZ_CITIES;
-    return KZ_CITIES.filter((city) => city.toLowerCase().includes(q));
-  }, [query]);
+    return KZ_CITIES.filter((city) => cityMatches(city, q, t));
+  }, [query, t]);
 
   const handleSelect = async (city: string) => {
     hapticSuccess();
@@ -60,7 +63,7 @@ export function CityPickerModal({
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Ionicons name="location" size={22} color={c.primary} />
-              <Text style={styles.title}>Города Казахстана</Text>
+              <Text style={styles.title}>{t("cities.title")}</Text>
             </View>
             <Pressable
               onPress={() => {
@@ -76,7 +79,7 @@ export function CityPickerModal({
 
           {/* Quick Select Top Cities */}
           <View style={styles.topCitiesContainer}>
-            <Text style={styles.sectionLabel}>Популярные города</Text>
+            <Text style={styles.sectionLabel}>{t("cities.popular")}</Text>
             <View style={styles.topCitiesRow}>
               {TOP_CITIES.map((city) => {
                 const isSelected = selectedCity === city;
@@ -95,7 +98,7 @@ export function CityPickerModal({
                         isSelected && styles.topCityTextActive,
                       ]}
                     >
-                      {city}
+                      {cityLabel(city, t)}
                     </Text>
                   </Pressable>
                 );
@@ -108,7 +111,7 @@ export function CityPickerModal({
             <Ionicons name="search" size={18} color={c.textMuted} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Поиск города..."
+              placeholder={t("cities.search")}
               placeholderTextColor={c.textMuted}
               value={query}
               onChangeText={setQuery}
@@ -144,7 +147,7 @@ export function CityPickerModal({
                       isSelected && styles.cityNameActive,
                     ]}
                   >
-                    {item}
+                    {cityLabel(item, t)}
                   </Text>
                   {isSelected && (
                     <Ionicons name="checkmark-circle" size={20} color={c.primary} />
@@ -155,7 +158,7 @@ export function CityPickerModal({
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Ionicons name="search-outline" size={32} color="#38433D" />
-                <Text style={styles.emptyText}>Город не найден</Text>
+                <Text style={styles.emptyText}>{t("cities.notFound")}</Text>
               </View>
             }
           />

@@ -13,6 +13,8 @@ import { Booking, Hall } from "@/lib/sportRentData";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { formatNumber, useT } from "@/lib/i18n";
+import { dayMonth, monthName, monthShort, weekdayShort } from "@/lib/dataLabels";
 
 const { width } = Dimensions.get("window");
 
@@ -28,7 +30,6 @@ interface BookingsCalendarProps {
   onOutcomeChange?: (bookingId: string, outcome: "completed" | "no_show") => void;
 }
 
-const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 export function BookingsCalendar({
   bookings,
@@ -40,6 +41,7 @@ export function BookingsCalendar({
   onOutcomeChange,
 }: BookingsCalendarProps) {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const [viewMode, setViewMode] = useState<CalendarViewMode>("day");
   const [selectedDayOffset, setSelectedDayOffset] = useState<number>(0); // 0 = Сегодня, 1 = Завтра ...
@@ -51,14 +53,11 @@ export function BookingsCalendar({
   }, [selectedDayOffset]);
 
   const dateLabel = useMemo(() => {
-    if (selectedDayOffset === 0) return "Сегодня";
-    if (selectedDayOffset === 1) return "Завтра";
-    if (selectedDayOffset === -1) return "Вчера";
-    return currentDateObj.toLocaleDateString("ru-RU", {
-      day: "numeric",
-      month: "short",
-    });
-  }, [selectedDayOffset, currentDateObj]);
+    if (selectedDayOffset === 0) return t("date.today");
+    if (selectedDayOffset === 1) return t("date.tomorrow");
+    if (selectedDayOffset === -1) return t("date.yesterday");
+    return t("date.dayMonth", { day: currentDateObj.getDate(), month: monthShort(currentDateObj.getMonth(), t) });
+  }, [selectedDayOffset, currentDateObj, t]);
 
   // Current Week Days (7 days centered on selected or starting Monday)
   const weekDays = useMemo(() => {
@@ -78,7 +77,7 @@ export function BookingsCalendar({
         d.getMonth() === base.getMonth() &&
         d.getFullYear() === base.getFullYear();
       list.push({
-        dayName: WEEKDAYS[i],
+        dayName: weekdayShort(d.getDay(), t),
         dayNumber: d.getDate(),
         dateStr: d.toISOString().split("T")[0],
         isToday,
@@ -87,7 +86,7 @@ export function BookingsCalendar({
       });
     }
     return list;
-  }, []);
+  }, [t]);
 
   // Filter bookings for active day
   const activeDayBookings = useMemo(() => {
@@ -137,13 +136,13 @@ export function BookingsCalendar({
   const getStatusLabel = (status: Booking["status"]) => {
     switch (status) {
       case "confirmed":
-        return "Подтверждена";
+        return t("cal.statusConfirmed");
       case "pending":
-        return "Ожидает ответа";
+        return t("cal.statusPending");
       case "rejected":
-        return "Отклонена";
+        return t("cal.statusRejected");
       case "cancelled":
-        return "Отменена";
+        return t("cal.statusCancelled");
       default:
         return status;
     }
@@ -156,7 +155,7 @@ export function BookingsCalendar({
         <View style={styles.modeTabs}>
           {(["day", "week", "month"] as CalendarViewMode[]).map((mode) => {
             const active = viewMode === mode;
-            const label = mode === "day" ? "День" : mode === "week" ? "Неделя" : "Месяц";
+            const label = mode === "day" ? t("cal.day") : mode === "week" ? t("cal.week") : t("cal.month");
             return (
               <Pressable
                 key={mode}
@@ -182,7 +181,7 @@ export function BookingsCalendar({
           }}
         >
           <Ionicons name="add" size={18} color={c.background} />
-          <Text style={styles.quickAddBtnText}>Записать</Text>
+          <Text style={styles.quickAddBtnText}>{t("bookings.add")}</Text>
         </Pressable>
       </View>
 
@@ -201,11 +200,11 @@ export function BookingsCalendar({
         <View style={styles.dateLabelWrap}>
           <Text style={styles.dateTitleText}>
             {viewMode === "month"
-              ? currentDateObj.toLocaleDateString("ru-RU", { month: "long", year: "numeric" })
-              : `${dateLabel}, ${currentDateObj.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}`}
+              ? t("cal.monthYear", { month: monthName(currentDateObj.getMonth(), t), year: currentDateObj.getFullYear() })
+              : t("cal.dateTitle", { label: dateLabel, date: dayMonth(currentDateObj, t) })}
           </Text>
           <Text style={styles.dateSubText}>
-            {activeDayBookings.length} {activeDayBookings.length === 1 ? "запись" : "записей"} на этот период
+            {t("cal.periodCount", { count: activeDayBookings.length })}
           </Text>
         </View>
 
@@ -301,7 +300,7 @@ export function BookingsCalendar({
                             <Text style={styles.bookingSlotTime}>{b.timeSlot}</Text>
                             {b.source === "manual" && (
                               <View style={styles.sourceManualBadge}>
-                                <Text style={styles.sourceManualText}>Ручная</Text>
+                                <Text style={styles.sourceManualText}>{t("cal.manual")}</Text>
                               </View>
                             )}
                           </View>
@@ -328,7 +327,7 @@ export function BookingsCalendar({
                           <Ionicons name="person-circle-outline" size={16} color={c.textSecondary} />
                           <Text style={styles.bookingClientName}>{b.clientName}</Text>
                           <Text style={styles.bookingPrice}>
-                            {b.totalPrice.toLocaleString("ru-RU")} ₸
+                            {formatNumber(b.totalPrice)} ₸
                           </Text>
                         </View>
 
@@ -343,7 +342,7 @@ export function BookingsCalendar({
                               }}
                             >
                               <Ionicons name="checkmark" size={14} color={c.background} />
-                              <Text style={styles.quickConfirmText}>Подтвердить</Text>
+                              <Text style={styles.quickConfirmText}>{t("common.confirm")}</Text>
                             </Pressable>
 
                             <Pressable
@@ -354,7 +353,7 @@ export function BookingsCalendar({
                               }}
                             >
                               <Ionicons name="close" size={14} color={c.error} />
-                              <Text style={styles.quickRejectText}>Отклонить</Text>
+                              <Text style={styles.quickRejectText}>{t("cal.reject")}</Text>
                             </Pressable>
 
                             <Pressable
@@ -371,7 +370,7 @@ export function BookingsCalendar({
                         {/* Match outcome buttons for confirmed bookings */}
                         {b.status === "confirmed" && onOutcomeChange && (
                           <View style={styles.outcomeRow}>
-                            <Text style={styles.outcomeLabel}>Факт игры:</Text>
+                            <Text style={styles.outcomeLabel}>{t("cal.outcome")}</Text>
                             <Pressable
                               style={[
                                 styles.outcomeChip,
@@ -382,7 +381,7 @@ export function BookingsCalendar({
                                 onOutcomeChange(b.id, "completed");
                               }}
                             >
-                              <Text style={styles.outcomeChipText}>Матч сыгран</Text>
+                              <Text style={styles.outcomeChipText}>{t("cal.played")}</Text>
                             </Pressable>
                             <Pressable
                               style={[
@@ -394,7 +393,7 @@ export function BookingsCalendar({
                                 onOutcomeChange(b.id, "no_show");
                               }}
                             >
-                              <Text style={styles.outcomeChipText}>Не явились</Text>
+                              <Text style={styles.outcomeChipText}>{t("cal.noShow")}</Text>
                             </Pressable>
                           </View>
                         )}
@@ -402,7 +401,7 @@ export function BookingsCalendar({
                     ))
                   ) : (
                     <View style={styles.freeSlotLine}>
-                      <Text style={styles.freeSlotText}>Свободно</Text>
+                      <Text style={styles.freeSlotText}>{t("cal.free")}</Text>
                     </View>
                   )}
                 </View>
@@ -416,7 +415,7 @@ export function BookingsCalendar({
       {/* 5. MODE: WEEK VIEW */}
       {viewMode === "week" && (
         <ScrollView style={styles.weekViewContainer} showsVerticalScrollIndicator={false}>
-          <Text style={styles.weekOverviewTitle}>Расписание на неделю</Text>
+          <Text style={styles.weekOverviewTitle}>{t("cal.weekSchedule")}</Text>
           {weekDays.map((w) => {
             const dayBookings = bookings.filter((b) => {
               if (w.offset === 0 && (b.date === "Сегодня" || !b.date)) return true;
@@ -443,12 +442,12 @@ export function BookingsCalendar({
                 <View style={styles.weekCardMid}>
                   <Text style={styles.weekCardStats}>
                     {dayBookings.length > 0
-                      ? `${confirmedCount} подтверждено из ${dayBookings.length}`
-                      : "Нет записей"}
+                      ? t("cal.confirmedOf", { n: confirmedCount, total: dayBookings.length })
+                      : t("cal.noBookings")}
                   </Text>
                   {revenue > 0 && (
                     <Text style={styles.weekCardRevenue}>
-                      Выручка: {revenue.toLocaleString("ru-RU")} ₸
+                      {t("cal.revenue", { price: formatNumber(revenue) })}
                     </Text>
                   )}
                 </View>
@@ -466,26 +465,26 @@ export function BookingsCalendar({
           <View style={styles.monthStatsCard}>
             <View style={styles.monthStatCol}>
               <Text style={styles.monthStatNum}>{bookings.length}</Text>
-              <Text style={styles.monthStatLabel}>Всего броней</Text>
+              <Text style={styles.monthStatLabel}>{t("cal.totalBookings")}</Text>
             </View>
             <View style={styles.monthDivider} />
             <View style={styles.monthStatCol}>
               <Text style={[styles.monthStatNum, { color: c.primary }]}>
                 {bookings.filter((b) => b.status === "confirmed").length}
               </Text>
-              <Text style={styles.monthStatLabel}>Сыграно</Text>
+              <Text style={styles.monthStatLabel}>{t("cal.playedCount")}</Text>
             </View>
             <View style={styles.monthDivider} />
             <View style={styles.monthStatCol}>
               <Text style={[styles.monthStatNum, { color: "#EAB308" }]}>
                 {bookings.filter((b) => b.status === "pending").length}
               </Text>
-              <Text style={styles.monthStatLabel}>Заявки</Text>
+              <Text style={styles.monthStatLabel}>{t("cal.requests")}</Text>
             </View>
           </View>
 
           <Text style={styles.monthHelpText}>
-            Выберите день в верхней панели недели или переключитесь в режим «День» для подробного таймлайна слотов.
+            {t("cal.monthHelp")}
           </Text>
         </View>
       )}

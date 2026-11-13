@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Platform } from "react-native";
 import { loginWithApple } from "@/lib/registration";
 import { getErrorMessage } from "@/lib/errorMessage";
+import { tr } from "@/lib/i18n";
 
 // The backend answers 422 when it would create a brand-new account but has
 // no name (Apple sends the name only on the very first authorization, and
@@ -50,7 +51,7 @@ export function useAppleSignIn() {
 
       const identityToken = credential.identityToken;
       if (!identityToken) {
-        setError("Apple не вернул токен авторизации. Попробуйте ещё раз.");
+        setError(tr("errors.appleNoToken"));
         return { type: "cancelled" };
       }
       const authorizationCode = credential.authorizationCode ?? undefined;
@@ -66,14 +67,14 @@ export function useAppleSignIn() {
         if (axios.isAxiosError(err) && err.response?.status === NAME_REQUIRED_STATUS) {
           return { type: "needs_name", identityToken, authorizationCode };
         }
-        setError(getErrorMessage(err) || "Не удалось войти через Apple.");
+        setError(getErrorMessage(err, tr("errors.appleFailed")));
         return { type: "cancelled" };
       }
     } catch (err: any) {
       if (err?.code === "ERR_REQUEST_CANCELED") {
         return { type: "cancelled" };
       }
-      setError(getErrorMessage(err) || "Не удалось войти через Apple.");
+      setError(getErrorMessage(err, tr("errors.appleFailed")));
       return { type: "cancelled" };
     } finally {
       setLoading(false);

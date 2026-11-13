@@ -17,7 +17,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useMyArenaId } from "@/lib/business";
-import { plural } from "@/lib/plural";
 import { getSessionUser, loginAsStaff } from "@/lib/auth";
 import {
   StaffMember,
@@ -28,16 +27,18 @@ import {
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { tr, useT, type MessageKey } from "@/lib/i18n";
 
-const ROLES: { key: StaffMember["role"]; label: string; color: string }[] = [
-  { key: "admin_senior", label: "Старший админ 🔑", color: "#00C968" },
-  { key: "manager_shift", label: "Менеджер смены 📋", color: "#3B82F6" },
-  { key: "duty_coach", label: "Дежурный тренер ⚽️", color: "#A855F7" },
-  { key: "maintenance", label: "Техник / Инвентарь 🔧", color: "#EAB308" },
+const ROLES: { key: StaffMember["role"]; label: MessageKey; color: string }[] = [
+  { key: "admin_senior", label: "staff.adminSenior", color: "#00C968" },
+  { key: "manager_shift", label: "staff.managerShift", color: "#3B82F6" },
+  { key: "duty_coach", label: "staff.dutyCoach", color: "#A855F7" },
+  { key: "maintenance", label: "staff.maintenance", color: "#EAB308" },
 ];
 
 export default function BusinessStaffScreen() {
   const c = usePalette();
+  const t = useT();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState(getSessionUser());
@@ -52,7 +53,7 @@ export default function BusinessStaffScreen() {
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newRole, setNewRole] = useState<StaffMember["role"]>("manager_shift");
-  const [newShifts, setNewShifts] = useState("Пн - Пт (09:00 - 18:00)");
+  const [newShifts, setNewShifts] = useState(() => tr("staff.defaultShifts"));
 
   const loadData = useCallback(async () => {
     if (arenaLoading) return;
@@ -72,33 +73,35 @@ export default function BusinessStaffScreen() {
     const updated = await loginAsStaff(member);
     setCurrentUser(updated);
     Alert.alert(
-      "Сессия переключена 👤",
-      `Вы успешно вошли под сотрудником:\n${member.name} (${
-        member.role === "admin_senior"
-          ? "Старший админ"
-          : member.role === "manager_shift"
-          ? "Менеджер смены"
-          : "Дежурный тренер"
-      }).\n\nТеперь действия и смены фиксируются от его имени.`
+      t("staff.switchedTitle"),
+      t("staff.switchedText", {
+        name: member.name,
+        role:
+          member.role === "admin_senior"
+            ? t("staff.roleAdmin")
+            : member.role === "manager_shift"
+            ? t("staff.roleManager")
+            : t("staff.roleCoach"),
+      })
     );
   };
 
   const handleCall = (phone: string) => {
     hapticImpact();
     Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`).catch(() => {
-      Alert.alert("Звонок", `Номер сотрудника: ${phone}`);
+      Alert.alert(t("chat.call"), t("staff.phone", { phone }));
     });
   };
 
   const handleRemove = (id: string, name: string) => {
     hapticImpact();
     Alert.alert(
-      "Удаление сотрудника",
-      `Вы действительно хотите отозвать доступ у сотрудника ${name}?`,
+      t("staff.deleteTitle"),
+      t("staff.deleteText", { name }),
       [
-        { text: "Отмена", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Удалить",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             await removeStaffMember(id);
@@ -111,7 +114,7 @@ export default function BusinessStaffScreen() {
 
   const handleAddStaff = async () => {
     if (!newName.trim() || !newPhone.trim()) {
-      Alert.alert("Ошибка", "Пожалуйста, введите имя и номер телефона сотрудника.");
+      Alert.alert(t("common.error"), t("staff.required"));
       return;
     }
 
@@ -122,7 +125,7 @@ export default function BusinessStaffScreen() {
       name: newName.trim(),
       phone: newPhone.trim(),
       role: newRole,
-      shiftDays: newShifts.trim() || "По графику",
+      shiftDays: newShifts.trim() || t("staff.bySchedule"),
       isActive: true,
     });
 
@@ -130,7 +133,7 @@ export default function BusinessStaffScreen() {
     setNewName("");
     setNewPhone("");
     await loadData();
-    Alert.alert("Успешно", "Сотрудник добавлен в команду комплекса.");
+    Alert.alert(t("common.success"), t("staff.added"));
   };
 
   return (
@@ -149,9 +152,9 @@ export default function BusinessStaffScreen() {
         </Pressable>
 
         <View style={{ flex: 1, marginHorizontal: 8 }}>
-          <Text style={styles.headerTitle}>Персонал и смены</Text>
+          <Text style={styles.headerTitle}>{t("staff.title")}</Text>
           <Text style={styles.headerSub}>
-            {staff.length} {plural(staff.length, ["сотрудник", "сотрудника", "сотрудников"])}
+            {t("staff.count", { count: staff.length })}
           </Text>
         </View>
 
@@ -163,7 +166,7 @@ export default function BusinessStaffScreen() {
           }}
         >
           <Ionicons name="add" size={18} color={c.background} />
-          <Text style={styles.addBtnText}>Добавить</Text>
+          <Text style={styles.addBtnText}>{t("common.add")}</Text>
         </Pressable>
       </View>
 
@@ -189,9 +192,9 @@ export default function BusinessStaffScreen() {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons name="person-add-outline" size={48} color={c.border} />
-              <Text style={styles.emptyTitle}>Нет сотрудников</Text>
+              <Text style={styles.emptyTitle}>{t("staff.empty")}</Text>
               <Text style={styles.emptySub}>
-                Нажмите «Добавить», чтобы назначить дежурных менеджеров арены.
+                {t("staff.emptyText")}
               </Text>
             </View>
           }
@@ -232,7 +235,7 @@ export default function BusinessStaffScreen() {
                 {/* Shift Info */}
                 <View style={styles.shiftBox}>
                   <Ionicons name="calendar-outline" size={14} color={c.textSecondary} />
-                  <Text style={styles.shiftText}>Смены: {item.shiftDays}</Text>
+                  <Text style={styles.shiftText}>{t("staff.shifts", { shifts: item.shiftDays })}</Text>
                 </View>
 
                 {/* Actions */}
@@ -240,7 +243,7 @@ export default function BusinessStaffScreen() {
                   {isCurrent ? (
                     <View style={styles.activeSessionBadge}>
                       <Ionicons name="checkmark-circle" size={14} color={c.primary} />
-                      <Text style={styles.activeSessionText}>Вы вошли</Text>
+                      <Text style={styles.activeSessionText}>{t("staff.signedIn")}</Text>
                     </View>
                   ) : (
                     <Pressable
@@ -248,7 +251,7 @@ export default function BusinessStaffScreen() {
                       onPress={() => handleSwitchToStaff(item)}
                     >
                       <Ionicons name="log-in-outline" size={14} color={c.primary} />
-                      <Text style={styles.switchBtnText}>Войти</Text>
+                      <Text style={styles.switchBtnText}>{t("staff.signIn")}</Text>
                     </Pressable>
                   )}
 
@@ -257,7 +260,7 @@ export default function BusinessStaffScreen() {
                     onPress={() => handleCall(item.phone)}
                   >
                     <Ionicons name="call" size={14} color={c.textPrimary} />
-                    <Text style={styles.callBtnText}>Позвонить</Text>
+                    <Text style={styles.callBtnText}>{t("staff.call")}</Text>
                   </Pressable>
 
                   <Pressable
@@ -265,7 +268,7 @@ export default function BusinessStaffScreen() {
                     onPress={() => handleRemove(item.id, item.name)}
                   >
                     <Ionicons name="trash-outline" size={14} color={c.error} />
-                    <Text style={styles.removeBtnText}>Отозвать</Text>
+                    <Text style={styles.removeBtnText}>{t("staff.revoke")}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -279,23 +282,23 @@ export default function BusinessStaffScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Новый сотрудник арены</Text>
+              <Text style={styles.modalTitle}>{t("staff.newTitle")}</Text>
               <Pressable onPress={() => setModalOpen(false)} hitSlop={10}>
                 <Ionicons name="close" size={24} color={c.textPrimary} />
               </Pressable>
             </View>
 
             <ScrollView contentContainerStyle={styles.modalScroll}>
-              <Text style={styles.inputLabel}>ФИО сотрудника *</Text>
+              <Text style={styles.inputLabel}>{t("staff.name")}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Например: Арман Сериков"
+                placeholder={t("staff.namePlaceholder")}
                 placeholderTextColor={c.textMuted}
                 value={newName}
                 onChangeText={setNewName}
               />
 
-              <Text style={styles.inputLabel}>Номер телефона *</Text>
+              <Text style={styles.inputLabel}>{t("staff.phoneLabel")}</Text>
               <TextInput
                 style={styles.input}
                 keyboardType="phone-pad"
@@ -305,7 +308,7 @@ export default function BusinessStaffScreen() {
                 onChangeText={setNewPhone}
               />
 
-              <Text style={styles.inputLabel}>Роль в комплексе</Text>
+              <Text style={styles.inputLabel}>{t("staff.role")}</Text>
               <View style={styles.rolesGrid}>
                 {ROLES.map((r) => {
                   const sel = newRole === r.key;
@@ -324,24 +327,24 @@ export default function BusinessStaffScreen() {
                           sel && styles.roleChipTextActive,
                         ]}
                       >
-                        {r.label}
+                        {t(r.label)}
                       </Text>
                     </Pressable>
                   );
                 })}
               </View>
 
-              <Text style={styles.inputLabel}>График смен</Text>
+              <Text style={styles.inputLabel}>{t("staff.schedule")}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Например: Пн, Ср, Пт (08:00 - 16:00)"
+                placeholder={t("staff.schedulePlaceholder")}
                 placeholderTextColor={c.textMuted}
                 value={newShifts}
                 onChangeText={setNewShifts}
               />
 
               <Pressable style={styles.submitBtn} onPress={handleAddStaff}>
-                <Text style={styles.submitBtnText}>Сохранить сотрудника</Text>
+                <Text style={styles.submitBtnText}>{t("staff.save")}</Text>
               </Pressable>
             </ScrollView>
           </View>
