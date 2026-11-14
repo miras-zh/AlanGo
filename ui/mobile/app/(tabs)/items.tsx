@@ -25,6 +25,7 @@ import {
   type HallNearestSlots,
 } from "@/lib/sportRentData";
 import { getSelectedCity, setSelectedCity } from "@/lib/cities";
+import { getFavoriteArenaIds, toggleFavoriteArenaId } from "@/lib/favorites";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 import { VenueCard } from "@/components/VenueCard";
 import { ArenaCard } from "@/components/ArenaCard";
@@ -140,17 +141,20 @@ export default function ItemsScreen() {
   const [filters, setFilters] = useState<CatalogFilters>(DEFAULT_CATALOG_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
   const [favorites, setFavorites] = useState<number[]>([]);
+  const [arenaFavorites, setArenaFavorites] = useState<number[]>([]);
 
   const loadData = useCallback(async () => {
     try {
-      const [arenasData, hallsData, storedCity, favData] = await Promise.all([
+      const [arenasData, hallsData, storedCity, favData, arenaFavs] = await Promise.all([
         getArenasWithHalls(),
         getStoredHalls(),
         getSelectedCity(),
         AsyncStorage.getItem(FAVORITES_STORAGE_KEY),
+        getFavoriteArenaIds(),
       ]);
       setArenas(arenasData);
       setHalls(hallsData);
+      setArenaFavorites(arenaFavs);
       setLoadError(false);
       if (storedCity) setFilters((f) => ({ ...f, city: storedCity }));
       if (favData) {
@@ -420,6 +424,10 @@ export default function ItemsScreen() {
           renderItem={({ item }) => (
             <ArenaCard
               arena={item}
+              isFavorite={arenaFavorites.includes(item.id)}
+              onToggleFavorite={async () => {
+                setArenaFavorites(await toggleFavoriteArenaId(item.id));
+              }}
               onPress={() => router.push(`/arena/${item.id}`)}
               onHallPress={(h) => router.push(`/hall/${h.id}`)}
             />

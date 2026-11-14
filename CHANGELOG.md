@@ -9,6 +9,19 @@
 
 ## [Unreleased]
 
+### ❤️ Экран «Мои избранные» с фильтрацией по категориям
+- **`ui/mobile/lib/favorites.ts`**: единый модуль для избранных залов, спорткомплексов и абонементов (с автоматической очисткой неактуальных/удалённых абонементов через `pruneFavoritePromotionIds`).
+- **`ui/mobile/components/ArenaCard.tsx` и `ui/mobile/app/(tabs)/items.tsx`**: добавлена кнопка избранного (сердечко) на карточки спорткомплексов.
+- **`ui/mobile/app/favorites.tsx` и `ui/mobile/app/_layout.tsx`**: создан экран «Мои избранные» с компактными фильтрами сверху (**Все / Залы / Спорткомплексы / События / Абонементы**).
+- **`ui/mobile/app/(tabs)/profile.tsx`**: добавлена кнопка «Мои избранные» под «Мои записи».
+- **`ui/mobile/lib/locales/{ru,en,kk}.ts`**: добавлены переводы `favorites.*`.
+
+### 📅 Экран «Мои записи» для пользователей
+- **`ui/mobile/lib/sportRentData.ts`**: добавлена функция `getMyBookings()` — запрашивает собственные бронирования авторизованного пользователя (`GET /api/bookings?my=true`).
+- **`ui/mobile/app/my-bookings.tsx` и `ui/mobile/app/_layout.tsx`**: создан экран «Мои записи» с вкладками «Предстоящие» / «История» / «Все», статусами, датой/временем/длительностью, кодом брони, стоимостью, pull-to-refresh и переходом в карточку зала.
+- **`ui/mobile/app/(tabs)/profile.tsx`**: добавлена кнопка/карточка «Мои записи» под блоком аватара и статистики.
+- **`ui/mobile/lib/locales/{ru,en,kk}.ts`**: добавлены переводы `myBookings.*`.
+
 ### 📱 Исправление ошибки App Store Connect ITMS-90683 (`NSMotionUsageDescription`, билд 11)
 - **`ui/mobile/ios/AlanGo/Info.plist` и `ui/mobile/app.json`**: добавлен обязательный ключ `NSMotionUsageDescription` (потребовался после добавления `expo-location` / `CoreMotion`).
 - **Номер сборки 10 → 11** (`ui/mobile/app.json`, `ui/mobile/ios/AlanGo/Info.plist`, `ui/mobile/ios/AlanGo.xcodeproj/project.pbxproj`).

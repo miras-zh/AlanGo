@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, apiFetch, UPLOAD_TIMEOUT_MS } from "@/lib/api";
+import { getSessionUser, getToken } from "@/lib/auth";
 
 export type SportType = "Футбол" | "Баскетбол" | "Теннис" | "Волейбол" | "Сквош и падл" | "Хоккей" | "Другое";
 
@@ -1255,6 +1256,19 @@ export async function getStoredBookings(arenaId?: number): Promise<Booking[]> {
     if (raw) return JSON.parse(raw);
   } catch {}
   return INITIAL_BOOKINGS;
+}
+
+export async function getMyBookings(): Promise<Booking[]> {
+  const user = getSessionUser();
+  if (!user || user.role === "guest") return [];
+  const token = await getToken();
+  if (!token) return [];
+
+  const res = await apiFetch<{ bookings: any[] }>("/bookings?my=true");
+  if (!res?.bookings || !Array.isArray(res.bookings)) return [];
+  return res.bookings
+    .map(mapApiBooking)
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
 export async function saveNewBooking(booking: Omit<Booking, "id" | "createdAt">): Promise<Booking> {

@@ -1,7 +1,7 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { ArenaWithHalls, Hall } from "@/lib/sportRentData";
-import { hapticSelection } from "@/lib/haptics";
+import { hapticImpact, hapticSelection } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
@@ -16,6 +16,8 @@ const VENUE_LABEL: Record<string, MessageKey> = {
 
 type Props = {
   arena: ArenaWithHalls;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
   onPress: () => void;
   onHallPress: (hall: Hall) => void;
 };
@@ -28,7 +30,7 @@ export function arenaMinPrice(arena: ArenaWithHalls): number | null {
 
 // Large sports-complex card: cover, type badge, rating, address, hours and a
 // strip of the halls inside — a complex is a set of halls, not one venue.
-export function ArenaCard({ arena, onPress, onHallPress }: Props) {
+export function ArenaCard({ arena, isFavorite = false, onToggleFavorite, onPress, onHallPress }: Props) {
   const c = usePalette();
   const t = useT();
   const styles = useThemedStyles(createStyles);
@@ -63,12 +65,31 @@ export function ArenaCard({ arena, onPress, onHallPress }: Props) {
               {VENUE_LABEL[arena.venueType ?? "complex"] ? t(VENUE_LABEL[arena.venueType ?? "complex"]) : categoryLabel(arena.category ?? "Спорткомплекс", t)}
             </Text>
           </View>
-          {arena.rating > 0 ? (
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={12} color={c.primary} />
-              <Text style={styles.ratingText}>{arena.rating.toFixed(1)}</Text>
-            </View>
-          ) : null}
+          <View style={styles.badgeRight}>
+            {arena.rating > 0 ? (
+              <View style={styles.ratingBadge}>
+                <Ionicons name="star" size={12} color={c.primary} />
+                <Text style={styles.ratingText}>{arena.rating.toFixed(1)}</Text>
+              </View>
+            ) : null}
+            {onToggleFavorite ? (
+              <Pressable
+                style={({ pressed }) => [styles.favoriteBtn, pressed && { transform: [{ scale: 0.9 }] }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  hapticImpact();
+                  onToggleFavorite();
+                }}
+                hitSlop={6}
+              >
+                <Ionicons
+                  name={isFavorite ? "heart" : "heart-outline"}
+                  size={15}
+                  color={isFavorite ? c.accent : c.textPrimary}
+                />
+              </Pressable>
+            ) : null}
+          </View>
         </View>
         <View style={styles.coverBottom}>
           <View style={styles.titleRow}>
@@ -216,6 +237,21 @@ const createStyles = (c: Palette) =>
     ...typography.caption,
     fontWeight: "700",
     color: c.primary,
+  },
+  badgeRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  favoriteBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: c.glassBackground,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    alignItems: "center",
+    justifyContent: "center",
   },
   ratingBadge: {
     flexDirection: "row",

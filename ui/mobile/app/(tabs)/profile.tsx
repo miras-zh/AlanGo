@@ -25,6 +25,7 @@ import { getErrorMessage } from "@/lib/errorMessage";
 import { useT } from "@/lib/i18n";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { radii, spacing } from "@/constants/theme";
 
 export default function ProfileScreen() {
   const t = useT();
@@ -187,6 +188,42 @@ export default function ProfileScreen() {
                 <Text style={styles.statLabel}>{t("profile.rating")}</Text>
               </View>
             </View>
+
+            {/* My Bookings */}
+            <Pressable
+              style={({ pressed }) => [styles.myBookingsCard, pressed && { opacity: 0.9 }]}
+              onPress={() => {
+                hapticSelection();
+                router.push("/my-bookings");
+              }}
+            >
+              <View style={styles.myBookingsIcon}>
+                <Ionicons name="calendar-outline" size={20} color={c.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.myBookingsTitle}>{t("myBookings.title")}</Text>
+                <Text style={styles.myBookingsSub}>{t("myBookings.subtitle")}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+            </Pressable>
+
+            {/* My Favorites */}
+            <Pressable
+              style={({ pressed }) => [styles.myBookingsCard, pressed && { opacity: 0.9 }]}
+              onPress={() => {
+                hapticSelection();
+                router.push("/favorites");
+              }}
+            >
+              <View style={[styles.myBookingsIcon, styles.favoritesIcon]}>
+                <Ionicons name="heart-outline" size={20} color={c.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.myBookingsTitle}>{t("favorites.title")}</Text>
+                <Text style={styles.myBookingsSub}>{t("favorites.subtitle")}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+            </Pressable>
 
             {/* Business account: create / open / disable / enable */}
             <BusinessAccountCard />
@@ -406,6 +443,37 @@ const createStyles = (c: Palette) =>
   statLabel: {
     fontSize: 11,
     color: c.textSecondary,
+  },
+  myBookingsCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: c.surface,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: c.border,
+    padding: spacing.md + 2,
+  },
+  myBookingsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.smallChip,
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  favoritesIcon: {
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+  },
+  myBookingsTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: c.textPrimary,
+  },
+  myBookingsSub: {
+    fontSize: 12,
+    color: c.textSecondary,
+    marginTop: 2,
   },
 
   // Generic Card
