@@ -68,6 +68,8 @@ export type Arena = {
   venueType?: "complex" | "single" | "outdoor";
 };
 
+export type BookingStatus = "confirmed" | "pending" | "cancelled" | "rejected" | "completed";
+
 export type Booking = {
   id: string;
   hallId: number;
@@ -83,7 +85,7 @@ export type Booking = {
   totalPrice: number;
   paidAmount?: number; // Сколько фактически оплачено (например 0, 2000, 10000, 20000)
   paymentStatus?: "not_paid" | "partial" | "paid"; // Не оплачено / Предоплата (частично) / Оплачено 100%
-  status: "confirmed" | "pending" | "cancelled" | "rejected";
+  status: BookingStatus;
   source?: "app" | "manual" | "phone" | "telegram";
   gameOutcome?: "completed" | "no_show";
   rejectionReason?: string;
@@ -91,7 +93,9 @@ export type Booking = {
   createdAt: string;
   dbId?: number;          // numeric bookings.id on the backend
   userId?: number | null; // registered client (null for manual/phone bookings)
+  startTime?: string;     // "HH:MM"
   endTime?: string;       // "HH:MM"
+  statusChangedAt?: string | null;
   clientRating?: number | null; // 1-5, set by the business after the game
 };
 
@@ -1206,9 +1210,16 @@ function mapApiBooking(b: any): Booking {
     durationMinutes: b.duration_minutes || 60,
     totalPrice: b.total_price,
     status: b.status,
+    notes: b.notes || undefined,
+    rejectionReason: b.rejection_reason || undefined,
+    paidAmount: typeof b.paid_amount === "number" ? b.paid_amount : 0,
+    paymentStatus:
+      b.payment_status === "paid" || b.payment_status === "partial" ? b.payment_status : "not_paid",
     createdAt: b.created_at || new Date().toISOString(),
+    statusChangedAt: b.status_changed_at ?? null,
     dbId: typeof b.id === "number" ? b.id : undefined,
     userId: b.user_id ?? null,
+    startTime: b.start_time,
     endTime: b.end_time,
     clientRating: b.client_rating ?? null,
   };
@@ -1382,48 +1393,85 @@ export async function saveUpdatedArena(arena: Arena): Promise<void> {
   await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(arenas));
 }
 
+// ---------------------------------------------------------------------------
+// Booking requests (business cabinet). Every action goes to the server by the
+// numeric booking id; errors propagate to the UI.
+// ---------------------------------------------------------------------------
+
+// How far ahead a slot can be booked (the server enforces the same limit).
+export const BOOKING_DAYS_AHEAD = 60;
+
+function bookingDbId(b: Booking): number {
+  if (!b.dbId) throw new Error("Бронь не найдена на сервере");
+  return b.dbId;
+}
+
+// Confirm / reject (with a reason) / cancel / complete a booking.
 export async function updateBookingStatus(
-  id: string,
-  status: "confirmed" | "pending" | "cancelled" | "rejected"
-): Promise<void> {
-  const bookings = await getStoredBookings();
-  const idx = bookings.findIndex((b) => b.id === id);
-  if (idx >= 0) {
-    bookings[idx] = { ...bookings[idx], status };
-    await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
-  }
-
-  try {
-    await apiFetch(`/bookings/${id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    });
-  } catch {}
+  booking: Booking,
+  status: "confirmed" | "rejected" | "cancelled" | "completed",
+  reason?: string,
+): Promise<Booking> {
+  const res = await apiFetch<any>(`/bookings/${bookingDbId(booking)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, reason: reason ?? "" }),
+  });
+  return mapApiBooking(res);
 }
 
-export async function rejectBookingWithReason(
-  id: string,
-  reason: string
-): Promise<void> {
-  const bookings = await getStoredBookings();
-  const idx = bookings.findIndex((b) => b.id === id);
-  if (idx >= 0) {
-    bookings[idx] = {
-      ...bookings[idx],
-      status: "rejected",
-      rejectionReason: reason,
-    };
-    await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
-  }
-
-  try {
-    await apiFetch(`/bookings/${id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status: "rejected", reason }),
-    });
-  } catch {}
+export async function rejectBookingWithReason(booking: Booking, reason: string): Promise<Booking> {
+  return updateBookingStatus(booking, "rejected", reason);
 }
 
+// Moves the booking to another date/time of the same hall (a pending
+// request becomes confirmed). The server validates the new slot.
+export async function rescheduleBooking(
+  booking: Booking,
+  data: { date: string; startTime: string; durationMinutes: number },
+): Promise<Booking> {
+  const res = await apiFetch<any>(`/bookings/${bookingDbId(booking)}/reschedule`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      booking_date: data.date,
+      start_time: data.startTime,
+      duration_minutes: data.durationMinutes,
+    }),
+  });
+  return mapApiBooking(res);
+}
+
+// How much the client has paid (0..total price).
+export async function updateBookingPayment(booking: Booking, paidAmount: number): Promise<Booking> {
+  const res = await apiFetch<any>(`/bookings/${bookingDbId(booking)}/payment`, {
+    method: "PATCH",
+    body: JSON.stringify({ paid_amount: paidAmount }),
+  });
+  return mapApiBooking(res);
+}
+
+// Client name, phone and notes. Date and time change through rescheduleBooking.
+export async function updateBookingDetails(
+  booking: Booking,
+  updates: { clientName?: string; clientPhone?: string; notes?: string },
+): Promise<Booking> {
+  const res = await apiFetch<any>(`/bookings/${bookingDbId(booking)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      client_name: updates.clientName,
+      client_phone: updates.clientPhone,
+      notes: updates.notes,
+    }),
+  });
+  return mapApiBooking(res);
+}
+
+// Requests waiting for the owner's answer (badge in the cabinet).
+export async function getPendingBookingsCount(): Promise<number> {
+  const res = await apiFetch<{ pending: number }>("/business/bookings/pending-count");
+  return typeof res?.pending === "number" ? res.pending : 0;
+}
+
+// Game outcome is kept on this device only: the server has no "no-show" state.
 export async function setBookingGameOutcome(
   id: string,
   gameOutcome: "completed" | "no_show"
@@ -1434,84 +1482,6 @@ export async function setBookingGameOutcome(
     bookings[idx] = { ...bookings[idx], gameOutcome };
     await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
   }
-}
-
-export async function updateBookingPayment(
-  id: string,
-  paidAmount: number
-): Promise<Booking | null> {
-  const bookings = await getStoredBookings();
-  const idx = bookings.findIndex((b) => b.id === id);
-  if (idx < 0) return null;
-
-  const current = bookings[idx];
-  const total = current.totalPrice || 0;
-  let paymentStatus: "not_paid" | "partial" | "paid" = "not_paid";
-  if (paidAmount >= total && total > 0) {
-    paymentStatus = "paid";
-  } else if (paidAmount > 0) {
-    paymentStatus = "partial";
-  }
-
-  const updated: Booking = {
-    ...current,
-    paidAmount,
-    paymentStatus,
-  };
-
-  bookings[idx] = updated;
-  await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
-
-  try {
-    await apiFetch(`/bookings/${id}/payment`, {
-      method: "PATCH",
-      body: JSON.stringify({ paidAmount, paymentStatus }),
-    });
-  } catch {}
-
-  return updated;
-}
-
-export async function updateBookingDetails(
-  id: string,
-  updates: Partial<Booking>
-): Promise<Booking | null> {
-  const bookings = await getStoredBookings();
-  const idx = bookings.findIndex((b) => b.id === id);
-  if (idx < 0) return null;
-
-  const current = bookings[idx];
-  const totalPrice = updates.totalPrice ?? current.totalPrice;
-  const paidAmount = updates.paidAmount ?? current.paidAmount ?? 0;
-
-  let paymentStatus = updates.paymentStatus ?? current.paymentStatus ?? "not_paid";
-  if (paidAmount >= totalPrice && totalPrice > 0) {
-    paymentStatus = "paid";
-  } else if (paidAmount > 0) {
-    paymentStatus = "partial";
-  } else {
-    paymentStatus = "not_paid";
-  }
-
-  const updated: Booking = {
-    ...current,
-    ...updates,
-    totalPrice,
-    paidAmount,
-    paymentStatus,
-  };
-
-  bookings[idx] = updated;
-  await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
-
-  try {
-    await apiFetch(`/bookings/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(updated),
-    });
-  } catch {}
-
-  return updated;
 }
 
 // Creates a hall on the server and returns it with its real id (needed to
@@ -1731,7 +1701,7 @@ export async function getHallNearestSlots(hallId: number): Promise<HallNearestSl
     const todaySlots = todayRes.slots
       .filter((s) => s.status === "free")
       .map((s) => s.start)
-      .slice(0, 3);
+      .slice(0, 6);
 
     if (todaySlots.length > 0) {
       const data: HallNearestSlots = { day: "today", slots: todaySlots };
@@ -1743,7 +1713,7 @@ export async function getHallNearestSlots(hallId: number): Promise<HallNearestSl
     const tomorrowSlots = tomorrowRes.slots
       .filter((s) => s.status === "free")
       .map((s) => s.start)
-      .slice(0, 3);
+      .slice(0, 6);
 
     if (tomorrowSlots.length > 0) {
       const data: HallNearestSlots = { day: "tomorrow", slots: tomorrowSlots };
@@ -1814,7 +1784,7 @@ export async function getMyActiveBooking(): Promise<ActiveBooking | null> {
     return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : NaN;
   };
   const candidates = (res?.bookings ?? [])
-    .filter((b) => b.booking_date === today && b.status !== "cancelled")
+    .filter((b) => b.booking_date === today && b.status === "confirmed")
     .map((b) => ({ b, start: toMin(b.start_time), end: toMin(b.end_time) }))
     .filter((x) => Number.isFinite(x.start) && Number.isFinite(x.end) && x.end > nowMin && x.start - nowMin <= 180)
     .sort((x, y) => x.start - y.start);

@@ -255,7 +255,7 @@ export function VenueCard({
             </Text>
           </View>
           <View style={styles.slotsRow}>
-            {nearestSlots.slice(0, 3).map((slot, idx) => (
+            {nearestSlots.slice(0, 6).map((slot, idx) => (
               <View
                 key={slot}
                 style={[styles.slotChip, idx === 0 && styles.slotChipNearest]}
@@ -480,6 +480,7 @@ const createStyles = (c: Palette) =>
   },
   slotsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: 6,
   },
