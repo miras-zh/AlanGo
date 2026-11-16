@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   TextInput,
   ActivityIndicator,
@@ -35,26 +35,12 @@ import { getSessionUser } from "@/lib/auth";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
-import { formatNumber, useT, type MessageKey, type TFunction } from "@/lib/i18n";
-import { monthShort, sportLabel, weekdayShort } from "@/lib/dataLabels";
+import { formatNumber, useT, type MessageKey } from "@/lib/i18n";
+import { displayDate, sportLabel } from "@/lib/dataLabels";
+import { DateStrip } from "@/components/DateStrip";
 
 const { width } = Dimensions.get("window");
 
-
-// Next 7 calendar days with real ISO dates (the API needs YYYY-MM-DD).
-function buildDays(t: TFunction) {
-  const today = new Date();
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
-    const label =
-      i === 0
-        ? t("date.today")
-        : i === 1
-          ? t("date.tomorrow")
-          : t("date.dayShort", { weekday: weekdayShort(d.getDay(), t), day: d.getDate(), month: monthShort(d.getMonth(), t) });
-    return { id: isoDate(d), label };
-  });
-}
 
 const SLOT_STATUS_LABEL: Record<string, MessageKey> = {
   booked: "slot.booked",
@@ -109,7 +95,6 @@ export default function HallDetailScreen() {
   const [isFav, setIsFav] = useState(false);
 
   // Booking State
-  const days = useMemo(() => buildDays(t), [t]);
   const [selectedDate, setSelectedDate] = useState(() => isoDate(new Date()));
   const [duration, setDuration] = useState<number | null>(null);
   const [availability, setAvailability] = useState<HallAvailability | null>(null);
@@ -141,7 +126,7 @@ export default function HallDetailScreen() {
     })();
   }, [id]);
 
-  const dayLabel = days.find((d) => d.id === selectedDate)?.label ?? selectedDate;
+  const dayLabel = displayDate(selectedDate, t);
 
   // Real per-hall availability from the server: free / booked / closed / past.
   const loadSlots = async () => {
@@ -233,9 +218,22 @@ export default function HallDetailScreen() {
       setBookingModalOpen(false);
       setSelectedSlot(null);
       loadSlots();
+      const pending = booking.status === "pending";
       Alert.alert(
-        t("hall.bookedTitle"),
-        t("hall.bookedText", { hall: hall.title, date: dayLabel, time: booking.timeSlot, price: formatNumber(booking.totalPrice), code: booking.id }),
+        pending ? t("hall.requestSentTitle") : t("hall.bookedTitle"),
+        t(pending ? "hall.requestSentText" : "hall.bookedText", {
+          hall: hall.title,
+          date: dayLabel,
+          time: booking.timeSlot,
+          price: formatNumber(booking.totalPrice),
+          code: booking.id,
+        }),
+        pending
+          ? [
+              { text: t("common.ok") },
+              { text: t("hall.openMyBookings"), onPress: () => router.push("/my-bookings") },
+            ]
+          : undefined,
       );
     } catch (err) {
       Alert.alert(t("hall.bookingFailed"), getErrorMessage(err));
@@ -462,35 +460,8 @@ export default function HallDetailScreen() {
 
           {activeTab === "schedule" && (
             <View style={styles.tabContentSection}>
-              {/* Day Selector */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.daysScroll}
-              >
-                {days.map((d) => {
-                  const active = selectedDate === d.id;
-                  return (
-                    <Pressable
-                      key={d.id}
-                      style={[styles.dayChip, active && styles.dayChipActive]}
-                      onPress={() => {
-                        hapticSelection();
-                        setSelectedDate(d.id);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.dayChipText,
-                          active && styles.dayChipTextActive,
-                        ]}
-                      >
-                        {d.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
+              {/* Day Selector: the whole booking window + month calendar */}
+              <DateStrip value={selectedDate} onChange={setSelectedDate} />
 
               {/* Duration */}
               {availability && availability.slotDurations.length > 1 ? (
@@ -945,31 +916,6 @@ const createStyles = (c: Palette) =>
     fontSize: 12,
     color: c.primary,
     marginTop: 2,
-  },
-  daysScroll: {
-    gap: 8,
-    marginBottom: 14,
-  },
-  dayChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radii.smallChip,
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  dayChipActive: {
-    backgroundColor: "rgba(0, 201, 104, 0.15)",
-    borderColor: c.primary,
-  },
-  dayChipText: {
-    fontSize: 13,
-    color: c.textSecondary,
-    fontWeight: "600",
-  },
-  dayChipTextActive: {
-    color: c.primary,
-    fontWeight: "700",
   },
   closedCard: {
     padding: 20,

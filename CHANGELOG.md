@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### 🚀 Деплой бэкенда на VPS (2026-11-16, 05:33 UTC)
+- **Бэкап базы перед деплоем**: `/root/backups/alango/alango_backup_20261116_102815.sql.gz` (`pg_dump -U postgres alango`, проверен `gzip -t`).
+- **Выкатка**:
+  - Бинарник собран локально под Linux amd64 (`CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -o bin/server ./cmd/app`) и загружен в `/root/AlanGo/bin/server` (предыдущий сохранён в `/root/AlanGo/bin/server.prev`).
+  - Загружена и применена миграция `000011_booking_requests` (`schema_migrations: version 11, dirty = false`).
+  - Контейнер `alango-api` обновлён и перезапущен (снимок отката `alango-app:pre-20261116-backup`, актуальный `alango-app:latest`).
+- **Проверка на проде**: `/api/arenas` → `200`, `/api/halls` → `200`, `/api/business/me` (без токена) → `401`.
+
 ### 🕒 Больше ближайших слотов в карточках залов (до 6)
 - **`ui/mobile/lib/sportRentData.ts` и `ui/mobile/components/VenueCard.tsx`**: лимит ближайших свободных слотов увеличен с 3 до **6** (`slice(0, 6)`), добавлен `flexWrap: "wrap"` для `slotsRow`.
 

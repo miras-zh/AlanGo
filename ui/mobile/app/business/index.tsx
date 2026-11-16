@@ -27,6 +27,10 @@ import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 import { formatNumber, useT } from "@/lib/i18n";
+import { refreshPendingCount, usePendingCount } from "@/lib/pendingBookings";
+import { getErrorMessage } from "@/lib/errorMessage";
+import { radii, spacing } from "@/constants/theme";
+import { bookingStatusMeta } from "@/components/BookingDetailsModal";
 import { cityLabel, displayDate, sportLabel, surfaceLabel } from "@/lib/dataLabels";
 
 export default function BusinessDashboardScreen() {
@@ -39,6 +43,7 @@ export default function BusinessDashboardScreen() {
   const [halls, setHalls] = useState<Hall[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const pendingCount = usePendingCount();
 
   const loadData = useCallback(async () => {
     const currentUser = getSessionUser();
@@ -91,6 +96,7 @@ export default function BusinessDashboardScreen() {
     setArena(myArena);
     setHalls(myHalls);
     setBookings(myBookings);
+    if (arenaId) refreshPendingCount();
     setRefreshing(false);
   }, []);
 
@@ -150,6 +156,27 @@ export default function BusinessDashboardScreen() {
           />
         }
       >
+        {/* New booking requests waiting for an answer */}
+        {pendingCount > 0 ? (
+          <Pressable
+            style={styles.requestsBanner}
+            onPress={() => {
+              hapticSelection();
+              router.push("/business/bookings?mode=requests");
+            }}
+            accessibilityRole="button"
+          >
+            <View style={styles.requestsIcon}>
+              <Ionicons name="mail-unread" size={20} color={c.warning} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.requestsTitle}>{t("request.bannerTitle", { count: pendingCount })}</Text>
+              <Text style={styles.requestsText}>{t("request.bannerText")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={c.textSecondary} />
+          </Pressable>
+        ) : null}
+
         {/* KPI Cards Grid */}
         <View style={styles.kpiRow}>
           <Pressable
@@ -422,19 +449,9 @@ export default function BusinessDashboardScreen() {
                 <Text style={styles.bookingClient}>{b.clientName}</Text>
                 <Text style={styles.bookingPhone}>{b.clientPhone}</Text>
               </View>
-              <View
-                style={[
-                  styles.bookingBadge,
-                  b.status === "confirmed" ? styles.badgeConfirmed : styles.badgePending,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.bookingBadgeText,
-                    b.status === "confirmed" ? styles.badgeTextConfirmed : styles.badgeTextPending,
-                  ]}
-                >
-                  {b.status === "confirmed" ? t("status.confirmed") : t("status.pending")}
+              <View style={[styles.bookingBadge, { backgroundColor: bookingStatusMeta(b.status, c).bg }]}>
+                <Text style={[styles.bookingBadgeText, { color: bookingStatusMeta(b.status, c).color }]}>
+                  {t(bookingStatusMeta(b.status, c).key)}
                 </Text>
               </View>
             </View>
@@ -456,14 +473,18 @@ export default function BusinessDashboardScreen() {
               <Text style={styles.bookingPrice}>
                 {t("bizHome.total")} <Text style={styles.bookingPriceBold}>{formatNumber(b.totalPrice)} ₸</Text>
               </Text>
-              {b.status !== "confirmed" && (
+              {b.status === "pending" && (
                 <Pressable
                   style={styles.confirmBtn}
                   onPress={async () => {
-                    await updateBookingStatus(b.id, "confirmed");
-                    hapticSuccess();
+                    try {
+                      await updateBookingStatus(b, "confirmed");
+                      hapticSuccess();
+                      Alert.alert(t("status.confirmed"), t("bizHome.confirmedText", { id: b.id }));
+                    } catch (err) {
+                      Alert.alert(t("common.error"), getErrorMessage(err));
+                    }
                     loadData();
-                    Alert.alert(t("status.confirmed"), t("bizHome.confirmedText", { id: b.id }));
                   }}
                 >
                   <Text style={styles.confirmBtnText}>{t("common.confirm")}</Text>
@@ -588,6 +609,35 @@ const createStyles = (c: Palette) =>
   kpiTitle: {
     fontSize: 11,
     color: c.textMuted,
+  },
+  requestsBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderRadius: radii.card,
+    backgroundColor: c.warningSoft,
+    borderWidth: 1,
+    borderColor: c.warning,
+  },
+  requestsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: c.surface,
+  },
+  requestsTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: c.textPrimary,
+  },
+  requestsText: {
+    fontSize: 12,
+    color: c.textSecondary,
+    marginTop: 2,
   },
   sectionTitle: {
     fontSize: 16,

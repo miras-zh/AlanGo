@@ -124,7 +124,7 @@ export function BookingsCalendar({
       case "confirmed":
         return c.primary;
       case "pending":
-        return "#EAB308";
+        return c.warning;
       case "rejected":
       case "cancelled":
         return c.error;
@@ -143,6 +143,8 @@ export function BookingsCalendar({
         return t("cal.statusRejected");
       case "cancelled":
         return t("cal.statusCancelled");
+      case "completed":
+        return t("request.statusCompleted");
       default:
         return status;
     }

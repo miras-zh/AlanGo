@@ -14,6 +14,7 @@ import { Booking } from "@/lib/sportRentData";
 import { hapticSelection, hapticImpact } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { displayDate } from "@/lib/dataLabels";
 import { useT, type MessageKey } from "@/lib/i18n";
 
 interface RejectBookingModalProps {
@@ -82,7 +83,7 @@ export function RejectBookingModal({
             <View style={styles.summaryCard}>
               <Text style={styles.summaryHall}>{booking.hallTitle}</Text>
               <Text style={styles.summaryDetails}>
-                {booking.clientName} · {booking.date}, {booking.timeSlot}
+                {booking.clientName} · {displayDate(booking.date, t)}, {booking.timeSlot}
               </Text>
             </View>
 

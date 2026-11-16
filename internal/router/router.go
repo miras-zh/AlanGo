@@ -99,6 +99,7 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	itemHandler := item.NewHandler(itemService, uploadService, auditService, hub)
 
 	sportService := sport.NewService(db)
+	sportService.SetNotifier(notificationService)
 	sportHandler := sport.NewHandler(sportService, uploadService)
 
 	telegramBot := telegram.NewBotService()
@@ -137,7 +138,7 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	r.HandleFunc("/api/halls/{id:[0-9]+}/schedule", sportHandler.GetHallSchedule).Methods("GET")
 	r.HandleFunc("/api/halls/{id:[0-9]+}/availability", sportHandler.HallAvailability).Methods("GET")
 	optionalAuth := auth.OptionalAuthMiddleware(cfg.JWTSecret, cfg.JWTSecretPrevious, rdb, userService.IsActive)
-	r.Handle("/api/bookings", optionalAuth(http.HandlerFunc(sportHandler.CreateBooking))).Methods("POST")
+	r.Handle("/api/bookings", withPublicFormRateLimit("booking", optionalAuth(http.HandlerFunc(sportHandler.CreateBooking)), rdb)).Methods("POST")
 	r.Handle("/api/bookings", optionalAuth(http.HandlerFunc(sportHandler.ListBookings))).Methods("GET")
 	r.HandleFunc("/api/business/telegram/notify", telegramHandler.NotifyBooking).Methods("POST")
 	r.HandleFunc("/api/business/telegram/status", telegramHandler.GetStatus).Methods("GET")
@@ -158,6 +159,7 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/business/me", userHandler.GetBusiness).Methods("GET")
 	authRouter.HandleFunc("/business/dashboard", sportHandler.GetBusinessDashboard).Methods("GET")
 	authRouter.HandleFunc("/business/bookings", sportHandler.ListOwnBookings).Methods("GET")
+	authRouter.HandleFunc("/business/bookings/pending-count", sportHandler.PendingBookingsCount).Methods("GET")
 
 	authRouter.HandleFunc("/realtime/ticket", realtimeHandler.MintTicket).Methods("POST")
 	authRouter.HandleFunc("/notifications", notificationHandler.List).Methods("GET")
@@ -192,7 +194,10 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/halls/{id:[0-9]+}/photos", sportHandler.UploadHallPhoto).Methods("POST")
 	authRouter.HandleFunc("/halls/{id:[0-9]+}/schedule", sportHandler.SaveHallSchedule).Methods("PUT")
 	authRouter.HandleFunc("/halls/{id:[0-9]+}/photos", sportHandler.DeleteHallPhoto).Methods("DELETE")
+	authRouter.HandleFunc("/bookings/{id:[0-9]+}", sportHandler.UpdateBookingDetails).Methods("PATCH")
 	authRouter.HandleFunc("/bookings/{id:[0-9]+}/status", sportHandler.UpdateBookingStatus).Methods("PATCH")
+	authRouter.HandleFunc("/bookings/{id:[0-9]+}/reschedule", sportHandler.RescheduleBooking).Methods("PATCH")
+	authRouter.HandleFunc("/bookings/{id:[0-9]+}/payment", sportHandler.UpdateBookingPayment).Methods("PATCH")
 	authRouter.HandleFunc("/bookings/{id:[0-9]+}/client-rating", sportHandler.RateBookingClient).Methods("PUT")
 	authRouter.HandleFunc("/me/stats", sportHandler.GetMyStats).Methods("GET")
 

@@ -65,7 +65,7 @@ func bookingEnd(b Booking) (time.Time, bool) {
 	return t, true
 }
 
-// ClientStats counts the user's finished, non-cancelled bookings and averages
+// ClientStats counts the user's finished confirmed bookings and averages
 // the ratings businesses gave them.
 func (s *Service) ClientStats(ctx context.Context, userID uint) (ClientStats, error) {
 	stats := ClientStats{Rating: DefaultClientRating}
@@ -73,7 +73,7 @@ func (s *Service) ClientStats(ctx context.Context, userID uint) (ClientStats, er
 	var bookings []Booking
 	if err := s.db.WithContext(ctx).
 		Select("id, booking_date, end_time, duration_minutes, status").
-		Where("user_id = ? AND status <> 'cancelled'", userID).
+		Where("user_id = ? AND status IN ('confirmed', 'completed')", userID).
 		Find(&bookings).Error; err != nil {
 		return stats, err
 	}
@@ -123,7 +123,7 @@ func (s *Service) RateClient(ctx context.Context, ownerID, bookingID uint, score
 	if b.UserID == nil {
 		return nil, ErrBookingNoClient
 	}
-	if b.Status == "cancelled" {
+	if b.Status != "confirmed" && b.Status != "completed" {
 		return nil, ErrBookingNotFinished
 	}
 	if end, ok := bookingEnd(b); b.Status != "completed" && (!ok || end.After(time.Now().In(venueTZ))) {

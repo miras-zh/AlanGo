@@ -89,28 +89,31 @@ func (ScheduleDay) TableName() string {
 }
 
 type Booking struct {
-	ID              uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	BookingCode     string    `gorm:"column:booking_code;type:varchar(50);not null;unique" json:"booking_code"`
-	HallID          uint      `gorm:"column:hall_id;not null;index" json:"hall_id"`
-	HallTitle       string    `gorm:"->;column:hall_title" json:"hall_title,omitempty"`
-	SportType       string    `gorm:"->;column:sport_type" json:"sport_type,omitempty"`
-	ArenaID         uint      `gorm:"column:arena_id;not null;index" json:"arena_id"`
-	ArenaTitle      string    `gorm:"->;column:arena_title" json:"arena_title,omitempty"`
-	ClientRating    *int      `gorm:"->;column:client_rating" json:"client_rating,omitempty"`
-	UserID          *uint     `gorm:"column:user_id;index" json:"user_id,omitempty"`
-	ClientName      string    `gorm:"column:client_name;type:varchar(255);not null" json:"client_name"`
-	ClientPhone     string    `gorm:"column:client_phone;type:varchar(50);not null" json:"client_phone"`
-	BookingDate     string    `gorm:"column:booking_date;type:varchar(50);not null" json:"booking_date"`
-	TimeSlot        string    `gorm:"column:time_slot;type:varchar(50);not null" json:"time_slot"`
-	StartTime       string    `gorm:"column:start_time;type:varchar(10);not null;default:'19:00'" json:"start_time"`
-	EndTime         string    `gorm:"column:end_time;type:varchar(10);not null;default:'20:00'" json:"end_time"`
-	DurationMinutes int       `gorm:"column:duration_minutes;not null;default:60" json:"duration_minutes"`
-	TotalPrice      int       `gorm:"column:total_price;not null;default:0" json:"total_price"`
-	Status          string    `gorm:"column:status;type:varchar(50);not null;default:'confirmed'" json:"status"`
-	PaymentStatus   string    `gorm:"column:payment_status;type:varchar(50);not null;default:'pending'" json:"payment_status"`
-	Notes           string    `gorm:"column:notes;type:text;not null;default:''" json:"notes"`
-	CreatedAt       time.Time `gorm:"column:created_at;default:now()" json:"created_at"`
-	UpdatedAt       time.Time `gorm:"column:updated_at;default:now()" json:"updated_at"`
+	ID              uint       `gorm:"primaryKey;autoIncrement" json:"id"`
+	BookingCode     string     `gorm:"column:booking_code;type:varchar(50);not null;unique" json:"booking_code"`
+	HallID          uint       `gorm:"column:hall_id;not null;index" json:"hall_id"`
+	HallTitle       string     `gorm:"->;column:hall_title" json:"hall_title,omitempty"`
+	SportType       string     `gorm:"->;column:sport_type" json:"sport_type,omitempty"`
+	ArenaID         uint       `gorm:"column:arena_id;not null;index" json:"arena_id"`
+	ArenaTitle      string     `gorm:"->;column:arena_title" json:"arena_title,omitempty"`
+	ClientRating    *int       `gorm:"->;column:client_rating" json:"client_rating,omitempty"`
+	UserID          *uint      `gorm:"column:user_id;index" json:"user_id,omitempty"`
+	ClientName      string     `gorm:"column:client_name;type:varchar(255);not null" json:"client_name"`
+	ClientPhone     string     `gorm:"column:client_phone;type:varchar(50);not null" json:"client_phone"`
+	BookingDate     string     `gorm:"column:booking_date;type:varchar(50);not null" json:"booking_date"`
+	TimeSlot        string     `gorm:"column:time_slot;type:varchar(50);not null" json:"time_slot"`
+	StartTime       string     `gorm:"column:start_time;type:varchar(10);not null;default:'19:00'" json:"start_time"`
+	EndTime         string     `gorm:"column:end_time;type:varchar(10);not null;default:'20:00'" json:"end_time"`
+	DurationMinutes int        `gorm:"column:duration_minutes;not null;default:60" json:"duration_minutes"`
+	TotalPrice      int        `gorm:"column:total_price;not null;default:0" json:"total_price"`
+	Status          string     `gorm:"column:status;type:varchar(50);not null;default:'confirmed'" json:"status"`
+	PaymentStatus   string     `gorm:"column:payment_status;type:varchar(50);not null;default:'pending'" json:"payment_status"`
+	Notes           string     `gorm:"column:notes;type:text;not null;default:''" json:"notes"`
+	RejectionReason string     `gorm:"column:rejection_reason;type:text;not null;default:''" json:"rejection_reason"`
+	PaidAmount      int        `gorm:"column:paid_amount;not null;default:0" json:"paid_amount"`
+	StatusChangedAt *time.Time `gorm:"column:status_changed_at" json:"status_changed_at,omitempty"`
+	CreatedAt       time.Time  `gorm:"column:created_at;default:now()" json:"created_at"`
+	UpdatedAt       time.Time  `gorm:"column:updated_at;default:now()" json:"updated_at"`
 }
 
 func (Booking) TableName() string {
@@ -132,7 +135,25 @@ type CreateBookingRequest struct {
 }
 
 type UpdateBookingStatusRequest struct {
-	Status string `json:"status"` // confirmed, pending, cancelled, completed
+	Status string `json:"status"` // confirmed, rejected, cancelled, completed
+	Reason string `json:"reason"` // required for rejected
+}
+
+// RescheduleBookingRequest moves a booking to another date/time of the same hall.
+type RescheduleBookingRequest struct {
+	BookingDate     string `json:"booking_date"`
+	StartTime       string `json:"start_time"`
+	DurationMinutes int    `json:"duration_minutes"`
+}
+
+type UpdateBookingPaymentRequest struct {
+	PaidAmount int `json:"paid_amount"`
+}
+
+type UpdateBookingDetailsRequest struct {
+	ClientName  *string `json:"client_name"`
+	ClientPhone *string `json:"client_phone"`
+	Notes       *string `json:"notes"`
 }
 
 type SaveScheduleRequest struct {

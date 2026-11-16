@@ -128,7 +128,7 @@ export async function calculateIncomeStats(
   const arenaHalls = allHalls.filter((h) => h.arenaId === arenaId);
   const confirmedAll = allBookings.filter(
     (b) =>
-      b.arenaId === arenaId && (b.status === "confirmed" || (b.status as any) === "completed")
+      b.arenaId === arenaId && (b.status === "confirmed" || b.status === "completed")
   );
 
   const tomorrow = new Date(startOfDay(new Date()).getTime() + 86400000);
@@ -202,11 +202,13 @@ export async function getClientProfiles(arenaId: number): Promise<ClientProfile[
 
   for (const b of arenaBookings) {
     const phone = b.clientPhone || "+7 (700) 000-00-00";
+    // Only bookings that took place (or will) count as money spent.
+    const spent = b.status === "confirmed" || b.status === "completed" ? b.totalPrice : 0;
     const existing = clientMap.get(phone);
 
     if (existing) {
       existing.totalBookings += 1;
-      existing.totalSpent += b.totalPrice;
+      existing.totalSpent += spent;
       if (b.date > existing.lastBookingDate) {
         existing.lastBookingDate = b.date;
       }
@@ -216,7 +218,7 @@ export async function getClientProfiles(arenaId: number): Promise<ClientProfile[
         name: b.clientName || tr("user.client"),
         phone,
         totalBookings: 1,
-        totalSpent: b.totalPrice,
+        totalSpent: spent,
         lastBookingDate: b.date,
         sportPreferred: b.sportType || "football",
         status: b.totalPrice > 40000 ? "vip" : "regular",

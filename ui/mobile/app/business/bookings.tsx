@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
-  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useMyArenaId } from "@/lib/business";
 import { getSessionUser } from "@/lib/auth";
 import {
@@ -24,21 +24,23 @@ import {
   setBookingGameOutcome,
   updateBookingPayment,
   updateBookingDetails,
+  rescheduleBooking,
   isBookingFinished,
+  isoDate,
   rateBookingClient,
 } from "@/lib/sportRentData";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getErrorMessage } from "@/lib/errorMessage";
-import { spacing } from "@/constants/theme";
+import { radii, spacing } from "@/constants/theme";
 import { BookingsCalendar } from "@/components/BookingsCalendar";
 import { ManualBookingModal } from "@/components/ManualBookingModal";
 import { RejectBookingModal } from "@/components/RejectBookingModal";
 import { PaymentModal } from "@/components/PaymentModal";
 import { EditBookingModal } from "@/components/EditBookingModal";
-import {
-  notifyBookingConfirmed,
-  notifyBookingRejected,
-} from "@/lib/pushNotificationsService";
+import { BookingDetailsModal, bookingStatusMeta } from "@/components/BookingDetailsModal";
+import { RescheduleBookingModal } from "@/components/RescheduleBookingModal";
+import { setPendingCount } from "@/lib/pendingBookings";
+import { callPhone, openWhatsApp } from "@/lib/contactLinks";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 import { formatNumber, useT, type MessageKey } from "@/lib/i18n";
@@ -66,7 +68,12 @@ export default function BusinessBookingsScreen() {
   const [halls, setHalls] = useState<Hall[]>([]);
   const [selectedFilter, setSelectedFilter] = useState("Все");
   const [refreshing, setRefreshing] = useState(false);
-  const [screenMode, setScreenMode] = useState<"calendar" | "list">("calendar");
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const [screenMode, setScreenMode] = useState<"requests" | "calendar" | "list">(
+    params.mode === "calendar" || params.mode === "list" ? params.mode : "requests",
+  );
+  const [detailTarget, setDetailTarget] = useState<Booking | null>(null);
+  const [rescheduleTarget, setRescheduleTarget] = useState<Booking | null>(null);
 
   // Manual & Reject Modals
   const [manualModalOpen, setManualModalOpen] = useState(false);
@@ -79,6 +86,10 @@ export default function BusinessBookingsScreen() {
   const user = getSessionUser();
   const { arenaId, loading: arenaLoading } = useMyArenaId();
   const arenaTitle = user?.name || t("chat.arenaFallback");
+
+  useEffect(() => {
+    if (params.mode === "requests" || params.mode === "calendar" || params.mode === "list") setScreenMode(params.mode);
+  }, [params.mode]);
 
   const loadData = useCallback(async () => {
     if (arenaLoading) return;
@@ -93,14 +104,41 @@ export default function BusinessBookingsScreen() {
       getStoredHalls(),
     ]);
 
+    const own = myBookings.filter((b) => b.arenaId === arenaId);
     setHalls(allHalls.filter((h) => h.arenaId === arenaId));
-    setBookings(myBookings.filter((b) => b.arenaId === arenaId));
+    setBookings(own);
+    const today = isoDate(new Date());
+    setPendingCount(own.filter((b) => b.status === "pending" && b.date >= today).length);
     setRefreshing(false);
   }, [arenaId, arenaLoading]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // Reload when the tab gets focus (new requests arrive while elsewhere).
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData]),
+  );
+
+  // Requests waiting for an answer: upcoming pending bookings, soonest first.
+  const requests = useMemo(() => {
+    const today = isoDate(new Date());
+    return bookings
+      .filter((b) => b.status === "pending" && b.date >= today)
+      .sort((a, b) => `${a.date} ${a.timeSlot}`.localeCompare(`${b.date} ${b.timeSlot}`));
+  }, [bookings]);
+
+  // Replace one booking in the list with the server's answer.
+  const applyUpdated = (updated: Booking) => {
+    setBookings((list) => {
+      const next = list.map((x) => (x.dbId === updated.dbId ? { ...x, ...updated } : x));
+      const today = isoDate(new Date());
+      setPendingCount(next.filter((b) => b.status === "pending" && b.date >= today).length);
+      return next;
+    });
+    setDetailTarget((d) => (d && d.dbId === updated.dbId ? { ...d, ...updated } : d));
+  };
+
+  const failed = (err: unknown) => Alert.alert(t("common.error"), getErrorMessage(err));
 
   // Business rates the client after the game; the average becomes the
   // client's rating in their profile (5.0 until the first score).
@@ -119,18 +157,22 @@ export default function BusinessBookingsScreen() {
   };
 
   const handleSavePayment = async (bookingId: string, paidAmount: number) => {
-    await updateBookingPayment(bookingId, paidAmount);
-    await loadData();
-    Alert.alert(t("bookings.paymentUpdated"), t("bookings.paidAmount", { price: formatNumber(paidAmount) }));
+    const target = bookings.find((b) => b.id === bookingId);
+    if (!target) return;
+    try {
+      applyUpdated(await updateBookingPayment(target, paidAmount));
+      Alert.alert(t("bookings.paymentUpdated"), t("bookings.paidAmount", { price: formatNumber(paidAmount) }));
+    } catch (err) {
+      failed(err);
+    }
   };
 
   const handleSaveBookingEdit = async (
-    bookingId: string,
-    updates: Partial<Booking>
+    booking: Booking,
+    updates: { clientName: string; clientPhone: string; notes: string },
   ) => {
-    await updateBookingDetails(bookingId, updates);
-    await loadData();
-    Alert.alert(t("account.savedTitle"), t("bookings.updated"));
+    // Errors are shown by the edit modal.
+    applyUpdated(await updateBookingDetails(booking, updates));
   };
 
   const filteredBookings = bookings.filter((b) => {
@@ -143,30 +185,33 @@ export default function BusinessBookingsScreen() {
     return true;
   });
 
-  const handleStatusChange = async (
-    id: string,
-    status: "confirmed" | "cancelled"
-  ) => {
+  const handleConfirm = async (booking: Booking) => {
     hapticImpact();
-    await updateBookingStatus(id, status);
-    const target = bookings.find((b) => b.id === id);
-    if (status === "confirmed" && target) {
-      notifyBookingConfirmed(
-        target.arenaTitle || arenaTitle,
-        target.date,
-        target.timeSlot
-      );
+    try {
+      applyUpdated(await updateBookingStatus(booking, "confirmed"));
+      hapticSuccess();
+      setDetailTarget(null);
+      Alert.alert(t("bookings.confirmedTitle"), t("request.confirmedText", { name: booking.clientName }));
+    } catch (err) {
+      failed(err);
+      loadData();
     }
-    await loadData();
-    Alert.alert(
-      status === "confirmed" ? t("bookings.confirmedTitle") : t("bookings.cancelledTitle"),
-      t("bookings.statusChanged", { id })
-    );
+  };
+
+  const handleCancel = async (booking: Booking) => {
+    try {
+      applyUpdated(await updateBookingStatus(booking, "cancelled"));
+      setDetailTarget(null);
+      Alert.alert(t("bookings.cancelledTitle"), t("bookings.statusChanged", { id: booking.id }));
+    } catch (err) {
+      failed(err);
+      loadData();
+    }
   };
 
   const handleCall = (phone: string) => {
     hapticSelection();
-    Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`).catch(() => {
+    callPhone(phone).catch(() => {
       Alert.alert(t("chat.call"), t("bookings.clientPhone", { phone }));
     });
   };
@@ -181,14 +226,28 @@ export default function BusinessBookingsScreen() {
   const handleRejectConfirmed = async (reason: string) => {
     if (!rejectTarget) return;
     hapticImpact();
-    notifyBookingRejected(
-      rejectTarget.arenaTitle || arenaTitle,
-      reason
+    try {
+      applyUpdated(await rejectBookingWithReason(rejectTarget, reason));
+      setRejectTarget(null);
+      setDetailTarget(null);
+      Alert.alert(t("bookings.rejectedTitle"), t("bookings.reason", { reason }));
+    } catch (err) {
+      failed(err);
+    }
+  };
+
+  const handleReschedule = async (
+    booking: Booking,
+    data: { date: string; startTime: string; durationMinutes: number },
+  ) => {
+    // Errors are shown by the reschedule modal.
+    const updated = await rescheduleBooking(booking, data);
+    applyUpdated(updated);
+    setRescheduleTarget(null);
+    Alert.alert(
+      t("request.rescheduledTitle"),
+      t("request.rescheduledText", { date: displayDate(updated.date, t), time: updated.timeSlot }),
     );
-    await rejectBookingWithReason(rejectTarget.id, reason);
-    setRejectTarget(null);
-    await loadData();
-    Alert.alert(t("bookings.rejectedTitle"), t("bookings.reason", { reason }));
   };
 
   const handleOutcomeChange = async (
@@ -196,9 +255,29 @@ export default function BusinessBookingsScreen() {
     outcome: "completed" | "no_show"
   ) => {
     hapticSuccess();
+    const target = bookings.find((b) => b.id === bookingId);
+    if (outcome === "completed" && target) {
+      try {
+        applyUpdated(await updateBookingStatus(target, "completed"));
+      } catch (err) {
+        failed(err);
+      }
+      return;
+    }
     await setBookingGameOutcome(bookingId, outcome);
     await loadData();
   };
+
+  const openDetails = (b: Booking) => {
+    hapticSelection();
+    setDetailTarget(b);
+  };
+
+  const MODES: { id: "requests" | "calendar" | "list"; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+    { id: "requests", icon: "mail-unread-outline", label: t("request.tab", { n: requests.length }) },
+    { id: "calendar", icon: "calendar", label: t("bookings.calendarTab") },
+    { id: "list", icon: "list", label: t("bookings.listTab", { n: bookings.length }) },
+  ];
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -223,66 +302,135 @@ export default function BusinessBookingsScreen() {
         </Pressable>
       </View>
 
-      {/* Mode Switcher (Календарь 3-в-1 / Список) */}
+      {/* Mode Switcher: Заявки / Календарь / Список */}
       <View style={styles.modeTabsRow}>
-        <Pressable
-          style={[styles.modeTab, screenMode === "calendar" && styles.modeTabActive]}
-          onPress={() => {
-            hapticSelection();
-            setScreenMode("calendar");
-          }}
-        >
-          <Ionicons
-            name="calendar"
-            size={16}
-            color={screenMode === "calendar" ? c.primary : c.textSecondary}
-          />
-          <Text
-            style={[
-              styles.modeTabText,
-              screenMode === "calendar" && styles.modeTabTextActive,
-            ]}
-          >
-            {t("bookings.calendarTab")}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.modeTab, screenMode === "list" && styles.modeTabActive]}
-          onPress={() => {
-            hapticSelection();
-            setScreenMode("list");
-          }}
-        >
-          <Ionicons
-            name="list"
-            size={16}
-            color={screenMode === "list" ? c.primary : c.textSecondary}
-          />
-          <Text
-            style={[
-              styles.modeTabText,
-              screenMode === "list" && styles.modeTabTextActive,
-            ]}
-          >
-            {t("bookings.listTab", { n: bookings.length })}
-          </Text>
-        </Pressable>
+        {MODES.map((m) => {
+          const active = screenMode === m.id;
+          return (
+            <Pressable
+              key={m.id}
+              style={[styles.modeTab, active && styles.modeTabActive]}
+              onPress={() => {
+                hapticSelection();
+                setScreenMode(m.id);
+              }}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+            >
+              <Ionicons name={m.icon} size={16} color={active ? c.primary : c.textSecondary} />
+              <Text style={[styles.modeTabText, active && styles.modeTabTextActive]} numberOfLines={1}>
+                {m.label}
+              </Text>
+              {m.id === "requests" && requests.length > 0 ? <View style={styles.modeDot} /> : null}
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* Screen Mode Content */}
-      {screenMode === "calendar" ? (
+      {screenMode === "requests" ? (
+        <FlatList
+          data={requests}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                loadData();
+              }}
+              tintColor={c.primary}
+            />
+          }
+          ListHeaderComponent={
+            requests.length > 0 ? <Text style={styles.requestsHint}>{t("request.listHint")}</Text> : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Ionicons name="checkmark-done-circle-outline" size={48} color={c.border} />
+              <Text style={styles.emptyTitle}>{t("request.emptyTitle")}</Text>
+              <Text style={styles.emptySub}>{t("request.emptyText")}</Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <Pressable style={[styles.bookingCard, styles.requestCard]} onPress={() => openDetails(item)}>
+              <View style={styles.cardHeader}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.clientName}>{item.clientName}</Text>
+                  <Text style={styles.requestPhone}>{item.clientPhone}</Text>
+                </View>
+                <View style={[styles.statusBadge, { backgroundColor: c.warningSoft }]}>
+                  <Text style={[styles.statusBadgeText, { color: c.warning }]}>{t("request.statusPending")}</Text>
+                </View>
+              </View>
+              <View style={styles.cardBody}>
+                <View style={styles.infoRow}>
+                  <Ionicons name="layers-outline" size={14} color={c.primary} />
+                  <Text style={styles.hallTitle}>{item.hallTitle}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="time-outline" size={14} color={c.primary} />
+                  <Text style={styles.slotTime}>
+                    {t("bookings.slotLine", { date: displayDate(item.date, t), time: item.timeSlot, n: item.durationMinutes })}
+                  </Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="wallet-outline" size={14} color={c.primary} />
+                  <Text style={styles.slotTime}>{formatNumber(item.totalPrice)} ₸</Text>
+                </View>
+              </View>
+              <View style={styles.requestActions}>
+                <Pressable style={styles.requestIconBtn} onPress={() => handleCall(item.clientPhone)} accessibilityLabel={t("chat.call")}>
+                  <Ionicons name="call" size={16} color={c.primary} />
+                </Pressable>
+                <Pressable
+                  style={styles.requestIconBtn}
+                  onPress={() => openWhatsApp(item.clientPhone).catch(() => failed(new Error(t("request.contactError"))))}
+                  accessibilityLabel="WhatsApp"
+                >
+                  <Ionicons name="logo-whatsapp" size={16} color={c.primary} />
+                </Pressable>
+                <Pressable
+                  style={styles.requestIconBtn}
+                  onPress={() => {
+                    hapticSelection();
+                    setRescheduleTarget(item);
+                  }}
+                  accessibilityLabel={t("request.reschedule")}
+                >
+                  <Ionicons name="swap-horizontal" size={16} color={c.textPrimary} />
+                </Pressable>
+                <Pressable
+                  style={styles.requestIconBtn}
+                  onPress={() => {
+                    hapticImpact();
+                    setRejectTarget(item);
+                  }}
+                  accessibilityLabel={t("request.reject")}
+                >
+                  <Ionicons name="close" size={16} color={c.error} />
+                </Pressable>
+                <Pressable style={styles.requestConfirmBtn} onPress={() => handleConfirm(item)}>
+                  <Ionicons name="checkmark" size={16} color={c.onPrimary} />
+                  <Text style={styles.requestConfirmText}>{t("common.confirm")}</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          )}
+        />
+      ) : screenMode === "calendar" ? (
         <BookingsCalendar
           bookings={bookings}
           halls={halls}
-          onSelectBooking={(b: Booking) => {
-            hapticSelection();
-            setEditTarget(b);
-          }}
+          onSelectBooking={openDetails}
           onAddManualBooking={() => setManualModalOpen(true)}
-          onStatusChange={(id: string, status: "confirmed" | "cancelled") =>
-            handleStatusChange(id, status)
-          }
+          onStatusChange={(id: string, status: "confirmed" | "cancelled") => {
+            const target = bookings.find((b) => b.id === id);
+            if (!target) return;
+            if (status === "confirmed") handleConfirm(target);
+            else handleCancel(target);
+          }}
           onRejectBooking={(b: Booking) => setRejectTarget(b)}
           onOutcomeChange={handleOutcomeChange}
         />
@@ -348,10 +496,7 @@ export default function BusinessBookingsScreen() {
               </View>
             }
             renderItem={({ item }) => {
-              const isRejected = item.status === "rejected";
-              const isConfirmed = item.status === "confirmed";
               const isPending = item.status === "pending";
-              const isCancelled = item.status === "cancelled";
 
               const total = item.totalPrice || 0;
               const paid = item.paidAmount ?? 0;
@@ -360,8 +505,9 @@ export default function BusinessBookingsScreen() {
               const isPartial = paid > 0 && !isPaid100;
               const isNotPaid = paid === 0;
 
+              const meta = bookingStatusMeta(item.status, c);
               return (
-                <View style={styles.bookingCard}>
+                <Pressable style={styles.bookingCard} onPress={() => openDetails(item)}>
                   <View style={styles.cardHeader}>
                     <View style={{ flex: 1, marginRight: 8 }}>
                       <Text style={styles.clientName}>{item.clientName}</Text>
@@ -374,30 +520,8 @@ export default function BusinessBookingsScreen() {
                       </Pressable>
                     </View>
 
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        isConfirmed && styles.statusBadgeConfirmed,
-                        isPending && styles.statusBadgePending,
-                        (isCancelled || isRejected) && styles.statusBadgeCancelled,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.statusBadgeText,
-                          isConfirmed && styles.textConfirmed,
-                          isPending && styles.textPending,
-                          (isCancelled || isRejected) && styles.textCancelled,
-                        ]}
-                      >
-                        {isConfirmed
-                          ? t("status.confirmed")
-                          : isPending
-                          ? t("bookings.filterPending")
-                          : isRejected
-                          ? t("status.rejected")
-                          : t("status.cancelled")}
-                      </Text>
+                    <View style={[styles.statusBadge, { backgroundColor: meta.bg }]}>
+                      <Text style={[styles.statusBadgeText, { color: meta.color }]}>{t(meta.key)}</Text>
                     </View>
                   </View>
 
@@ -499,15 +623,9 @@ export default function BusinessBookingsScreen() {
                     </View>
 
                     <View style={styles.actionsRow}>
-                      <Pressable
-                        style={styles.editBtn}
-                        onPress={() => {
-                          hapticSelection();
-                          setEditTarget(item);
-                        }}
-                      >
-                        <Ionicons name="create-outline" size={15} color={c.primary} />
-                        <Text style={styles.editBtnText}>{t("bizProfile.edit")}</Text>
+                      <Pressable style={styles.editBtn} onPress={() => openDetails(item)}>
+                        <Ionicons name="open-outline" size={15} color={c.primary} />
+                        <Text style={styles.editBtnText}>{t("request.details")}</Text>
                       </Pressable>
 
                       <Pressable
@@ -520,14 +638,14 @@ export default function BusinessBookingsScreen() {
                       {isPending && (
                         <Pressable
                           style={styles.confirmBtn}
-                          onPress={() => handleStatusChange(item.id, "confirmed")}
+                          onPress={() => handleConfirm(item)}
                         >
                           <Ionicons name="checkmark" size={16} color={c.background} />
                           <Text style={styles.confirmBtnText}>{t("bookings.accept")}</Text>
                         </Pressable>
                       )}
 
-                      {!isCancelled && !isRejected && (
+                      {isPending && (
                         <Pressable
                           style={styles.cancelBtn}
                           onPress={() => {
@@ -563,7 +681,7 @@ export default function BusinessBookingsScreen() {
                       </View>
                     </View>
                   ) : null}
-                </View>
+                </Pressable>
               );
             }}
           />
@@ -594,13 +712,24 @@ export default function BusinessBookingsScreen() {
         onSavePayment={handleSavePayment}
       />
 
-      <EditBookingModal
-        visible={!!editTarget}
-        booking={editTarget}
-        halls={halls}
-        onClose={() => setEditTarget(null)}
-        onSave={handleSaveBookingEdit}
+      <BookingDetailsModal
+        booking={detailTarget && !rejectTarget && !rescheduleTarget && !paymentTarget && !editTarget ? detailTarget : null}
+        onClose={() => setDetailTarget(null)}
+        onConfirm={handleConfirm}
+        onReject={(b) => setRejectTarget(b)}
+        onReschedule={(b) => setRescheduleTarget(b)}
+        onCancel={handleCancel}
+        onPayment={(b) => setPaymentTarget(b)}
+        onEdit={(b) => setEditTarget(b)}
       />
+
+      <RescheduleBookingModal
+        booking={rescheduleTarget}
+        onClose={() => setRescheduleTarget(null)}
+        onSubmit={handleReschedule}
+      />
+
+      <EditBookingModal booking={editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveBookingEdit} />
     </SafeAreaView>
   );
 }
@@ -650,7 +779,7 @@ const createStyles = (c: Palette) =>
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: c.surface,
-    gap: 10,
+    gap: 8,
     borderBottomWidth: 1,
     borderBottomColor: c.hairline,
   },
@@ -661,13 +790,14 @@ const createStyles = (c: Palette) =>
     justifyContent: "center",
     gap: 6,
     paddingVertical: 9,
-    borderRadius: 10,
+    paddingHorizontal: 6,
+    borderRadius: radii.smallChip,
     backgroundColor: c.background,
     borderWidth: 1,
     borderColor: c.hairline,
   },
   modeTabActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    backgroundColor: c.primarySoft,
     borderColor: c.primary,
   },
   modeTabText: {
@@ -678,6 +808,57 @@ const createStyles = (c: Palette) =>
   modeTabTextActive: {
     color: c.primary,
     fontWeight: "700",
+  },
+  modeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: c.warning,
+  },
+  requestsHint: {
+    fontSize: 12,
+    color: c.textSecondary,
+    marginBottom: spacing.md,
+  },
+  requestCard: {
+    borderColor: c.warning,
+  },
+  requestPhone: {
+    fontSize: 13,
+    color: c.textSecondary,
+    marginTop: 2,
+  },
+  requestActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: c.hairline,
+  },
+  requestIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.button,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: c.subtle,
+  },
+  requestConfirmBtn: {
+    flex: 1,
+    height: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    borderRadius: radii.button,
+    backgroundColor: c.primary,
+  },
+  requestConfirmText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: c.onPrimary,
   },
   filterWrap: {
     paddingVertical: 10,

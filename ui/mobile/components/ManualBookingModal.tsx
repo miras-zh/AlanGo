@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Modal,
   View,
@@ -25,8 +25,8 @@ import { getErrorMessage } from "@/lib/errorMessage";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
-import { formatNumber, useT, type TFunction } from "@/lib/i18n";
-import { weekdayShort } from "@/lib/dataLabels";
+import { formatNumber, useT } from "@/lib/i18n";
+import { DateStrip } from "@/components/DateStrip";
 
 interface ManualBookingModalProps {
   visible: boolean;
@@ -37,20 +37,6 @@ interface ManualBookingModalProps {
   onCreated: (booking: Booking) => void;
 }
 
-
-function nextDays(count: number, t: TFunction) {
-  const today = new Date();
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
-    const label =
-      i === 0
-        ? t("date.today")
-        : i === 1
-          ? t("date.tomorrow")
-          : t("date.dayNum", { weekday: weekdayShort(d.getDay(), t), day: d.getDate() });
-    return { id: isoDate(d), label };
-  });
-}
 
 export function ManualBookingModal({
   visible,
@@ -66,7 +52,6 @@ export function ManualBookingModal({
   const [selectedHallId, setSelectedHallId] = useState<number | null>(null);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("+7 ");
-  const days = useMemo(() => nextDays(7, t), [t]);
   const [selectedDate, setSelectedDate] = useState(() => isoDate(new Date()));
   const [duration, setDuration] = useState<number | null>(null);
   const [availability, setAvailability] = useState<HallAvailability | null>(null);
@@ -201,25 +186,7 @@ export function ManualBookingModal({
 
             {/* 2. Дата */}
             <Text style={styles.sectionLabel}>{t("manual.day")}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-              {days.map((d) => {
-                const active = selectedDate === d.id;
-                return (
-                  <Pressable
-                    key={d.id}
-                    style={[styles.dateChip, active && styles.dateChipActive]}
-                    onPress={() => {
-                      hapticSelection();
-                      setSelectedDate(d.id);
-                    }}
-                  >
-                    <Text style={[styles.dateChipText, active && styles.dateChipTextActive]}>
-                      {d.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+            <DateStrip value={selectedDate} onChange={setSelectedDate} />
 
             {/* 3. Длительность и слот (занятые — тусклые) */}
             {availability && availability.slotDurations.length > 1 ? (

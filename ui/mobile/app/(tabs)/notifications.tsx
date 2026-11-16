@@ -26,7 +26,7 @@ import {
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
-import { useT } from "@/lib/i18n";
+import { useT, type MessageKey } from "@/lib/i18n";
 import { chatTimeLabel, dayMonth, timeHM } from "@/lib/dataLabels";
 
 type TabType = "chats" | "notifications";
@@ -78,6 +78,9 @@ export default function NotificationsScreen() {
         prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x))
       );
     }
+    // Booking notifications open the matching list.
+    if (n.type === "booking_request") router.push("/business/bookings?mode=requests");
+    else if (n.type.startsWith("booking_")) router.push("/my-bookings");
   };
 
   const handleOpenChat = (d: ChatDialog) => {
@@ -255,26 +258,16 @@ export default function NotificationsScreen() {
             >
               <View style={styles.notifIconWrap}>
                 <Ionicons
-                  name={
-                    item.type === "booking_confirmed"
-                      ? "checkmark-circle"
-                      : item.type === "promo"
-                      ? "flash"
-                      : "trophy"
-                  }
+                  name={notificationIcon(item.type).icon}
                   size={20}
-                  color={
-                    item.type === "booking_confirmed"
-                      ? c.primary
-                      : item.type === "promo"
-                      ? "#EAB308"
-                      : "#3B82F6"
-                  }
+                  color={notificationIcon(item.type).color(c)}
                 />
               </View>
 
               <View style={styles.notifBody}>
-                <Text style={styles.notifTitle}>{item.title}</Text>
+                <Text style={styles.notifTitle}>
+                  {BOOKING_TITLE_KEYS[item.type] ? t(BOOKING_TITLE_KEYS[item.type]) : item.title}
+                </Text>
                 <Text style={styles.notifText}>{item.body}</Text>
                 <Text style={styles.notifDate}>
                   {`${dayMonth(new Date(item.created_at), t)}, ${timeHM(new Date(item.created_at))}`}
@@ -286,6 +279,34 @@ export default function NotificationsScreen() {
       )}
     </SafeAreaView>
   );
+}
+
+// Booking notifications come from the server with a Russian title; show it
+// in the selected language by type (the body carries the details).
+const BOOKING_TITLE_KEYS: Record<string, MessageKey> = {
+  booking_request: "notif.bookingRequest",
+  booking_confirmed: "notif.bookingConfirmed",
+  booking_rejected: "notif.bookingRejected",
+  booking_rescheduled: "notif.bookingRescheduled",
+  booking_cancelled: "notif.bookingCancelled",
+};
+
+function notificationIcon(type: string): { icon: keyof typeof Ionicons.glyphMap; color: (c: Palette) => string } {
+  switch (type) {
+    case "booking_request":
+      return { icon: "mail-unread", color: (c) => c.warning };
+    case "booking_confirmed":
+      return { icon: "checkmark-circle", color: (c) => c.primary };
+    case "booking_rejected":
+    case "booking_cancelled":
+      return { icon: "close-circle", color: (c) => c.error };
+    case "booking_rescheduled":
+      return { icon: "swap-horizontal", color: (c) => c.warning };
+    case "promo":
+      return { icon: "flash", color: (c) => c.warning };
+    default:
+      return { icon: "trophy", color: (c) => c.primary };
+  }
 }
 
 const createStyles = (c: Palette) =>

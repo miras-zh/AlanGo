@@ -10,7 +10,8 @@ import (
 )
 
 type Service struct {
-	db *gorm.DB
+	db       *gorm.DB
+	notifier Notifier
 }
 
 func NewService(db *gorm.DB) *Service {
@@ -242,30 +243,6 @@ func (s *Service) ListBookings(ctx context.Context, arenaID, hallID uint, date, 
 		return nil, err
 	}
 	return bookings, nil
-}
-
-func (s *Service) UpdateBookingStatus(ctx context.Context, id uint, status string) (*Booking, error) {
-	validStatuses := map[string]bool{
-		"confirmed": true,
-		"pending":   true,
-		"cancelled": true,
-		"completed": true,
-	}
-	if !validStatuses[status] {
-		return nil, errors.New("недопустимый статус бронирования")
-	}
-
-	var booking Booking
-	if err := s.db.WithContext(ctx).First(&booking, id).Error; err != nil {
-		return nil, err
-	}
-
-	booking.Status = status
-	if err := s.db.WithContext(ctx).Save(&booking).Error; err != nil {
-		return nil, err
-	}
-
-	return s.GetBookingByID(ctx, id)
 }
 
 func (s *Service) GetBusinessDashboard(ctx context.Context, arenaID uint) (*BusinessDashboard, error) {

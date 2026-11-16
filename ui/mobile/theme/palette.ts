@@ -22,6 +22,8 @@ export type Palette = {
   glassBorder: string;
   glassBackground: string;
   success: string;
+  warning: string; // pending / awaiting an answer
+  warningSoft: string; // translucent warning fill for badges
   error: string;
   onPrimary: string; // text/icons on primary (green) fills
   onImage: string; // text/icons drawn over photos
@@ -45,6 +47,8 @@ export const darkPalette: Palette = {
   glassBorder: "rgba(255,255,255,0.12)",
   glassBackground: "rgba(28,39,34,0.72)",
   success: "#00C968",
+  warning: "#F5B70A",
+  warningSoft: "rgba(245,183,10,0.15)",
   error: "#F04452",
   onPrimary: "#080D0B",
   onImage: "#FFFFFF",
@@ -68,6 +72,8 @@ export const lightPalette: Palette = {
   glassBorder: "rgba(15,31,23,0.08)",
   glassBackground: "rgba(255,255,255,0.82)",
   success: "#00A65A",
+  warning: "#B7791F",
+  warningSoft: "rgba(183,121,31,0.12)",
   error: "#DC2626",
   onPrimary: "#FFFFFF",
   onImage: "#FFFFFF",

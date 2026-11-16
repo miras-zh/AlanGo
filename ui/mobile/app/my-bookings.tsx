@@ -15,6 +15,7 @@ import { radii, spacing, typography } from "@/constants/theme";
 import { hapticSelection } from "@/lib/haptics";
 import { formatNumber, useT } from "@/lib/i18n";
 import { getMyBookings, type Booking } from "@/lib/sportRentData";
+import { displayDate } from "@/lib/dataLabels";
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 type FilterTab = "upcoming" | "history" | "all";
@@ -77,11 +78,13 @@ export default function MyBookingsScreen() {
   const statusMeta = (status: Booking["status"]) => {
     switch (status) {
       case "confirmed":
-        return { label: t("status.confirmed"), color: c.primary, bg: "rgba(34, 197, 94, 0.12)" };
+        return { label: t("status.confirmed"), color: c.primary, bg: c.primarySoft };
+      case "completed":
+        return { label: t("request.statusCompleted"), color: c.textSecondary, bg: c.subtle };
       case "pending":
-        return { label: t("status.pending"), color: "#EAB308", bg: "rgba(234, 179, 8, 0.12)" };
+        return { label: t("myBookings.awaiting"), color: c.warning, bg: c.warningSoft };
       case "rejected":
-        return { label: t("status.rejected"), color: c.error, bg: "rgba(239, 68, 68, 0.12)" };
+        return { label: t("status.rejected"), color: c.error, bg: c.subtle };
       case "cancelled":
       default:
         return { label: t("status.cancelled"), color: c.textMuted, bg: c.surfaceElevated };
@@ -218,10 +221,23 @@ export default function MyBookingsScreen() {
                   <View style={styles.metaRow}>
                     <Ionicons name="calendar-outline" size={14} color={c.primary} />
                     <Text style={styles.metaText}>
-                      {item.date} · {item.timeSlot} ({formatDuration(item.durationMinutes || 60)})
+                      {displayDate(item.date, t)} · {item.timeSlot} ({formatDuration(item.durationMinutes || 60)})
                     </Text>
                   </View>
                 </View>
+
+                {item.status === "pending" ? (
+                  <View style={[styles.noticeBox, { backgroundColor: c.warningSoft }]}>
+                    <Ionicons name="hourglass-outline" size={14} color={c.warning} />
+                    <Text style={styles.noticeText}>{t("myBookings.awaitingText")}</Text>
+                  </View>
+                ) : null}
+                {item.status === "rejected" && item.rejectionReason ? (
+                  <View style={[styles.noticeBox, { backgroundColor: c.subtle }]}>
+                    <Ionicons name="alert-circle" size={14} color={c.error} />
+                    <Text style={styles.noticeText}>{t("bookings.reason", { reason: item.rejectionReason })}</Text>
+                  </View>
+                ) : null}
 
                 <View style={styles.cardFooter}>
                   <Text style={styles.codeText}>
@@ -242,6 +258,19 @@ export default function MyBookingsScreen() {
 
 const createStyles = (c: Palette) =>
   StyleSheet.create({
+    noticeBox: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: spacing.sm,
+      padding: spacing.md,
+      borderRadius: radii.smallChip,
+      marginTop: spacing.sm,
+    },
+    noticeText: {
+      flex: 1,
+      fontSize: 13,
+      color: c.textPrimary,
+    },
     container: {
       flex: 1,
       backgroundColor: c.background,

@@ -3,10 +3,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { Platform, StyleSheet } from "react-native";
 import { usePalette } from "@/theme/palette";
 import { useT } from "@/lib/i18n";
+import { usePendingCount } from "@/lib/pendingBookings";
 
 export default function BusinessTabsLayout() {
   const c = usePalette();
   const t = useT();
+  const pending = usePendingCount(true);
   return (
     <Tabs
       screenOptions={{
@@ -70,6 +72,8 @@ export default function BusinessTabsLayout() {
         name="bookings"
         options={{
           title: t("bizTabs.bookings"),
+          tabBarBadge: pending > 0 ? (pending > 99 ? "99+" : pending) : undefined,
+          tabBarBadgeStyle: { backgroundColor: c.warning, color: c.onPrimary, fontSize: 11, fontWeight: "700" },
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "calendar" : "calendar-outline"}

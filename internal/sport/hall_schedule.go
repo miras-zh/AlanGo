@@ -253,10 +253,12 @@ func bookingInterval(b Booking) (interval, bool) {
 
 func overlaps(a, b interval) bool { return a.start < b.end && b.start < a.end }
 
-func (s *Service) activeIntervals(db *gorm.DB, hallID uint, date string) ([]interval, error) {
+// activeIntervals: time taken on the hall's date by bookings that still hold
+// their slot (pending, confirmed, completed). excludeID is skipped (0 = none).
+func (s *Service) activeIntervals(db *gorm.DB, hallID uint, date string, excludeID uint) ([]interval, error) {
 	var bookings []Booking
 	if err := db.Table("bookings").
-		Where("hall_id = ? AND booking_date = ? AND status <> 'cancelled'", hallID, date).
+		Where("hall_id = ? AND booking_date = ? AND status NOT IN ('cancelled', 'rejected') AND id <> ?", hallID, date, excludeID).
 		Find(&bookings).Error; err != nil {
 		return nil, err
 	}
@@ -315,7 +317,7 @@ func (s *Service) HallAvailability(ctx context.Context, hallID uint, date string
 		return res, nil
 	}
 
-	busy, err := s.activeIntervals(db, hallID, res.Date)
+	busy, err := s.activeIntervals(db, hallID, res.Date, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +397,8 @@ func bookingRange(req CreateBookingRequest) (int, int, error) {
 }
 
 // CreateBooking validates the slot against the hall's schedule and existing
-// bookings and inserts it. The hall row is locked for the duration of the
+// bookings and inserts it: a client's booking as a pending request (the owner
+// is notified), the arena owner's own booking as confirmed. The hall row is locked for the duration of the
 // transaction so two clients cannot take overlapping time concurrently.
 // Arena and price are derived on the server.
 func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, userID *uint) (*Booking, error) {
@@ -421,6 +424,7 @@ func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, u
 	}
 
 	var createdID uint
+	var ownerID *uint
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var hall Hall
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", req.HallID).Take(&hall).Error; err != nil {
@@ -430,44 +434,22 @@ func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, u
 			return err
 		}
 		var arena Arena
-		if err := tx.Select("id, hidden").Where("id = ?", hall.ArenaID).Take(&arena).Error; err != nil {
+		if err := tx.Select("id, hidden, owner_id").Where("id = ?", hall.ArenaID).Take(&arena).Error; err != nil {
 			return err
 		}
 		if hall.Status != "active" || arena.Hidden {
 			return ErrHallNotBookable
 		}
-
-		week, err := s.hallSchedule(tx, hall.ID)
-		if err != nil {
+		if err := s.validateSlot(tx, hall, day, start, end, 0); err != nil {
 			return err
 		}
-		sched := week[int(day.Weekday())]
-		if sched.IsClosed {
-			return ErrHallClosed
+		// The owner's own (manual / phone) bookings need no confirmation;
+		// a client's booking is a request until the owner answers.
+		status := "pending"
+		if userID != nil && arena.OwnerID != nil && *arena.OwnerID == *userID {
+			status = "confirmed"
 		}
-		if !durationAllowed(sched, end-start) {
-			return ErrInvalidDuration
-		}
-		open, err1 := parseClock(sched.StartTime)
-		close, err2 := parseClock(sched.EndTime)
-		if err1 != nil || err2 != nil || start < open || end > close {
-			return ErrOutsideHours
-		}
-		now := time.Now().In(venueTZ)
-		startAt := day.Add(time.Duration(start) * time.Minute)
-		if !startAt.After(now) {
-			return ErrSlotInPast
-		}
-
-		busy, err := s.activeIntervals(tx, hall.ID, date)
-		if err != nil {
-			return err
-		}
-		for _, b := range busy {
-			if overlaps(interval{start, end}, b) {
-				return ErrSlotTaken
-			}
-		}
+		ownerID = arena.OwnerID
 
 		booking := Booking{
 			BookingCode:     newBookingCode(),
@@ -482,8 +464,8 @@ func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, u
 			TimeSlot:        formatClock(start) + " - " + formatClock(end),
 			DurationMinutes: end - start,
 			TotalPrice:      hall.PricePerHour * (end - start) / 60,
-			Status:          "confirmed",
-			PaymentStatus:   "pending",
+			Status:          status,
+			PaymentStatus:   "not_paid",
 			Notes:           strings.TrimSpace(req.Notes),
 		}
 		if err := tx.Create(&booking).Error; err != nil {
@@ -495,5 +477,13 @@ func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, u
 	if err != nil {
 		return nil, err
 	}
-	return s.GetBookingByID(ctx, createdID)
+	b, err := s.GetBookingByID(ctx, createdID)
+	if err != nil {
+		return nil, err
+	}
+	if b.Status == "pending" {
+		s.notify(ownerID, userID, "booking_request", "Новая заявка на бронь",
+			fmt.Sprintf("%s — %s, %s", b.ClientName, bookingSummary(b), b.ClientPhone), b.ID)
+	}
+	return b, nil
 }

@@ -338,6 +338,8 @@ func (h *Handler) ListBookings(w http.ResponseWriter, r *http.Request) {
 		bookings[i].ClientName = ""
 		bookings[i].ClientPhone = ""
 		bookings[i].Notes = ""
+		bookings[i].RejectionReason = ""
+		bookings[i].PaidAmount = 0
 		bookings[i].UserID = nil
 	}
 
@@ -346,41 +348,6 @@ func (h *Handler) ListBookings(w http.ResponseWriter, r *http.Request) {
 		"bookings": bookings,
 		"total":    len(bookings),
 	})
-}
-
-func (h *Handler) UpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.ParseUint(vars["id"], 10, 64)
-	if err != nil {
-		http.Error(w, `{"error":"invalid booking id"}`, http.StatusBadRequest)
-		return
-	}
-
-	current, err := h.service.GetBookingByID(r.Context(), uint(id))
-	if err != nil {
-		http.Error(w, `{"error":"booking not found"}`, http.StatusNotFound)
-		return
-	}
-	if !h.requireArenaOwner(w, r, current.ArenaID) {
-		return
-	}
-
-	var req UpdateBookingStatusRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
-		return
-	}
-
-	booking, err := h.service.UpdateBookingStatus(r.Context(), uint(id), req.Status)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(booking)
 }
 
 func (h *Handler) GetBusinessDashboard(w http.ResponseWriter, r *http.Request) {
