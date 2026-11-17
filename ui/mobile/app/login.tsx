@@ -26,7 +26,7 @@ export default function LoginScreen() {
   const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -80,7 +80,11 @@ export default function LoginScreen() {
         {/* Title */}
         <View style={styles.header}>
           <Image
-            source={require("@/assets/logo.png")}
+            source={
+              isDark
+                ? require("@/assets/logo.png")
+                : require("@/assets/logo_light.png")
+            }
             style={styles.headerLogo}
             resizeMode="contain"
           />

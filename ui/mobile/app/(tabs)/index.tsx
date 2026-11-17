@@ -38,6 +38,7 @@ import {
 import { radii, spacing, typography } from "@/constants/theme";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { useAppTheme } from "@/theme/ThemeProvider";
 
 const { width } = Dimensions.get("window");
 const FAVORITES_STORAGE_KEY = "alango_user_favorites";
@@ -45,6 +46,7 @@ const FAVORITES_STORAGE_KEY = "alango_user_favorites";
 export default function HomeScreen() {
   const t = useT();
   const c = usePalette();
+  const { isDark } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [items, setItems] = useState<ItemEntity[]>([]);
@@ -264,7 +266,11 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.logoRow}>
             <Image
-              source={require("@/assets/logo.png")}
+              source={
+                isDark
+                  ? require("@/assets/logo.png")
+                  : require("@/assets/logo_light.png")
+              }
               style={styles.logoIcon}
               resizeMode="contain"
             />

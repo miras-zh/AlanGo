@@ -10,6 +10,11 @@
     "ios": {
       "bundleIdentifier": "kz.alango.app",
       "buildNumber": "11",
+      "icon": {
+        "light": "./assets/light_icon.png",
+        "dark": "./assets/icon.png",
+        "tinted": "./assets/icon.png"
+      },
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {
