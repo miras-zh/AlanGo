@@ -181,6 +181,8 @@ export default function RegisterScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder={t("register.passwordPlaceholder")}
+                placeholderTextColor={c.textMuted}
+                style={styles.input}
               />
 
               <Pressable
@@ -196,7 +198,10 @@ export default function RegisterScreen() {
               <SocialAuthButtons mode="signup" />
             </View>
 
-            <Pressable onPress={() => router.replace("/login")} style={styles.switchBtn}>
+            <Pressable
+              onPress={() => (router.canGoBack() ? router.back() : router.replace("/login"))}
+              style={styles.switchBtn}
+            >
               <Text style={{ color: c.textSecondary, fontSize: 14 }}>
                 {t("register.haveAccount")}{" "}
                 <Text style={{ color: c.primary, fontWeight: "700" }}>{t("login.submit")}</Text>

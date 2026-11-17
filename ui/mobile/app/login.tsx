@@ -108,6 +108,7 @@ export default function LoginScreen() {
             placeholderTextColor={c.textMuted}
             value={password}
             onChangeText={setPassword}
+            style={styles.input}
           />
 
           <Pressable

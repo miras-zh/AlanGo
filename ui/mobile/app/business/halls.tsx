@@ -17,7 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { radii, spacing, typography } from "@/constants/theme";
-import { resolveMyArenaId } from "@/lib/business";
+import { fetchMyBusiness, resolveMyArenaId, type VenueType } from "@/lib/business";
 import { getSessionUser } from "@/lib/auth";
 import {
   deleteHallPhoto,
@@ -74,6 +74,7 @@ export default function BusinessHallsScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [arenaId, setArenaId] = useState<number | null>(null);
+  const [venueType, setVenueType] = useState<VenueType | null>(null);
   const [hallsLoaded, setHallsLoaded] = useState(false);
   const [halls, setHalls] = useState<Hall[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -103,7 +104,16 @@ export default function BusinessHallsScreen() {
   const loadHalls = useCallback(async () => {
     const user = getSessionUser();
     setCurrentUser(user);
-    const id = await resolveMyArenaId();
+    let id = await resolveMyArenaId();
+    if (!String(user?.id || "").startsWith("staff_")) {
+      try {
+        const biz = await fetchMyBusiness();
+        if (biz.arena) {
+          id = biz.arena.id;
+          setVenueType(biz.arena.venue_type);
+        }
+      } catch {}
+    }
     setArenaId(id);
     const all = id ? await getStoredHalls() : [];
     setHalls(id ? all.filter((h) => h.arenaId === id) : []);
@@ -313,9 +323,9 @@ export default function BusinessHallsScreen() {
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {t("bizHalls.title")}
+            {t(venueType === "single" ? "bizHalls.titleSingle" : "bizHalls.title")}
           </Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
+          <Text style={styles.headerSubtitle} numberOfLines={2}>
             {halls.length > 0 ? t("bizHalls.subtitleCount", { n: halls.length }) : t("bizHalls.subtitle")}
           </Text>
         </View>
@@ -388,7 +398,7 @@ export default function BusinessHallsScreen() {
                       styles.statusDot,
                       {
                         backgroundColor:
-                          item.status === "active" ? c.primary : "#EAB308",
+                          item.status === "active" ? c.primary : c.warning,
                       },
                     ]}
                   />
@@ -397,7 +407,7 @@ export default function BusinessHallsScreen() {
                       styles.statusPillText,
                       {
                         color:
-                          item.status === "active" ? c.primary : "#EAB308",
+                          item.status === "active" ? c.primary : c.warning,
                       },
                     ]}
                   >
@@ -419,7 +429,7 @@ export default function BusinessHallsScreen() {
 
               {/* Capacity */}
               <View style={styles.metaRow}>
-                <Ionicons name="people-outline" size={14} color="#60A5FA" />
+                <Ionicons name="people-outline" size={14} color={c.textSecondary} />
                 <Text style={styles.metaLabel}>{t("bizHalls.capacity")}</Text>
                 <Text style={styles.metaValue}>
                   {capacityLabel(item.maxPeople ?? 0) || item.capacity || t("bizHalls.notSpecified")}
@@ -428,7 +438,7 @@ export default function BusinessHallsScreen() {
 
               {sizeLabel(item.lengthM ?? 0, item.widthM ?? 0) ? (
                 <View style={styles.metaRow}>
-                  <Ionicons name="resize-outline" size={14} color="#EAB308" />
+                  <Ionicons name="resize-outline" size={14} color={c.warning} />
                   <Text style={styles.metaLabel}>{t("bizHalls.size")}</Text>
                   <Text style={styles.metaValue}>{sizeLabel(item.lengthM ?? 0, item.widthM ?? 0)}</Text>
                 </View>
@@ -819,7 +829,7 @@ const createStyles = (c: Palette) =>
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radii.smallChip,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: c.overlay,
   },
   photoCountText: {
     ...typography.caption,
@@ -850,7 +860,7 @@ const createStyles = (c: Palette) =>
     borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: c.overlay,
   },
   coverBadge: {
     position: "absolute",
@@ -864,7 +874,7 @@ const createStyles = (c: Palette) =>
   coverBadgeText: {
     fontSize: 10,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
   galleryAdd: {
     width: 88,
@@ -937,7 +947,7 @@ const createStyles = (c: Palette) =>
     marginBottom: 8,
   },
   sportTag: {
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    backgroundColor: c.primarySoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -956,10 +966,10 @@ const createStyles = (c: Palette) =>
     borderRadius: 8,
   },
   statusActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    backgroundColor: c.primarySoft,
   },
   statusMaint: {
-    backgroundColor: "rgba(234, 179, 8, 0.12)",
+    backgroundColor: c.warningSoft,
   },
   statusDot: {
     width: 6,
@@ -1037,12 +1047,12 @@ const createStyles = (c: Palette) =>
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    backgroundColor: c.primarySoft,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.3)",
+    borderColor: c.primary,
   },
   cardActions: {
     flexDirection: "row",
@@ -1060,7 +1070,7 @@ const createStyles = (c: Palette) =>
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.75)",
+    backgroundColor: c.overlay,
     justifyContent: "flex-end",
   },
   modalContent: {
@@ -1131,7 +1141,7 @@ const createStyles = (c: Palette) =>
     borderColor: c.subtle,
   },
   sportOptionActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.18)",
+    backgroundColor: c.primarySoft,
     borderColor: c.primary,
   },
   sportOptionText: {
@@ -1161,8 +1171,8 @@ const createStyles = (c: Palette) =>
     borderColor: c.subtle,
   },
   equipToggleActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
-    borderColor: "rgba(34, 197, 94, 0.5)",
+    backgroundColor: c.primarySoft,
+    borderColor: c.primary,
   },
   equipToggleText: {
     fontSize: 12,
@@ -1179,12 +1189,12 @@ const createStyles = (c: Palette) =>
     marginBottom: 14,
   },
   addEquipBtn: {
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    backgroundColor: c.primarySoft,
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.3)",
+    borderColor: c.primary,
   },
   addEquipBtnText: {
     fontSize: 12,

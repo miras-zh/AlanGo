@@ -21,6 +21,7 @@ import { radii, spacing, typography } from "@/constants/theme";
 import {
   createHallBooking,
   getHallAvailability,
+  getStoredArenas,
   getStoredHalls,
   Hall,
   HallAvailability,
@@ -32,6 +33,7 @@ import { getErrorMessage } from "@/lib/errorMessage";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { HallLayoutCard } from "@/components/HallLayoutCard";
 import { capacityLabel, sizeLabel } from "@/lib/hallOptions";
+import { surfaceLabel } from "@/lib/dataLabels";
 import { getSessionUser } from "@/lib/auth";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
@@ -50,10 +52,10 @@ const SLOT_STATUS_LABEL: Record<string, MessageKey> = {
 };
 
 const AMENITIES_LIST = [
-  { key: "parking", label: "amenity.parkingShort" as MessageKey | null, icon: "car-outline" },
-  { key: "locker", label: "amenity.lockerShort" as MessageKey | null, icon: "shirt-outline" },
-  { key: "shower", label: "amenity.showerShort" as MessageKey | null, icon: "water-outline" },
-  { key: "wifi", label: null as MessageKey | null, icon: "wifi-outline" },
+  { key: "parking", label: "amenity.parkingShort" as MessageKey, icon: "car-outline", stems: ["парков", "паркинг"] },
+  { key: "locker", label: "amenity.lockerShort" as MessageKey, icon: "shirt-outline", stems: ["раздевал", "шкафч"] },
+  { key: "shower", label: "amenity.showerShort" as MessageKey, icon: "water-outline", stems: ["душ"] },
+  { key: "wifi", label: "amenity.wifiShort" as MessageKey, icon: "wifi-outline", stems: ["wi-fi", "wifi", "вай-фай"] },
 ];
 
 const REVIEWS_MOCK = [
@@ -92,6 +94,8 @@ export default function HallDetailScreen() {
   const router = useRouter();
 
   const [hall, setHall] = useState<Hall | null>(null);
+  const [arenaFeatures, setArenaFeatures] = useState<string[]>([]);
+  const [arenaVenueType, setArenaVenueType] = useState<"complex" | "single" | "outdoor">("complex");
   const [activeTab, setActiveTab] = useState<"about" | "schedule" | "reviews">("about");
   const [isFav, setIsFav] = useState(false);
 
@@ -110,9 +114,12 @@ export default function HallDetailScreen() {
 
   useEffect(() => {
     (async () => {
-      const halls = await getStoredHalls();
+      const [halls, arenas] = await Promise.all([getStoredHalls(), getStoredArenas()]);
       const match = halls.find((h) => String(h.id) === String(id)) || INITIAL_HALLS[0];
       setHall(match);
+      const hallArena = arenas.find((arena) => arena.id === match.arenaId);
+      setArenaFeatures(hallArena?.features ?? []);
+      setArenaVenueType(hallArena?.venueType ?? "complex");
 
       if (match) {
         // Check favorite status
@@ -128,6 +135,10 @@ export default function HallDetailScreen() {
   }, [id]);
 
   const dayLabel = displayDate(selectedDate, t);
+  const amenityText = [...(hall?.equipment ?? []), ...arenaFeatures].join(" ").toLowerCase();
+  const visibleAmenities = AMENITIES_LIST.filter((item) =>
+    item.stems.some((stem) => amenityText.includes(stem)),
+  );
 
   // Real per-hall availability from the server: free / booked / closed / past.
   const loadSlots = async () => {
@@ -245,7 +256,7 @@ export default function HallDetailScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -258,7 +269,7 @@ export default function HallDetailScreen() {
             overlay={
               <>
           {/* Top Floating Buttons Bar */}
-          <SafeAreaView style={styles.floatingTopBar} edges={["top"]}>
+          <View style={styles.floatingTopBar}>
             {/* Back Button */}
             <Pressable
               style={styles.circleBtn}
@@ -284,7 +295,7 @@ export default function HallDetailScreen() {
                 />
               </Pressable>
             </View>
-          </SafeAreaView>
+          </View>
               </>
             }
           />
@@ -331,25 +342,26 @@ export default function HallDetailScreen() {
             {hall.surfaceType ? (
               <View style={styles.attributeChip}>
                 <Ionicons name="layers-outline" size={13} color={c.textSecondary} />
-                <Text style={styles.attributeChipText}>{hall.surfaceType}</Text>
+                <Text style={styles.attributeChipText}>{surfaceLabel(hall.surfaceType, t)}</Text>
               </View>
             ) : null}
           </View>
 
-          {/* Location & Distance */}
-          <View style={styles.locationRow}>
-            <View style={styles.addressLeft}>
-              <Ionicons
-                name="location-outline"
-                size={15}
-                color={c.textSecondary}
-              />
-              <Text style={styles.addressText} numberOfLines={1}>
-                {hall.arenaAddress || "Астана, ул. Нур-Султан 12"}
-              </Text>
+          {/* Location */}
+          {hall.arenaAddress ? (
+            <View style={styles.locationRow}>
+              <View style={styles.addressLeft}>
+                <Ionicons
+                  name="location-outline"
+                  size={15}
+                  color={c.textSecondary}
+                />
+                <Text style={styles.addressText} numberOfLines={1}>
+                  {hall.arenaAddress}
+                </Text>
+              </View>
             </View>
-            <Text style={styles.distanceText}>{t("common.km", { n: "2,4" })}</Text>
-          </View>
+          ) : null}
 
           {/* 3. Segmented Tabs: [О зале] [Расписание] [Отзывы] */}
           <View style={styles.segmentedTabsWrap}>
@@ -424,19 +436,23 @@ export default function HallDetailScreen() {
               </Text>
 
               {/* Amenities Section (Screen 4) */}
-              <Text style={styles.amenitiesHeader}>{t("hall.amenities")}</Text>
-              <View style={styles.amenitiesGrid}>
-                {AMENITIES_LIST.map((item) => (
-                  <View key={item.key} style={styles.amenityCard}>
-                    <Ionicons
-                      name={item.icon as any}
-                      size={24}
-                      color={c.textSecondary}
-                    />
-                    <Text style={styles.amenityCardLabel}>{item.label ? t(item.label) : "Wi-Fi"}</Text>
+              {visibleAmenities.length > 0 && (
+                <>
+                  <Text style={styles.amenitiesHeader}>{t("hall.amenities")}</Text>
+                  <View style={styles.amenitiesGrid}>
+                    {visibleAmenities.map((item) => (
+                      <View key={item.key} style={styles.amenityCard}>
+                        <Ionicons
+                          name={item.icon as any}
+                          size={24}
+                          color={c.textSecondary}
+                        />
+                        <Text style={styles.amenityCardLabel}>{t(item.label)}</Text>
+                      </View>
+                    ))}
                   </View>
-                ))}
-              </View>
+                </>
+              )}
 
               {/* Sport Complex link banner */}
               <Pressable
@@ -452,7 +468,7 @@ export default function HallDetailScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.arenaBannerTitle}>{hall.arenaTitle}</Text>
                   <Text style={styles.arenaBannerSub}>
-                    {t("hall.allHallsLink")}
+                    {t(arenaVenueType === "single" ? "hall.singleVenueLink" : "hall.allHallsLink")}
                   </Text>
                 </View>
               </Pressable>
@@ -554,19 +570,27 @@ export default function HallDetailScreen() {
 
           {activeTab === "reviews" && (
             <View style={styles.tabContentSection}>
-              {REVIEWS_MOCK.map((rev) => (
-                <View key={rev.id} style={styles.reviewCard}>
-                  <View style={styles.reviewTopRow}>
-                    <Text style={styles.reviewerName}>{rev.name}</Text>
-                    <View style={styles.reviewStars}>
-                      <Ionicons name="star" size={13} color={c.primary} />
-                      <Text style={styles.reviewScore}>{rev.rating}</Text>
+              {hall.reviewsCount > 0 ? (
+                REVIEWS_MOCK.map((rev) => (
+                  <View key={rev.id} style={styles.reviewCard}>
+                    <View style={styles.reviewTopRow}>
+                      <Text style={styles.reviewerName}>{rev.name}</Text>
+                      <View style={styles.reviewStars}>
+                        <Ionicons name="star" size={13} color={c.primary} />
+                        <Text style={styles.reviewScore}>{rev.rating}</Text>
+                      </View>
                     </View>
+                    <Text style={styles.reviewDate}>{t(rev.date)}</Text>
+                    <Text style={styles.reviewBody}>{t(rev.text)}</Text>
                   </View>
-                  <Text style={styles.reviewDate}>{t(rev.date)}</Text>
-                  <Text style={styles.reviewBody}>{t(rev.text)}</Text>
+                ))
+              ) : (
+                <View style={styles.emptyReviewsCard}>
+                  <Ionicons name="star-outline" size={28} color={c.textMuted} />
+                  <Text style={styles.emptyReviewsTitle}>{t("hall.noReviewsTitle")}</Text>
+                  <Text style={styles.emptyReviewsText}>{t("hall.noReviewsText")}</Text>
                 </View>
-              ))}
+              )}
             </View>
           )}
         </View>
@@ -685,7 +709,7 @@ export default function HallDetailScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -716,14 +740,13 @@ const createStyles = (c: Palette) =>
   },
   floatingTopBar: {
     position: "absolute",
-    top: 0,
+    top: 12,
     left: 0,
     right: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.screenHorizontal,
-    paddingTop: 8,
   },
   topRightBtns: {
     flexDirection: "row",
@@ -874,10 +897,12 @@ const createStyles = (c: Palette) =>
   },
   amenitiesGrid: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: spacing.card,
   },
   amenityCard: {
-    width: "23%",
+    width: "22%",
+    minWidth: 74,
     aspectRatio: 1,
     backgroundColor: c.surface,
     borderRadius: 12,
@@ -942,12 +967,15 @@ const createStyles = (c: Palette) =>
   },
   slotChip: {
     width: "31%",
-    paddingVertical: 10,
+    minHeight: 46,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     borderRadius: radii.smallChip,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.border,
     alignItems: "center",
+    justifyContent: "center",
   },
   slotChipDisabled: {
     opacity: 0.35,
@@ -1059,6 +1087,27 @@ const createStyles = (c: Palette) =>
     fontSize: 13,
     lineHeight: 18,
     color: c.textSecondary,
+  },
+  emptyReviewsCard: {
+    backgroundColor: c.surface,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: c.border,
+    padding: spacing.xl,
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  emptyReviewsTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: c.textPrimary,
+    marginTop: spacing.xs,
+  },
+  emptyReviewsText: {
+    fontSize: 13,
+    color: c.textSecondary,
+    textAlign: "center",
+    lineHeight: 18,
   },
   stickyFooter: {
     position: "absolute",

@@ -371,7 +371,7 @@ const createStyles = (c: Palette) =>
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    maxWidth: "40%",
+    maxWidth: "48%",
     backgroundColor: c.surfaceElevated,
     borderWidth: 1,
     borderColor: c.border,

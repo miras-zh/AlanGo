@@ -21,6 +21,7 @@ interface PaymentModalProps {
   booking: Booking | null;
   onClose: () => void;
   onSavePayment: (bookingId: string, paidAmount: number) => Promise<void>;
+  useModal?: boolean;
 }
 
 export function PaymentModal({
@@ -28,6 +29,7 @@ export function PaymentModal({
   booking,
   onClose,
   onSavePayment,
+  useModal = true,
 }: PaymentModalProps) {
   const c = usePalette();
   const t = useT();
@@ -41,7 +43,7 @@ export function PaymentModal({
     }
   }, [booking]);
 
-  if (!booking) return null;
+  if (!booking || (!useModal && !visible)) return null;
 
   const total = booking.totalPrice || 0;
   const currentPaid = Math.max(0, parseInt(amountStr || "0", 10) || 0);
@@ -66,32 +68,26 @@ export function PaymentModal({
     }
   };
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerTitleWrap}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="card" size={20} color={c.primary} />
-              </View>
-              <View>
-                <Text style={styles.title}>{t("payment.title")}</Text>
-                <Text style={styles.subTitle}>
-                  {t("payment.booking", { id: booking.id, client: booking.clientName })}
-                </Text>
-              </View>
+  const content = (
+    <Pressable style={styles.backdrop} onPress={onClose}>
+      <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTitleWrap}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="card" size={20} color={c.primary} />
             </View>
-            <Pressable onPress={onClose} hitSlop={10} style={styles.closeBtn}>
-              <Ionicons name="close" size={20} color={c.textSecondary} />
-            </Pressable>
+            <View style={styles.headerTextWrap}>
+              <Text style={styles.title}>{t("payment.title")}</Text>
+              <Text style={styles.subTitle} numberOfLines={2}>
+                {t("payment.booking", { id: booking.id, client: booking.clientName })}
+              </Text>
+            </View>
           </View>
+          <Pressable onPress={onClose} hitSlop={10} style={styles.closeBtn}>
+            <Ionicons name="close" size={20} color={c.textSecondary} />
+          </Pressable>
+        </View>
 
           {/* Price Overview Banner */}
           <View style={styles.overviewBox}>
@@ -246,6 +242,20 @@ export function PaymentModal({
           </Pressable>
         </Pressable>
       </Pressable>
+  );
+
+  if (!useModal) {
+    return <View style={StyleSheet.absoluteFill}>{content}</View>;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      {content}
     </Modal>
   );
 }
@@ -265,7 +275,7 @@ const createStyles = (c: Palette) =>
     backgroundColor: c.surface,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#223128",
+    borderColor: c.border,
     padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
@@ -280,9 +290,15 @@ const createStyles = (c: Palette) =>
     marginBottom: 16,
   },
   headerTitleWrap: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    marginRight: 8,
+  },
+  headerTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   iconCircle: {
     width: 40,

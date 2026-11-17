@@ -327,7 +327,9 @@ export default function BusinessDashboardScreen() {
         </View>
 
         {/* Quick Management Shortcuts */}
-        <Text style={styles.sectionTitle}>{t("bizHome.manageSection")}</Text>
+        <Text style={styles.sectionTitle}>
+          {t(arena?.venueType === "single" ? "bizHome.manageSingleSection" : "bizHome.manageSection")}
+        </Text>
         <View style={styles.actionsGrid}>
           <Pressable
             style={styles.actionCard}
@@ -394,7 +396,9 @@ export default function BusinessDashboardScreen() {
 
         {/* Halls Status */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>{t("bizHome.venues", { n: halls.length })}</Text>
+          <Text style={styles.sectionTitle}>
+            {t(arena?.venueType === "single" ? "bizHome.singleVenue" : "bizHome.venues", { n: halls.length })}
+          </Text>
           <Pressable
             onPress={() => {
               hapticSelection();

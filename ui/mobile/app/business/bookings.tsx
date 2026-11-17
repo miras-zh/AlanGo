@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -270,7 +271,29 @@ export default function BusinessBookingsScreen() {
 
   const openDetails = (b: Booking) => {
     hapticSelection();
+    setRejectTarget(null);
+    setRescheduleTarget(null);
+    setPaymentTarget(null);
+    setEditTarget(null);
     setDetailTarget(b);
+  };
+
+  // Switch between booking modals inside a single native <Modal> host so iOS
+  // UIKit never collides dismissing one Modal while presenting another.
+  const openChildFromDetails = (kind: "reject" | "reschedule" | "payment" | "edit", b: Booking) => {
+    setDetailTarget(null);
+    if (kind === "reject") setRejectTarget(b);
+    else if (kind === "reschedule") setRescheduleTarget(b);
+    else if (kind === "payment") setPaymentTarget(b);
+    else if (kind === "edit") setEditTarget(b);
+  };
+
+  const closeActiveBookingModal = () => {
+    setDetailTarget(null);
+    setRejectTarget(null);
+    setRescheduleTarget(null);
+    setPaymentTarget(null);
+    setEditTarget(null);
   };
 
   const MODES: { id: "requests" | "calendar" | "list"; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
@@ -423,6 +446,7 @@ export default function BusinessBookingsScreen() {
         <BookingsCalendar
           bookings={bookings}
           halls={halls}
+          showAddButton={false}
           onSelectBooking={openDetails}
           onAddManualBooking={() => setManualModalOpen(true)}
           onStatusChange={(id: string, status: "confirmed" | "cancelled") => {
@@ -698,38 +722,55 @@ export default function BusinessBookingsScreen() {
         onCreated={handleManualBookingCreated}
       />
 
-      <RejectBookingModal
-        visible={!!rejectTarget}
-        booking={rejectTarget}
-        onClose={() => setRejectTarget(null)}
-        onConfirm={handleRejectConfirmed}
-      />
+      <Modal
+        visible={!!(detailTarget || rejectTarget || paymentTarget || rescheduleTarget || editTarget)}
+        transparent
+        animationType="fade"
+        onRequestClose={closeActiveBookingModal}
+      >
+        <RejectBookingModal
+          useModal={false}
+          visible={!!rejectTarget}
+          booking={rejectTarget}
+          onClose={() => setRejectTarget(null)}
+          onConfirm={handleRejectConfirmed}
+        />
 
-      <PaymentModal
-        visible={!!paymentTarget}
-        booking={paymentTarget}
-        onClose={() => setPaymentTarget(null)}
-        onSavePayment={handleSavePayment}
-      />
+        <PaymentModal
+          useModal={false}
+          visible={!!paymentTarget}
+          booking={paymentTarget}
+          onClose={() => setPaymentTarget(null)}
+          onSavePayment={handleSavePayment}
+        />
 
-      <BookingDetailsModal
-        booking={detailTarget && !rejectTarget && !rescheduleTarget && !paymentTarget && !editTarget ? detailTarget : null}
-        onClose={() => setDetailTarget(null)}
-        onConfirm={handleConfirm}
-        onReject={(b) => setRejectTarget(b)}
-        onReschedule={(b) => setRescheduleTarget(b)}
-        onCancel={handleCancel}
-        onPayment={(b) => setPaymentTarget(b)}
-        onEdit={(b) => setEditTarget(b)}
-      />
+        <BookingDetailsModal
+          useModal={false}
+          visible={!!detailTarget}
+          booking={detailTarget}
+          onClose={() => setDetailTarget(null)}
+          onConfirm={handleConfirm}
+          onReject={(b) => openChildFromDetails("reject", b)}
+          onReschedule={(b) => openChildFromDetails("reschedule", b)}
+          onCancel={handleCancel}
+          onPayment={(b) => openChildFromDetails("payment", b)}
+          onEdit={(b) => openChildFromDetails("edit", b)}
+        />
 
-      <RescheduleBookingModal
-        booking={rescheduleTarget}
-        onClose={() => setRescheduleTarget(null)}
-        onSubmit={handleReschedule}
-      />
+        <RescheduleBookingModal
+          useModal={false}
+          booking={rescheduleTarget}
+          onClose={() => setRescheduleTarget(null)}
+          onSubmit={handleReschedule}
+        />
 
-      <EditBookingModal booking={editTarget} onClose={() => setEditTarget(null)} onSave={handleSaveBookingEdit} />
+        <EditBookingModal
+          useModal={false}
+          booking={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSave={handleSaveBookingEdit}
+        />
+      </Modal>
     </SafeAreaView>
   );
 }

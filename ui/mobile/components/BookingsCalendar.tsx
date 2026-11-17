@@ -28,6 +28,7 @@ interface BookingsCalendarProps {
   onStatusChange: (bookingId: string, status: "confirmed" | "cancelled") => void;
   onRejectBooking: (booking: Booking) => void;
   onOutcomeChange?: (bookingId: string, outcome: "completed" | "no_show") => void;
+  showAddButton?: boolean;
 }
 
 
@@ -39,6 +40,7 @@ export function BookingsCalendar({
   onStatusChange,
   onRejectBooking,
   onOutcomeChange,
+  showAddButton = true,
 }: BookingsCalendarProps) {
   const c = usePalette();
   const t = useT();
@@ -154,14 +156,14 @@ export function BookingsCalendar({
     <View style={styles.calendarContainer}>
       {/* 1. Mode Switcher (День / Неделя / Месяц) */}
       <View style={styles.modeSwitchRow}>
-        <View style={styles.modeTabs}>
+        <View style={[styles.modeTabs, !showAddButton && styles.modeTabsFull]}>
           {(["day", "week", "month"] as CalendarViewMode[]).map((mode) => {
             const active = viewMode === mode;
             const label = mode === "day" ? t("cal.day") : mode === "week" ? t("cal.week") : t("cal.month");
             return (
               <Pressable
                 key={mode}
-                style={[styles.modeTab, active && styles.modeTabActive]}
+                style={[styles.modeTab, !showAddButton && styles.modeTabFull, active && styles.modeTabActive]}
                 onPress={() => {
                   hapticSelection();
                   setViewMode(mode);
@@ -175,16 +177,18 @@ export function BookingsCalendar({
           })}
         </View>
 
-        <Pressable
-          style={styles.quickAddBtn}
-          onPress={() => {
-            hapticSelection();
-            onAddManualBooking();
-          }}
-        >
-          <Ionicons name="add" size={18} color={c.background} />
-          <Text style={styles.quickAddBtnText}>{t("bookings.add")}</Text>
-        </Pressable>
+        {showAddButton ? (
+          <Pressable
+            style={styles.quickAddBtn}
+            onPress={() => {
+              hapticSelection();
+              onAddManualBooking();
+            }}
+          >
+            <Ionicons name="add" size={18} color={c.background} />
+            <Text style={styles.quickAddBtnText}>{t("bookings.add")}</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {/* 2. Date Navigation Bar */}
@@ -516,10 +520,17 @@ const createStyles = (c: Palette) =>
     borderWidth: 1,
     borderColor: c.subtle,
   },
+  modeTabsFull: {
+    flex: 1,
+  },
   modeTab: {
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 9,
+  },
+  modeTabFull: {
+    flex: 1,
+    alignItems: "center",
   },
   modeTabActive: {
     backgroundColor: c.primary,

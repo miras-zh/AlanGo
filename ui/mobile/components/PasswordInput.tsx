@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@/theme/ThemeProvider";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 export function PasswordInput({ style, ...props }: TextInputProps) {
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
-  const { tokens } = useTheme();
   const [visible, setVisible] = useState(false);
 
   return (
@@ -18,7 +16,7 @@ export function PasswordInput({ style, ...props }: TextInputProps) {
         secureTextEntry={!visible}
         autoCapitalize="none"
         autoCorrect={false}
-        style={[style, { paddingRight: 44 }]}
+        style={[styles.defaultInput, style, { paddingRight: 44 }]}
       />
       <Pressable
         onPress={() => setVisible((v) => !v)}
@@ -28,7 +26,7 @@ export function PasswordInput({ style, ...props }: TextInputProps) {
         <Ionicons
           name={visible ? "eye-off-outline" : "eye-outline"}
           size={20}
-          color={tokens.muted}
+          color={c.textMuted}
         />
       </Pressable>
     </View>
@@ -40,6 +38,16 @@ const createStyles = (c: Palette) =>
   wrap: {
     position: "relative",
     justifyContent: "center",
+  },
+  defaultInput: {
+    height: 48,
+    backgroundColor: c.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.border,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: c.textPrimary,
   },
   eye: {
     position: "absolute",

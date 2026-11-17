@@ -4,11 +4,13 @@ import { Platform, StyleSheet } from "react-native";
 import { usePalette } from "@/theme/palette";
 import { useT } from "@/lib/i18n";
 import { usePendingCount } from "@/lib/pendingBookings";
+import { useMyArenaId } from "@/lib/business";
 
 export default function BusinessTabsLayout() {
   const c = usePalette();
   const t = useT();
   const pending = usePendingCount(true);
+  const { venueType } = useMyArenaId();
   return (
     <Tabs
       screenOptions={{
@@ -32,7 +34,7 @@ export default function BusinessTabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: t("bizTabs.arena"),
+          title: t(venueType === "single" ? "bizTabs.hall" : "bizTabs.arena"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "business" : "business-outline"}

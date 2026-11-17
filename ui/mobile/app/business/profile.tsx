@@ -132,6 +132,7 @@ export default function BusinessProfileScreen() {
 
   const logoUrl = arena?.logoUrl || "";
   const logoLetter = (arena?.title || "?").trim().charAt(0).toUpperCase() || "?";
+  const isSingleVenue = arena?.venueType === "single";
 
   const applyLogo = async (url: string) => {
     if (!arena) return;
@@ -411,7 +412,9 @@ export default function BusinessProfileScreen() {
           ) : null}
           <View style={[styles.arenaOverlay, !coverUrl && styles.arenaOverlayPlain]}>
             {!coverUrl ? (
-              <Text style={styles.coverHint}>{t("bizProfile.coverHint")}</Text>
+              <Text style={styles.coverHint}>
+                {t(isSingleVenue ? "bizProfile.coverHintSingle" : "bizProfile.coverHint")}
+              </Text>
             ) : null}
             <View style={styles.statusBadge}>
               <View style={styles.statusDot} />
@@ -456,7 +459,7 @@ export default function BusinessProfileScreen() {
             disabled={!arena || uploadingCover}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel={t("bizProfile.changeCover")}
+            accessibilityLabel={t(isSingleVenue ? "bizProfile.changeCoverSingle" : "bizProfile.changeCover")}
           >
             {uploadingCover ? (
               <ActivityIndicator size="small" color={c.textPrimary} />
@@ -478,11 +481,13 @@ export default function BusinessProfileScreen() {
           <Pressable
             style={({ pressed }) => [styles.infoTile, styles.infoTileRow, pressed && { opacity: 0.85 }]}
             onPress={openHoursModal}
-            accessibilityLabel={t("bizProfile.changeHours")}
+            accessibilityLabel={t(isSingleVenue ? "bizProfile.changeHoursSingle" : "bizProfile.changeHours")}
           >
             <View style={{ flex: 1 }}>
               <Ionicons name="time-outline" size={18} color={c.primary} />
-              <Text style={styles.infoTileLabel}>{t("bizProfile.hours")}</Text>
+              <Text style={styles.infoTileLabel}>
+                {t(isSingleVenue ? "bizProfile.hoursSingle" : "bizProfile.hours")}
+              </Text>
               <Text style={styles.infoTileValue}>
                 {workingHoursLabel(arena?.workingHours || "08:00 - 23:00 (ежедневно)", t)}
               </Text>
@@ -514,22 +519,28 @@ export default function BusinessProfileScreen() {
           </Pressable>
 
           <View style={styles.infoTile}>
-            <Ionicons name="mail-outline" size={18} color="#EAB308" />
+            <Ionicons name="mail-outline" size={18} color={c.primary} />
             <Text style={styles.infoTileLabel}>{t("bizProfile.ownerLogin")}</Text>
             <Text style={styles.infoTileValue}>{user?.email || "dev.arena1"}</Text>
           </View>
 
           <View style={styles.infoTile}>
             <Ionicons name="star" size={18} color={c.primary} />
-            <Text style={styles.infoTileLabel}>{t("bizProfile.rating")}</Text>
+            <Text style={styles.infoTileLabel}>
+              {t(isSingleVenue ? "bizProfile.ratingSingle" : "bizProfile.rating")}
+            </Text>
             <Text style={styles.infoTileValue}>
-              {t("bizProfile.ratingValue", { rating: arena?.rating ?? 0, count: arena?.reviewsCount ?? 0 })}
+              {(arena?.reviewsCount ?? 0) > 0
+                ? t("bizProfile.ratingValue", { rating: arena?.rating ?? 0, count: arena?.reviewsCount ?? 0 })
+                : t("bizProfile.noReviews")}
             </Text>
           </View>
         </View>
 
         {/* Features list */}
-        <Text style={styles.sectionTitle}>{t("bizProfile.amenities")}</Text>
+        <Text style={styles.sectionTitle}>
+          {t(isSingleVenue ? "bizProfile.amenitiesSingle" : "bizProfile.amenities")}
+        </Text>
         <View style={styles.featuresWrap}>
           {arena?.features.map((feat, i) => (
             <View key={i} style={styles.featurePill}>
@@ -588,7 +599,9 @@ export default function BusinessProfileScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
-              <Text style={styles.inputLabel}>{t("bizProfile.complexName")}</Text>
+              <Text style={styles.inputLabel}>
+                {t(isSingleVenue ? "bizProfile.singleName" : "bizProfile.complexName")}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={title}
@@ -664,7 +677,9 @@ export default function BusinessProfileScreen() {
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t("bizProfile.hoursTitle")}</Text>
+              <Text style={styles.modalTitle}>
+                {t(isSingleVenue ? "bizProfile.hoursTitleSingle" : "bizProfile.hoursTitle")}
+              </Text>
               <Pressable onPress={() => setHoursModalVisible(false)} hitSlop={10}>
                 <Ionicons name="close" size={24} color={c.textPrimary} />
               </Pressable>
@@ -672,7 +687,7 @@ export default function BusinessProfileScreen() {
 
             <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
               <Text style={styles.hoursHint}>
-                {t("bizProfile.hoursHint")}
+                {t(isSingleVenue ? "bizProfile.hoursHintSingle" : "bizProfile.hoursHint")}
               </Text>
 
               <Text style={styles.inputLabel}>{t("bizProfile.mode")}</Text>
@@ -755,7 +770,9 @@ export default function BusinessProfileScreen() {
                 disabled={savingHours}
               >
                 <Text style={styles.saveModalBtnText}>
-                  {savingHours ? t("common.saving") : t("bizProfile.saveHours")}
+                  {savingHours
+                    ? t("common.saving")
+                    : t(isSingleVenue ? "bizProfile.saveHoursSingle" : "bizProfile.saveHours")}
                 </Text>
               </Pressable>
             </ScrollView>

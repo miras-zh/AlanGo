@@ -176,7 +176,9 @@ export default function ArenaLocationScreen() {
             ) : (
               <Ionicons name="navigate" size={18} color={c.primary} />
             )}
-            <Text style={styles.secondaryText}>{t("map.myLocation")}</Text>
+            <Text style={styles.secondaryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+              {t("map.myLocation")}
+            </Text>
           </Pressable>
           <Pressable
             style={[styles.primaryBtn, (!point || !arenaId) && styles.primaryBtnDisabled]}
@@ -263,23 +265,26 @@ function createStyles(c: Palette) {
     secondaryBtn: {
       flex: 1,
       height: 48,
+      paddingHorizontal: spacing.sm,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      gap: spacing.sm,
+      gap: spacing.xs,
       borderRadius: radii.button,
       borderWidth: 1,
       borderColor: c.glassBorder,
       backgroundColor: c.glassBackground,
     },
     secondaryText: {
-      fontSize: 14,
+      flexShrink: 1,
+      fontSize: 13,
       fontWeight: "700",
       color: c.textPrimary,
     },
     primaryBtn: {
       flex: 1,
       height: 48,
+      paddingHorizontal: spacing.sm,
       alignItems: "center",
       justifyContent: "center",
       borderRadius: radii.button,

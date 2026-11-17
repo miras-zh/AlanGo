@@ -106,8 +106,8 @@ export default function BusinessPromotionsScreen() {
               <Switch
                 value={p.isEnabled}
                 onValueChange={() => handleToggle(p.id)}
-                trackColor={{ false: "#334155", true: c.primary }}
-                thumbColor={p.isEnabled ? c.primary : c.textSecondary}
+                trackColor={{ false: c.border, true: c.primary }}
+                thumbColor={c.onImage}
               />
             </View>
 

@@ -17,6 +17,9 @@
         "NSLocationWhenInUseUsageDescription": "AlanGo использует геолокацию для поиска ближайших спортивных комплексов и расчета расстояния до залов.",
         "NSMotionUsageDescription": "AlanGo использует данные датчиков движения для уточнения геолокации при поиске ближайших спорткомплексов.",
         "NSPhotoLibraryUsageDescription": "Приложение использует доступ к галерее для загрузки фотографий профиля и площадок.",
+        "LSApplicationQueriesSchemes": [
+          "whatsapp"
+        ],
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },

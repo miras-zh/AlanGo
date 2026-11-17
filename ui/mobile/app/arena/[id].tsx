@@ -84,14 +84,23 @@ export default function ArenaDetailScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Arena Header Image */}
         <View style={styles.imageWrap}>
-          <Image source={{ uri: arena.imageUrl }} style={styles.heroImage} />
-          <View style={styles.ratingBadge}>
-            <Ionicons name="star" size={13} color={c.primary} />
-            <Text style={styles.ratingText}>
-              {arena.rating}
-              {arena.reviewsCount ? t("arena.reviews", { count: arena.reviewsCount }) : ""}
-            </Text>
-          </View>
+          {arena.imageUrl ? (
+            <Image source={{ uri: arena.imageUrl }} style={styles.heroImage} />
+          ) : (
+            <View style={styles.heroPlaceholder}>
+              <Ionicons name="images-outline" size={38} color={c.textMuted} />
+              <Text style={styles.heroPlaceholderText}>{t("arena.noPhoto")}</Text>
+            </View>
+          )}
+          {(arena.rating > 0 || (arena.reviewsCount ?? 0) > 0) && (
+            <View style={styles.ratingBadge}>
+              <Ionicons name="star" size={13} color={c.primary} />
+              <Text style={styles.ratingText}>
+                {arena.rating}
+                {arena.reviewsCount ? t("arena.reviews", { count: arena.reviewsCount }) : ""}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Title and Address */}
@@ -142,40 +151,34 @@ export default function ArenaDetailScreen() {
         </View>
 
         {/* Description */}
-        <View style={styles.promoCallout}>
-          <View style={styles.promoCalloutIcon}>
-            <Ionicons name="sunny" size={20} color={c.primary} />
-          </View>
-          <View style={styles.promoCalloutTextWrap}>
-            <Text style={styles.promoCalloutTitle}>{t("arena.happyHours")}</Text>
-            <Text style={styles.promoCalloutSub}>
-              {t("arena.happyHoursText")}
-            </Text>
-          </View>
-        </View>
-
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t("arena.about")}</Text>
+          <Text style={styles.sectionTitle}>
+            {t(arena.venueType === "single" ? "arena.aboutSingle" : "arena.about")}
+          </Text>
           <Text style={styles.descText}>{arena.description}</Text>
         </View>
 
         {/* Features / Infrastructure */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t("arena.infrastructure")}</Text>
-          <View style={styles.featuresGrid}>
-            {arena.features.map((feat, idx) => (
-              <View key={idx} style={styles.featItem}>
-                <Ionicons name="checkmark-done" size={16} color={c.primary} />
-                <Text style={styles.featText}>{feat}</Text>
-              </View>
-            ))}
+        {arena.features?.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>{t("arena.infrastructure")}</Text>
+            <View style={styles.featuresGrid}>
+              {arena.features.map((feat, idx) => (
+                <View key={idx} style={styles.featItem}>
+                  <Ionicons name="checkmark-done" size={16} color={c.primary} />
+                  <Text style={styles.featText}>{feat}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* HALLS LIST OF THIS ARENA */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.sectionTitle}>{t("arena.halls", { n: halls.length })}</Text>
+            <Text style={styles.sectionTitle}>
+              {arena.venueType === "single" ? t("arena.hallsSingle") : t("arena.halls", { n: halls.length })}
+            </Text>
           </View>
 
           <View style={styles.hallsList}>
@@ -263,10 +266,24 @@ const createStyles = (c: Palette) =>
     width: "100%",
     height: 200,
     position: "relative",
+    backgroundColor: c.surfaceElevated,
   },
   heroImage: {
     width: "100%",
     height: "100%",
+  },
+  heroPlaceholder: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: c.surfaceElevated,
+  },
+  heroPlaceholderText: {
+    fontSize: 13,
+    color: c.textSecondary,
+    fontWeight: "500",
   },
   ratingBadge: {
     position: "absolute",

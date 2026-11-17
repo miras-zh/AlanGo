@@ -15,6 +15,7 @@ interface RescheduleBookingModalProps {
   booking: Booking | null;
   onClose: () => void;
   onSubmit: (b: Booking, data: { date: string; startTime: string; durationMinutes: number }) => Promise<void>;
+  useModal?: boolean;
 }
 
 /**
@@ -22,7 +23,7 @@ interface RescheduleBookingModalProps {
  * hall's real availability. The booking's own current slot is shown as
  * "current" and can be kept with another duration.
  */
-export function RescheduleBookingModal({ booking, onClose, onSubmit }: RescheduleBookingModalProps) {
+export function RescheduleBookingModal({ booking, onClose, onSubmit, useModal = true }: RescheduleBookingModalProps) {
   const c = usePalette();
   const t = useT();
   const styles = useThemedStyles(createStyles);
@@ -80,9 +81,9 @@ export function RescheduleBookingModal({ booking, onClose, onSubmit }: Reschedul
     }
   };
 
-  return (
-    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
+  const content = (
+    <View style={styles.overlay}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} accessible={false} />
         <SafeAreaView style={styles.sheet} edges={["bottom"]}>
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
@@ -178,6 +179,15 @@ export function RescheduleBookingModal({ booking, onClose, onSubmit }: Reschedul
           </View>
         </SafeAreaView>
       </View>
+  );
+
+  if (!useModal) {
+    return <View style={StyleSheet.absoluteFill}>{content}</View>;
+  }
+
+  return (
+    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+      {content}
     </Modal>
   );
 }
@@ -255,9 +265,11 @@ function createStyles(c: Palette) {
     },
     slot: {
       minWidth: "30%",
+      minHeight: 46,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm,
       alignItems: "center",
+      justifyContent: "center",
       borderRadius: radii.smallChip,
       backgroundColor: c.surface,
       borderWidth: 1,

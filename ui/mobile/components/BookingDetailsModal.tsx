@@ -11,14 +11,17 @@ import { callPhone, openWhatsApp } from "@/lib/contactLinks";
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 interface BookingDetailsModalProps {
+  visible?: boolean;
   booking: Booking | null;
   onClose: () => void;
+  onDismiss?: () => void;
   onConfirm: (b: Booking) => Promise<void>;
   onReject: (b: Booking) => void;
   onReschedule: (b: Booking) => void;
   onCancel: (b: Booking) => Promise<void>;
   onPayment: (b: Booking) => void;
   onEdit: (b: Booking) => void;
+  useModal?: boolean;
 }
 
 export function bookingStatusMeta(status: Booking["status"], c: Palette) {
@@ -41,21 +44,24 @@ export function bookingStatusMeta(status: Booking["status"], c: Palette) {
  * contacts (call, WhatsApp) and the actions its status allows.
  */
 export function BookingDetailsModal({
+  visible,
   booking,
   onClose,
+  onDismiss,
   onConfirm,
   onReject,
   onReschedule,
   onCancel,
   onPayment,
   onEdit,
+  useModal = true,
 }: BookingDetailsModalProps) {
   const c = usePalette();
   const t = useT();
   const styles = useThemedStyles(createStyles);
   const [busy, setBusy] = useState(false);
 
-  if (!booking) return null;
+  if (!booking || (!useModal && visible === false)) return null;
   const b = booking;
   const meta = bookingStatusMeta(b.status, c);
   const isPending = b.status === "pending";
@@ -80,9 +86,9 @@ export function BookingDetailsModal({
     }
   };
 
-  return (
-    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
+  const content = (
+    <View style={styles.overlay}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} accessible={false} />
         <SafeAreaView style={styles.sheet} edges={["bottom"]}>
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
@@ -217,6 +223,21 @@ export function BookingDetailsModal({
           ) : null}
         </SafeAreaView>
       </View>
+  );
+
+  if (!useModal) {
+    return <View style={StyleSheet.absoluteFill}>{content}</View>;
+  }
+
+  return (
+    <Modal
+      visible={visible ?? !!booking}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+      onDismiss={onDismiss}
+    >
+      {content}
     </Modal>
   );
 }

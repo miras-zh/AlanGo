@@ -13,13 +13,14 @@ interface EditBookingModalProps {
   booking: Booking | null;
   onClose: () => void;
   onSave: (b: Booking, updates: { clientName: string; clientPhone: string; notes: string }) => Promise<void>;
+  useModal?: boolean;
 }
 
 /**
  * Business: edit the client name, phone and note of a booking (saved on the
  * server). Date and time change through "Reschedule", money through "Payment".
  */
-export function EditBookingModal({ booking, onClose, onSave }: EditBookingModalProps) {
+export function EditBookingModal({ booking, onClose, onSave, useModal = true }: EditBookingModalProps) {
   const c = usePalette();
   const t = useT();
   const styles = useThemedStyles(createStyles);
@@ -55,10 +56,10 @@ export function EditBookingModal({ booking, onClose, onSave }: EditBookingModalP
     }
   };
 
-  return (
-    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <SafeAreaView style={styles.sheet} edges={["bottom"]}>
+  const content = (
+    <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Pressable style={{ flex: 1 }} onPress={onClose} accessible={false} />
+      <SafeAreaView style={styles.sheet} edges={["bottom"]}>
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>{t("request.editContacts")}</Text>
@@ -97,7 +98,16 @@ export function EditBookingModal({ booking, onClose, onSave }: EditBookingModalP
             </Pressable>
           </View>
         </SafeAreaView>
-      </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
+  );
+
+  if (!useModal) {
+    return <View style={StyleSheet.absoluteFill}>{content}</View>;
+  }
+
+  return (
+    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+      {content}
     </Modal>
   );
 }

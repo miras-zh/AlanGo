@@ -97,7 +97,11 @@ export default function BusinessClientsScreen() {
 
   const handleOpenChat = () => {
     hapticSelection();
-    router.push("/chat/1");
+    if (arenaId) {
+      router.push(`/chat/${arenaId}`);
+    } else {
+      router.push("/(tabs)/notifications");
+    }
   };
 
   const totalClientsCount = clients.length;

@@ -127,15 +127,15 @@ export function EventCard({
         <View style={styles.metaRow}>
           <Ionicons name="time-outline" size={13} color={c.textSecondary} />
           <Text style={styles.metaTextFixed}>{eventTimeRange(event)}</Text>
-          {extra ? (
-            <>
-              <Ionicons name="people-outline" size={13} color={c.textSecondary} style={styles.metaGap} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {extra}
-              </Text>
-            </>
-          ) : null}
         </View>
+        {extra ? (
+          <View style={styles.metaRow}>
+            <Ionicons name="people-outline" size={13} color={c.textSecondary} />
+            <Text style={styles.metaText} numberOfLines={1}>
+              {extra}
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.bottomRow}>
           <View style={styles.priceWrap}>

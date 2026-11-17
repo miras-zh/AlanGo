@@ -10,7 +10,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppTheme } from "@/theme/ThemeProvider";
 import { requestPasswordReset } from "@/lib/registration";
 import { getErrorMessage } from "@/lib/errorMessage";
 
@@ -21,7 +20,6 @@ export default function ForgotPasswordScreen() {
   const t = useT();
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
-  const { colors } = useAppTheme();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -47,14 +45,20 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: c.background }]}>
       <View style={styles.content}>
-        <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-          <Ionicons name="close" size={24} color={colors.text} />
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.closeBtn}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.close")}
+        >
+          <Ionicons name="close" size={24} color={c.textPrimary} />
         </Pressable>
 
-        <Text style={[styles.title, { color: colors.text }]}>{t("forgot.title")}</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+        <Text style={styles.title}>{t("forgot.title")}</Text>
+        <Text style={styles.subtitle}>
           {t("forgot.subtitle")}
         </Text>
 
@@ -62,16 +66,16 @@ export default function ForgotPasswordScreen() {
           value={email}
           onChangeText={setEmail}
           placeholder="Email"
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={c.textMuted}
           keyboardType="email-address"
           autoCapitalize="none"
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
+          style={styles.input}
         />
 
         <Pressable
           onPress={handleSubmit}
           disabled={loading}
-          style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
+          style={styles.primaryBtn}
         >
           <Text style={styles.primaryBtnText}>
             {loading ? t("forgot.sending") : t("forgot.submit")}
@@ -86,21 +90,34 @@ const createStyles = (c: Palette) =>
   StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 24, gap: 14 },
-  closeBtn: { alignSelf: "flex-end", padding: 4 },
-  title: { fontSize: 24, fontWeight: "800", marginTop: 8 },
-  subtitle: { fontSize: 14, lineHeight: 20, marginBottom: 8 },
+  closeBtn: {
+    alignSelf: "flex-end",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: c.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: { fontSize: 24, fontWeight: "800", marginTop: 8, color: c.textPrimary },
+  subtitle: { fontSize: 14, lineHeight: 20, marginBottom: 8, color: c.textSecondary },
   input: {
+    height: 48,
     borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+    color: c.textPrimary,
     borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 13,
     fontSize: 15,
   },
   primaryBtn: {
-    paddingVertical: 14,
-    borderRadius: 12,
+    height: 50,
+    backgroundColor: c.primary,
+    borderRadius: 14,
     alignItems: "center",
+    justifyContent: "center",
     marginTop: 6,
   },
-  primaryBtnText: { color: c.textPrimary, fontWeight: "700", fontSize: 15 },
+  primaryBtnText: { color: c.onPrimary, fontWeight: "700", fontSize: 15 },
 });

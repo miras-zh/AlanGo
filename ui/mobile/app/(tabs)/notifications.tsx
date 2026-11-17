@@ -16,7 +16,6 @@ import {
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
-  MOCK_NOTIFICATIONS,
 } from "@/lib/notifications";
 import {
   ChatDialog,
@@ -38,19 +37,19 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("chats");
   const [dialogs, setDialogs] = useState<ChatDialog[]>([]);
-  const [items, setItems] = useState<AppNotification[]>(MOCK_NOTIFICATIONS);
+  const [items, setItems] = useState<AppNotification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
       const [storedDialogs, res] = await Promise.all([
         getStoredDialogs(),
-        listNotifications(50, 0).catch(() => ({ items: MOCK_NOTIFICATIONS })),
+        listNotifications(50, 0).catch(() => ({ items: [] as AppNotification[] })),
       ]);
       setDialogs(storedDialogs);
-      setItems(res.items || MOCK_NOTIFICATIONS);
+      setItems(res.items ?? []);
     } catch {
-      setItems(MOCK_NOTIFICATIONS);
+      setItems([]);
     } finally {
       setRefreshing(false);
     }
@@ -338,7 +337,7 @@ const createStyles = (c: Palette) =>
     borderColor: c.subtle,
   },
   tabBtnActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.2)",
+    backgroundColor: c.primarySoft,
     borderColor: c.primary,
   },
   tabBtnText: {
@@ -396,7 +395,7 @@ const createStyles = (c: Palette) =>
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#1F2923",
+    backgroundColor: c.surfaceElevated,
   },
   onlineDot: {
     position: "absolute",
@@ -461,8 +460,8 @@ const createStyles = (c: Palette) =>
     gap: 12,
   },
   notifCardUnread: {
-    borderColor: "rgba(34, 197, 94, 0.3)",
-    backgroundColor: "rgba(34, 197, 94, 0.05)",
+    borderColor: c.primary,
+    backgroundColor: c.primarySoft,
   },
   notifIconWrap: {
     width: 36,

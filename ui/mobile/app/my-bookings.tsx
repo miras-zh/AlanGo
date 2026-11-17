@@ -204,7 +204,7 @@ export default function MyBookingsScreen() {
                     <Text style={styles.hallTitle} numberOfLines={1}>
                       {item.hallTitle}
                     </Text>
-                    {item.arenaTitle ? (
+                    {item.arenaTitle && item.arenaTitle !== item.hallTitle ? (
                       <Text style={styles.arenaTitle} numberOfLines={1}>
                         {item.arenaTitle}
                       </Text>

@@ -12,7 +12,18 @@ export function callPhone(phone: string): Promise<void> {
   return Linking.openURL(`tel:+${phoneDigits(phone)}`);
 }
 
-export function openWhatsApp(phone: string, text?: string): Promise<void> {
-  const q = text ? `?text=${encodeURIComponent(text)}` : "";
-  return Linking.openURL(`https://wa.me/${phoneDigits(phone)}${q}`);
+export async function openWhatsApp(phone: string, text?: string): Promise<void> {
+  const digits = phoneDigits(phone);
+  const q = text ? `&text=${encodeURIComponent(text)}` : "";
+  const appUrl = `whatsapp://send?phone=${digits}${q}`;
+  try {
+    if (await Linking.canOpenURL(appUrl)) {
+      await Linking.openURL(appUrl);
+      return;
+    }
+  } catch {
+    // Fall back to universal link below.
+  }
+  const webQuery = text ? `?text=${encodeURIComponent(text)}` : "";
+  await Linking.openURL(`https://wa.me/${digits}${webQuery}`);
 }

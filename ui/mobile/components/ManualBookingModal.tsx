@@ -321,7 +321,7 @@ const createStyles = (c: Palette) =>
   },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.75)",
+    backgroundColor: c.overlay,
     justifyContent: "flex-end",
   },
   sheetContainer: {
@@ -349,7 +349,7 @@ const createStyles = (c: Palette) =>
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    backgroundColor: c.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -402,7 +402,7 @@ const createStyles = (c: Palette) =>
     borderColor: c.surfaceElevated,
   },
   hallChipActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    backgroundColor: c.primarySoft,
     borderColor: c.primary,
   },
   hallChipText: {
@@ -450,10 +450,10 @@ const createStyles = (c: Palette) =>
     borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#202C26",
+    borderColor: c.border,
   },
   slotChipActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    backgroundColor: c.primarySoft,
     borderColor: c.primary,
   },
   slotChipText: {
@@ -517,9 +517,9 @@ const createStyles = (c: Palette) =>
     marginTop: 8,
   },
   quickFillBtn: {
-    backgroundColor: "#1A241F",
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: "#28382F",
+    borderColor: c.border,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,

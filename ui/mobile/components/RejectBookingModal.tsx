@@ -22,6 +22,7 @@ interface RejectBookingModalProps {
   booking: Booking | null;
   onClose: () => void;
   onConfirm: (reason: string) => void;
+  useModal?: boolean;
 }
 
 // The chosen reason is sent in the owner's current language.
@@ -38,6 +39,7 @@ export function RejectBookingModal({
   booking,
   onClose,
   onConfirm,
+  useModal = true,
 }: RejectBookingModalProps) {
   const c = usePalette();
   const t = useT();
@@ -55,12 +57,12 @@ export function RejectBookingModal({
     onClose();
   };
 
-  if (!booking) return null;
+  if (!booking || (!useModal && !visible)) return null;
 
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <SafeAreaView style={styles.sheetContainer}>
+  const content = (
+    <View style={styles.overlay}>
+      <Pressable style={{ flex: 1 }} onPress={onClose} accessible={false} />
+      <SafeAreaView style={styles.sheetContainer}>
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <Ionicons name="close-circle" size={22} color={c.error} />
@@ -133,6 +135,15 @@ export function RejectBookingModal({
           </View>
         </SafeAreaView>
       </View>
+  );
+
+  if (!useModal) {
+    return <View style={StyleSheet.absoluteFill}>{content}</View>;
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      {content}
     </Modal>
   );
 }

@@ -138,12 +138,36 @@ export async function resolveMyArenaId(): Promise<number | null> {
   }
 }
 
-export function useMyArenaId(): { arenaId: number | null; loading: boolean; reload: () => Promise<void> } {
+export function useMyArenaId(): {
+  arenaId: number | null;
+  venueType: VenueType | null;
+  loading: boolean;
+  reload: () => Promise<void>;
+} {
   const [arenaId, setArenaId] = useState<number | null>(getSessionUser()?.arenaId ?? null);
+  const [venueType, setVenueType] = useState<VenueType | null>(null);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
-    setArenaId(await resolveMyArenaId());
+    const user = getSessionUser();
+    if (!user) {
+      setArenaId(null);
+      setVenueType(null);
+      setLoading(false);
+      return;
+    }
+    if (String(user.id).startsWith("staff_")) {
+      setArenaId(user.arenaId ?? null);
+      setLoading(false);
+      return;
+    }
+    try {
+      const state = await fetchMyBusiness();
+      setArenaId(state.arena?.id ?? null);
+      setVenueType(state.arena?.venue_type ?? null);
+    } catch {
+      setArenaId(user.arenaId ?? null);
+    }
     setLoading(false);
   }, []);
 
@@ -151,5 +175,5 @@ export function useMyArenaId(): { arenaId: number | null; loading: boolean; relo
     reload();
   }, [reload]);
 
-  return { arenaId, loading, reload };
+  return { arenaId, venueType, loading, reload };
 }
