@@ -167,7 +167,7 @@ export default function AccountSettingsScreen() {
           </View>
 
           <View style={styles.card}>
-            <Pressable style={styles.logoutBtn} onPress={handleLogout}>
+            <Pressable testID="account-logout-btn" style={styles.logoutBtn} onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={18} color={c.textPrimary} />
               <Text style={styles.logoutText}>{t("account.logoutFull")}</Text>
             </Pressable>

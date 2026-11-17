@@ -68,6 +68,7 @@ export default function LoginScreen() {
         {/* Top Bar with Back button */}
         <View style={styles.topBar}>
           <Pressable
+            testID="login-back-btn"
             onPress={handleBack}
             style={styles.backBtn}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -93,6 +94,7 @@ export default function LoginScreen() {
         <View style={styles.form}>
           <Text style={styles.label}>Email</Text>
           <TextInput
+            testID="login-email-input"
             placeholder="name@example.com"
             placeholderTextColor={c.textMuted}
             value={email}
@@ -104,6 +106,7 @@ export default function LoginScreen() {
 
           <Text style={styles.label}>{t("login.password")}</Text>
           <PasswordInput
+            testID="login-password-input"
             placeholder={t("login.passwordPlaceholder")}
             placeholderTextColor={c.textMuted}
             value={password}
@@ -112,6 +115,7 @@ export default function LoginScreen() {
           />
 
           <Pressable
+            testID="login-forgot-link"
             onPress={() => router.push("/forgot-password")}
             style={styles.forgotLink}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -120,6 +124,7 @@ export default function LoginScreen() {
           </Pressable>
 
           <Pressable
+            testID="login-submit-btn"
             onPress={handleLogin}
             disabled={loading}
             style={styles.primaryBtn}
@@ -132,6 +137,7 @@ export default function LoginScreen() {
           <SocialAuthButtons mode="signin" />
 
           <Pressable
+            testID="login-register-link"
             onPress={() => router.push("/register")}
             style={styles.registerLinkWrap}
           >

@@ -558,6 +558,7 @@ export default function BusinessProfileScreen() {
         <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t("bizProfile.account")}</Text>
         <BusinessAccountCard />
         <Pressable
+          testID="biz-as-client-btn"
           style={[styles.switchBtn, styles.switchBtnClient]}
           onPress={() => {
             hapticSelection();
@@ -573,7 +574,7 @@ export default function BusinessProfileScreen() {
         </Pressable>
 
         {/* Logout */}
-        <Pressable style={styles.logoutBtn} onPress={handleLogout}>
+        <Pressable testID="biz-logout-btn" style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={c.error} />
           <Text style={styles.logoutBtnText}>{t("account.logoutFull")}</Text>
         </Pressable>
@@ -831,6 +832,7 @@ const createStyles = (c: Palette) =>
   },
   scroll: {
     padding: 16,
+    paddingBottom: spacing.bottomScrollPadding,
   },
   arenaCard: {
     height: 180,

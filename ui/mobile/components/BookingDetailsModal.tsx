@@ -95,7 +95,7 @@ export function BookingDetailsModal({
               <Text style={styles.title}>{isPending ? t("request.title") : t("request.bookingTitle")}</Text>
               <Text style={styles.code}>{t("edit.number", { id: b.id })}</Text>
             </View>
-            <Pressable onPress={onClose} hitSlop={10} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel={t("common.close")}>
+            <Pressable testID="detail-close-btn" onPress={onClose} hitSlop={10} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel={t("common.close")}>
               <Ionicons name="close" size={20} color={c.textSecondary} />
             </Pressable>
           </View>
@@ -177,9 +177,9 @@ export function BookingDetailsModal({
 
             {isActive ? (
               <View style={styles.secondaryActions}>
-                <SmallAction icon="swap-horizontal" label={t("request.reschedule")} onPress={() => onReschedule(b)} styles={styles} c={c} />
-                <SmallAction icon="card-outline" label={t("bookings.payment")} onPress={() => onPayment(b)} styles={styles} c={c} />
-                <SmallAction icon="create-outline" label={t("request.editContacts")} onPress={() => onEdit(b)} styles={styles} c={c} />
+                <SmallAction testID="detail-reschedule-btn" icon="swap-horizontal" label={t("request.reschedule")} onPress={() => onReschedule(b)} styles={styles} c={c} />
+                <SmallAction testID="detail-payment-btn" icon="card-outline" label={t("bookings.payment")} onPress={() => onPayment(b)} styles={styles} c={c} />
+                <SmallAction testID="detail-edit-btn" icon="create-outline" label={t("request.editContacts")} onPress={() => onEdit(b)} styles={styles} c={c} />
               </View>
             ) : null}
           </ScrollView>
@@ -269,12 +269,14 @@ function Row({
 }
 
 function SmallAction({
+  testID,
   icon,
   label,
   onPress,
   styles,
   c,
 }: {
+  testID?: string;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
@@ -283,6 +285,7 @@ function SmallAction({
 }) {
   return (
     <Pressable
+      testID={testID}
       style={styles.smallAction}
       onPress={() => {
         hapticSelection();

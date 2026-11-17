@@ -48,6 +48,7 @@ export default function ForgotPasswordScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: c.background }]}>
       <View style={styles.content}>
         <Pressable
+          testID="forgot-close-btn"
           onPress={() => router.back()}
           style={styles.closeBtn}
           hitSlop={10}
@@ -63,6 +64,7 @@ export default function ForgotPasswordScreen() {
         </Text>
 
         <TextInput
+          testID="forgot-email-input"
           value={email}
           onChangeText={setEmail}
           placeholder="Email"
@@ -73,6 +75,7 @@ export default function ForgotPasswordScreen() {
         />
 
         <Pressable
+          testID="forgot-submit-btn"
           onPress={handleSubmit}
           disabled={loading}
           style={styles.primaryBtn}

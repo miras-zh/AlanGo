@@ -1,0 +1,59 @@
+appId: kz.alango.app
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- tapOn: "Профиль"
+- runFlow:
+    file: subflows/login_from_guest.yaml
+    env:
+      EMAIL: "zal1@alan.kz"
+      PASSWORD: "1234567890Ww+"
+- assertVisible: "Alan Test Hall"
+- assertVisible: "Управление залом"
+- tapOn:
+    id: "biz-tab-halls"
+- assertVisible: "Ваш зал"
+- tapOn:
+    id: "biz-tab-bookings"
+- tapOn:
+    id: "biz-bookings-mode-calendar"
+- assertVisible:
+    id: "biz-bookings-add-btn"
+- tapOn:
+    id: "biz-bookings-mode-list"
+- assertVisible:
+    id: "biz-booking-details-btn"
+- tapOn:
+    id: "biz-booking-details-btn"
+- assertVisible:
+    id: "detail-payment-btn"
+- tapOn:
+    id: "detail-payment-btn"
+- assertVisible: "Учет оплаты брони"
+- tapOn:
+    id: "payment-close-btn"
+- tapOn:
+    id: "biz-booking-details-btn"
+- tapOn:
+    id: "detail-reschedule-btn"
+- assertVisible: "Перенести бронь"
+- tapOn:
+    id: "reschedule-close-btn"
+- tapOn:
+    id: "biz-booking-details-btn"
+- tapOn:
+    id: "detail-edit-btn"
+- assertVisible: "Контакты"
+- tapOn:
+    id: "edit-booking-close-btn"
+- tapOn:
+    id: "biz-tab-profile"
+- scrollUntilVisible:
+    element:
+      id: "biz-logout-btn"
+    direction: DOWN
+- tapOn:
+    id: "biz-logout-btn"
+- tapOn: "Выйти"

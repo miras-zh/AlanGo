@@ -1,0 +1,16 @@
+appId: kz.alango.app
+---
+- tapOn:
+    id: "profile-guest-login-btn"
+- assertVisible:
+    id: "login-email-input"
+- tapOn:
+    id: "login-email-input"
+- inputText: "${EMAIL}"
+- tapOn:
+    id: "login-password-input"
+- inputText: "${PASSWORD}"
+- tapOn:
+    text: "Вход в Alan Go"
+- tapOn:
+    id: "login-submit-btn"

@@ -92,7 +92,7 @@ export function RescheduleBookingModal({ booking, onClose, onSubmit, useModal = 
                 {t("reschedule.current", { hall: b.hallTitle, date: displayDate(b.date, t), time: b.timeSlot })}
               </Text>
             </View>
-            <Pressable onPress={onClose} hitSlop={10} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel={t("common.close")}>
+            <Pressable testID="reschedule-close-btn" onPress={onClose} hitSlop={10} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel={t("common.close")}>
               <Ionicons name="close" size={20} color={c.textSecondary} />
             </Pressable>
           </View>

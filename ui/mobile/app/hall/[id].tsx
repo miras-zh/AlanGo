@@ -272,6 +272,7 @@ export default function HallDetailScreen() {
           <View style={styles.floatingTopBar}>
             {/* Back Button */}
             <Pressable
+              testID="hall-back-btn"
               style={styles.circleBtn}
               onPress={() => {
                 hapticSelection();
@@ -366,6 +367,7 @@ export default function HallDetailScreen() {
           {/* 3. Segmented Tabs: [О зале] [Расписание] [Отзывы] */}
           <View style={styles.segmentedTabsWrap}>
             <Pressable
+              testID="hall-tab-about"
               style={[
                 styles.segmentTab,
                 activeTab === "about" && styles.segmentTabActive,
@@ -386,6 +388,7 @@ export default function HallDetailScreen() {
             </Pressable>
 
             <Pressable
+              testID="hall-tab-schedule"
               style={[
                 styles.segmentTab,
                 activeTab === "schedule" && styles.segmentTabActive,
@@ -406,6 +409,7 @@ export default function HallDetailScreen() {
             </Pressable>
 
             <Pressable
+              testID="hall-tab-reviews"
               style={[
                 styles.segmentTab,
                 activeTab === "reviews" && styles.segmentTabActive,

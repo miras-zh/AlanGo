@@ -1,0 +1,31 @@
+appId: kz.alango.app
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- tapOn: "Профиль"
+- runFlow:
+    file: subflows/login_from_guest.yaml
+    env:
+      EMAIL: "arena1@alan.kz"
+      PASSWORD: "1234567890Ww+"
+- assertVisible: "Alan Arena Test Complex"
+- tapOn:
+    id: "biz-tab-halls"
+- assertVisible: "Залы арены"
+- tapOn:
+    id: "biz-tab-bookings"
+- assertVisible:
+    id: "biz-bookings-mode-requests"
+- tapOn:
+    id: "biz-tab-profile"
+- scrollUntilVisible:
+    element:
+      id: "biz-as-client-btn"
+    direction: DOWN
+- assertVisible:
+    id: "biz-as-client-btn"
+- tapOn:
+    id: "biz-logout-btn"
+- tapOn: "Выйти"

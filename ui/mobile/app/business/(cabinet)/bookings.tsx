@@ -314,6 +314,7 @@ export default function BusinessBookingsScreen() {
         </View>
 
         <Pressable
+          testID="biz-bookings-add-btn"
           style={styles.addBtn}
           onPress={() => {
             hapticSelection();
@@ -332,6 +333,7 @@ export default function BusinessBookingsScreen() {
           return (
             <Pressable
               key={m.id}
+              testID={`biz-bookings-mode-${m.id}`}
               style={[styles.modeTab, active && styles.modeTabActive]}
               onPress={() => {
                 hapticSelection();
@@ -647,7 +649,7 @@ export default function BusinessBookingsScreen() {
                     </View>
 
                     <View style={styles.actionsRow}>
-                      <Pressable style={styles.editBtn} onPress={() => openDetails(item)}>
+                      <Pressable testID="biz-booking-details-btn" style={styles.editBtn} onPress={() => openDetails(item)}>
                         <Ionicons name="open-outline" size={15} color={c.primary} />
                         <Text style={styles.editBtnText}>{t("request.details")}</Text>
                       </Pressable>
@@ -934,6 +936,7 @@ const createStyles = (c: Palette) =>
   list: {
     padding: 16,
     gap: 12,
+    paddingBottom: spacing.bottomScrollPadding,
   },
   bookingCard: {
     backgroundColor: c.surface,

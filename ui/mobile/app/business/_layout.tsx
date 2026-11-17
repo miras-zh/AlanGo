@@ -1,147 +1,27 @@
-import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { Platform, StyleSheet } from "react-native";
+import { Stack } from "expo-router";
 import { usePalette } from "@/theme/palette";
-import { useT } from "@/lib/i18n";
-import { usePendingCount } from "@/lib/pendingBookings";
-import { useMyArenaId } from "@/lib/business";
 
-export default function BusinessTabsLayout() {
+// Бизнес-кабинет: Stack-навигатор. Вкладки живут в группе (cabinet) с
+// собственным таб-навигатором (NativeTabs на iOS / JS LiquidGlass на
+// Android), а вторичные CRM-экраны (income, clients, staff, promotions,
+// subscription, location) открываются push поверх табов, как клиентские
+// arena/[id] и hall/[id] вне (tabs).
+export default function BusinessLayout() {
   const c = usePalette();
-  const t = useT();
-  const pending = usePendingCount(true);
-  const { venueType } = useMyArenaId();
   return (
-    <Tabs
+    <Stack
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: c.surface,
-          borderTopColor: c.hairline,
-          borderTopWidth: 1,
-          height: Platform.OS === "ios" ? 88 : 68,
-          paddingBottom: Platform.OS === "ios" ? 28 : 10,
-          paddingTop: 8,
-        },
-        tabBarActiveTintColor: c.primary,
-        tabBarInactiveTintColor: c.textMuted,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
-        },
+        contentStyle: { backgroundColor: c.background },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t(venueType === "single" ? "bizTabs.hall" : "bizTabs.arena"),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "business" : "business-outline"}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="halls"
-        options={{
-          title: t("bizTabs.halls"),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "layers" : "layers-outline"}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="schedule"
-        options={{
-          title: t("bizTabs.schedule"),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "time" : "time-outline"}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="bookings"
-        options={{
-          title: t("bizTabs.bookings"),
-          tabBarBadge: pending > 0 ? (pending > 99 ? "99+" : pending) : undefined,
-          tabBarBadgeStyle: { backgroundColor: c.warning, color: c.onPrimary, fontSize: 11, fontWeight: "700" },
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "calendar" : "calendar-outline"}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: t("bizTabs.profile"),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      {/* Hidden CRM Screens */}
-      <Tabs.Screen
-        name="location"
-        options={{
-          href: null,
-          title: t("bizLocation.title"),
-        }}
-      />
-      <Tabs.Screen
-        name="income"
-        options={{
-          href: null,
-          title: t("bizTabs.income"),
-        }}
-      />
-      <Tabs.Screen
-        name="clients"
-        options={{
-          href: null,
-          title: t("bizTabs.clients"),
-        }}
-      />
-      <Tabs.Screen
-        name="staff"
-        options={{
-          href: null,
-          title: t("bizTabs.staff"),
-        }}
-      />
-      <Tabs.Screen
-        name="promotions"
-        options={{
-          href: null,
-          title: t("bizTabs.promotions"),
-        }}
-      />
-      <Tabs.Screen
-        name="subscription"
-        options={{
-          href: null,
-          title: t("bizTabs.subscription"),
-        }}
-      />
-    </Tabs>
+      <Stack.Screen name="(cabinet)" />
+      <Stack.Screen name="income" />
+      <Stack.Screen name="clients" />
+      <Stack.Screen name="staff" />
+      <Stack.Screen name="promotions" />
+      <Stack.Screen name="subscription" />
+      <Stack.Screen name="location" />
+    </Stack>
   );
 }
-

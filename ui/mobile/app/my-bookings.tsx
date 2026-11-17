@@ -106,6 +106,7 @@ export default function MyBookingsScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Pressable
+          testID="my-bookings-back-btn"
           onPress={() => {
             hapticSelection();
             router.back();
@@ -125,6 +126,7 @@ export default function MyBookingsScreen() {
           return (
             <Pressable
               key={item.id}
+              testID={`my-bookings-tab-${item.id}`}
               style={[styles.tabChip, active && styles.tabChipActive]}
               onPress={() => {
                 hapticSelection();

@@ -84,7 +84,7 @@ export function PaymentModal({
               </Text>
             </View>
           </View>
-          <Pressable onPress={onClose} hitSlop={10} style={styles.closeBtn}>
+          <Pressable testID="payment-close-btn" onPress={onClose} hitSlop={10} style={styles.closeBtn}>
             <Ionicons name="close" size={20} color={c.textSecondary} />
           </Pressable>
         </View>

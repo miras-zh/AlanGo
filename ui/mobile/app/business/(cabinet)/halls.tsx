@@ -805,6 +805,7 @@ const createStyles = (c: Palette) =>
     padding: 16,
     gap: 16,
     flexGrow: 1,
+    paddingBottom: spacing.bottomScrollPadding,
   },
   fieldGap: {
     marginBottom: spacing.md,

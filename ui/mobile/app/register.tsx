@@ -137,6 +137,7 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.topBar}>
           <Pressable
+            testID="register-back-btn"
             onPress={handleBack}
             style={styles.backBtn}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -158,6 +159,7 @@ export default function RegisterScreen() {
             <View style={styles.form}>
               <Text style={styles.fieldLabel}>{t("register.name")}</Text>
               <TextInput
+                testID="register-name-input"
                 value={name}
                 onChangeText={setName}
                 placeholder={t("register.namePlaceholder")}
@@ -167,6 +169,7 @@ export default function RegisterScreen() {
 
               <Text style={styles.fieldLabel}>Email</Text>
               <TextInput
+                testID="register-email-input"
                 value={email}
                 onChangeText={setEmail}
                 placeholder="name@example.com"
@@ -178,6 +181,7 @@ export default function RegisterScreen() {
 
               <Text style={styles.fieldLabel}>{t("login.password")}</Text>
               <PasswordInput
+                testID="register-password-input"
                 value={password}
                 onChangeText={setPassword}
                 placeholder={t("register.passwordPlaceholder")}
@@ -186,6 +190,7 @@ export default function RegisterScreen() {
               />
 
               <Pressable
+                testID="register-submit-btn"
                 onPress={handleStartRegister}
                 disabled={loading}
                 style={styles.primaryBtn}
@@ -199,6 +204,7 @@ export default function RegisterScreen() {
             </View>
 
             <Pressable
+              testID="register-switch-login-btn"
               onPress={() => (router.canGoBack() ? router.back() : router.replace("/login"))}
               style={styles.switchBtn}
             >

@@ -581,6 +581,7 @@ const createStyles = (c: Palette) =>
   },
   scroll: {
     padding: 16,
+    paddingBottom: spacing.bottomScrollPadding,
   },
   kpiRow: {
     flexDirection: "row",

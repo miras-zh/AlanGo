@@ -84,6 +84,7 @@ function CatalogTabs({ tab, onChange }: { tab: CatalogTab; onChange: (tab: Catal
     const active = tab === key;
     return (
       <Pressable
+        testID={`catalog-tab-${key}`}
         onPress={() => {
           if (active) return;
           hapticSelection();
@@ -332,6 +333,7 @@ export default function ItemsScreen() {
         <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={18} color={c.textSecondary} style={{ marginRight: spacing.sm }} />
           <TextInput
+            testID="catalog-search-input"
             placeholder={tab === "halls" ? t("halls.searchPlaceholder") : t("arenas.searchPlaceholder")}
             placeholderTextColor={c.textSecondary}
             value={search}

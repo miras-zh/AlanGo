@@ -1,0 +1,44 @@
+appId: kz.alango.app
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- tapOn: "Профиль"
+- runFlow:
+    file: subflows/login_from_guest.yaml
+    env:
+      EMAIL: "client1@alan.kz"
+      PASSWORD: "1234567890Ww+"
+- tapOn: "Профиль"
+- assertVisible:
+    id: "profile-my-bookings-btn"
+- tapOn:
+    id: "profile-my-bookings-btn"
+- assertVisible: "Alan Test Hall"
+- tapOn:
+    id: "my-bookings-tab-history"
+- tapOn:
+    id: "my-bookings-tab-upcoming"
+- tapOn:
+    id: "my-bookings-back-btn"
+- tapOn: "Залы"
+- assertVisible:
+    id: "catalog-tab-halls"
+- assertVisible:
+    id: "catalog-tab-arenas"
+- tapOn:
+    id: "catalog-search-input"
+- inputText: "Alan Test Hall"
+- tapOn: "Alan Test Hall"
+- assertVisible:
+    id: "hall-tab-about"
+- tapOn:
+    id: "hall-tab-schedule"
+- tapOn:
+    id: "hall-tab-reviews"
+- assertVisible: "Пока нет отзывов"
+- tapOn:
+    id: "hall-tab-about"
+- tapOn:
+    id: "hall-back-btn"

@@ -65,7 +65,7 @@ export function EditBookingModal({ booking, onClose, onSave, useModal = true }: 
               <Text style={styles.title}>{t("request.editContacts")}</Text>
               <Text style={styles.sub}>{t("edit.number", { id: booking.id })}</Text>
             </View>
-            <Pressable onPress={onClose} hitSlop={10} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel={t("common.close")}>
+            <Pressable testID="edit-booking-close-btn" onPress={onClose} hitSlop={10} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel={t("common.close")}>
               <Ionicons name="close" size={20} color={c.textSecondary} />
             </Pressable>
           </View>

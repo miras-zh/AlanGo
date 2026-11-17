@@ -4,18 +4,19 @@ import { useRouter } from "expo-router";
 import { TabBarGlassBackground } from "@/components/TabBarGlassBackground";
 import { hapticSelection } from "@/lib/haptics";
 import { useT, type MessageKey } from "@/lib/i18n";
+import { usePendingCount } from "@/lib/pendingBookings";
+import { useMyArenaId } from "@/lib/business";
 
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
-const TAB_CONFIG: Record<
-  string,
-  {
-    labelKey: MessageKey;
-    icon: keyof typeof Ionicons.glyphMap;
-    iconFocused: keyof typeof Ionicons.glyphMap;
-  }
-> = {
+type TabEntry = {
+  labelKey: MessageKey;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconFocused: keyof typeof Ionicons.glyphMap;
+};
+
+const TAB_CONFIG: Record<string, TabEntry> = {
   index: {
     labelKey: "tabs.home",
     icon: "home-outline",
@@ -51,13 +52,20 @@ type CapsuleProps = {
   tabs: readonly string[];
   activeTab: string | null;
   onTabPress: (name: string) => void;
+  /** Переопределение иконок/лейблов (по умолчанию — клиентский TAB_CONFIG). */
+  config?: Record<string, TabEntry>;
+  /** Числовые бейджи по имени вкладки (например, кол-во новых заявок). */
+  badges?: Record<string, number | undefined>;
+  /** Префикс testID кнопок (по умолчанию "tab"). */
+  testIDPrefix?: string;
 };
 
 /** Внешний вид плавающей капсулы без привязки к навигатору табов. */
-export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
+export function TabBarCapsule({ tabs, activeTab, onTabPress, config, badges, testIDPrefix = "tab" }: CapsuleProps) {
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
   const t = useT();
+  const configMap = config ?? TAB_CONFIG;
   return (
     <View style={styles.floatingContainer} pointerEvents="box-none">
       <View style={styles.tabBarPill}>
@@ -66,10 +74,11 @@ export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
         <View style={styles.tabsRow}>
           {tabs.map((name) => {
             const isFocused = activeTab === name;
-            const config = TAB_CONFIG[name];
-            const label = config ? t(config.labelKey) : name;
-            const icon = config?.icon ?? "ellipse-outline";
-            const iconFocused = config?.iconFocused ?? "ellipse";
+            const entry = configMap[name];
+            const label = entry ? t(entry.labelKey) : name;
+            const icon = entry?.icon ?? "ellipse-outline";
+            const iconFocused = entry?.iconFocused ?? "ellipse";
+            const badge = badges?.[name] ?? 0;
 
             const onPress = () => {
               hapticSelection();
@@ -79,6 +88,7 @@ export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
             return (
               <Pressable
                 key={name}
+                testID={`${testIDPrefix}-${name}`}
                 onPress={onPress}
                 style={[
                   styles.tabButton,
@@ -86,11 +96,20 @@ export function TabBarCapsule({ tabs, activeTab, onTabPress }: CapsuleProps) {
                 ]}
                 hitSlop={6}
               >
-                <Ionicons
-                  name={isFocused ? iconFocused : icon}
-                  size={20}
-                  color={isFocused ? c.primary : c.textSecondary}
-                />
+                <View style={styles.iconWrap}>
+                  <Ionicons
+                    name={isFocused ? iconFocused : icon}
+                    size={20}
+                    color={isFocused ? c.primary : c.textSecondary}
+                  />
+                  {badge > 0 ? (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText} numberOfLines={1}>
+                        {badge > 99 ? "99+" : String(badge)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
                 <Text
                   style={[
                     styles.tabLabel,
@@ -119,6 +138,60 @@ export function LiquidGlassTabBar(props: any) {
     <TabBarCapsule
       tabs={routes.map((r) => r.name)}
       activeTab={routes[state.index]?.name ?? null}
+      onTabPress={(name) => {
+        const route = routes.find((r) => r.name === name);
+        if (!route) return;
+        const isFocused = routes[state.index]?.key === route.key;
+        const event = navigation.emit({
+          type: "tabPress",
+          target: route.key,
+          canPreventDefault: true,
+        });
+        if (!isFocused && !event.defaultPrevented) {
+          navigation.navigate(route.name);
+        }
+      }}
+    />
+  );
+}
+
+/** Иконки/лейблы вкладок кабинета бизнеса. */
+const BIZ_TAB_CONFIG: Record<string, TabEntry> = {
+  index: { labelKey: "bizTabs.arena", icon: "business-outline", iconFocused: "business" },
+  halls: { labelKey: "bizTabs.halls", icon: "layers-outline", iconFocused: "layers" },
+  schedule: { labelKey: "bizTabs.schedule", icon: "time-outline", iconFocused: "time" },
+  bookings: { labelKey: "bizTabs.bookings", icon: "calendar-outline", iconFocused: "calendar" },
+  profile: { labelKey: "bizTabs.profile", icon: "person-outline", iconFocused: "person" },
+};
+
+/** Видимые вкладки бизнес-навигации (порядок как в business/_layout.tsx). */
+const BIZ_TAB_NAMES = ["index", "halls", "schedule", "bookings", "profile"] as const;
+
+/** Liquid Glass таб-бар для навигатора кабинета бизнеса. */
+export function BusinessGlassTabBar(props: any) {
+  const { state, navigation } = props;
+  const pending = usePendingCount(true);
+  const { venueType } = useMyArenaId();
+  const routes: any[] = state.routes;
+
+  // Только видимые вкладки, в фиксированном порядке (скрытые href:null отсекаем).
+  const visible = BIZ_TAB_NAMES.filter((name) => routes.some((r) => r.name === name));
+
+  const config: Record<string, TabEntry> = {
+    ...BIZ_TAB_CONFIG,
+    index: {
+      ...BIZ_TAB_CONFIG.index,
+      labelKey: venueType === "single" ? "bizTabs.hall" : "bizTabs.arena",
+    },
+  };
+
+  return (
+    <TabBarCapsule
+      tabs={visible}
+      activeTab={routes[state.index]?.name ?? null}
+      config={config}
+      badges={{ bookings: pending }}
+      testIDPrefix="biz-tab"
       onTabPress={(name) => {
         const route = routes.find((r) => r.name === name);
         if (!route) return;
@@ -204,6 +277,29 @@ const createStyles = (c: Palette) =>
     shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 4,
+  },
+  iconWrap: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badge: {
+    position: "absolute",
+    top: -6,
+    right: -12,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    backgroundColor: c.warning,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    color: c.onPrimary,
+    fontSize: 9,
+    fontWeight: "700",
+    textAlign: "center",
   },
   tabLabel: {
     fontSize: 10,

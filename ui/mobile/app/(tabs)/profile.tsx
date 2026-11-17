@@ -99,6 +99,7 @@ export default function ProfileScreen() {
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>{t("profile.title")}</Text>
         <Pressable
+          testID="profile-settings-btn"
           style={styles.settingsBtn}
           onPress={() => {
             hapticSelection();
@@ -122,6 +123,7 @@ export default function ProfileScreen() {
                 {t("profile.guestText")}
               </Text>
               <Pressable
+                testID="profile-guest-login-btn"
                 style={styles.guestLoginBtn}
                 onPress={() => {
                   hapticSelection();
@@ -191,6 +193,7 @@ export default function ProfileScreen() {
 
             {/* My Bookings */}
             <Pressable
+              testID="profile-my-bookings-btn"
               style={({ pressed }) => [styles.myBookingsCard, pressed && { opacity: 0.9 }]}
               onPress={() => {
                 hapticSelection();
@@ -209,6 +212,7 @@ export default function ProfileScreen() {
 
             {/* My Favorites */}
             <Pressable
+              testID="profile-favorites-btn"
               style={({ pressed }) => [styles.myBookingsCard, pressed && { opacity: 0.9 }]}
               onPress={() => {
                 hapticSelection();

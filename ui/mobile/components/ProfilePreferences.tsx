@@ -28,10 +28,12 @@ function Segmented<T extends string>({
   options,
   value,
   onChange,
+  testIdPrefix,
 }: {
   options: { id: T; label: string }[];
   value: T;
   onChange: (v: T) => void;
+  testIdPrefix?: string;
 }) {
   const c = usePalette();
   const styles = useThemedStyles(createStyles);
@@ -42,6 +44,7 @@ function Segmented<T extends string>({
         return (
           <Pressable
             key={o.id}
+            testID={testIdPrefix ? `${testIdPrefix}-${o.id}` : undefined}
             style={[styles.segmentItem, active && styles.segmentItemActive]}
             onPress={() => {
               hapticSelection();
@@ -76,13 +79,13 @@ export function AppearanceSettings() {
   return (
     <View style={styles.card}>
       <Text style={styles.label}>{t("prefs.theme")}</Text>
-      <Segmented options={themeOptions} value={mode} onChange={(m) => {
+      <Segmented options={themeOptions} value={mode} testIdPrefix="pref-theme" onChange={(m) => {
           setMode(m);
           flush();
         }}
       />
       <Text style={[styles.label, { marginTop: spacing.lg }]}>{t("prefs.language")}</Text>
-      <Segmented options={LANGUAGES} value={locale} onChange={(l) => {
+      <Segmented options={LANGUAGES} value={locale} testIdPrefix="pref-lang" onChange={(l) => {
           setLocale(l);
           flush();
         }}
@@ -116,6 +119,7 @@ export function ProfilePreferences({ signedIn }: { signedIn: boolean }) {
       <View style={styles.card}>
         {signedIn ? (
           <Row
+            testID="prefs-account-row"
             icon="person-circle-outline"
             title={t("prefs.account")}
             subtitle={t("prefs.accountDesc")}
@@ -138,12 +142,14 @@ export function ProfilePreferences({ signedIn }: { signedIn: boolean }) {
 }
 
 function Row({
+  testID,
   icon,
   title,
   subtitle,
   onPress,
   last,
 }: {
+  testID?: string;
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: string;
@@ -154,6 +160,7 @@ function Row({
   const styles = useThemedStyles(createStyles);
   return (
     <Pressable
+      testID={testID}
       style={({ pressed }) => [styles.row, !last && styles.rowDivider, pressed && { opacity: 0.7 }]}
       onPress={onPress}
     >

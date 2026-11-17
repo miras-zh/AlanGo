@@ -1,0 +1,59 @@
+appId: kz.alango.app
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- tapOn: "Профиль"
+- tapOn:
+    id: "profile-guest-login-btn"
+- assertVisible:
+    id: "login-email-input"
+- tapOn:
+    id: "login-forgot-link"
+- assertVisible:
+    id: "forgot-email-input"
+- tapOn:
+    id: "forgot-close-btn"
+- assertVisible:
+    id: "login-email-input"
+- tapOn:
+    id: "login-register-link"
+- assertVisible:
+    id: "register-name-input"
+- assertVisible:
+    id: "register-password-input"
+- tapOn:
+    id: "register-switch-login-btn"
+- assertVisible:
+    id: "login-email-input"
+- tapOn:
+    id: "login-back-btn"
+- runFlow:
+    file: subflows/login_from_guest.yaml
+    env:
+      EMAIL: "client1@alan.kz"
+      PASSWORD: "1234567890Ww+"
+- tapOn: "Профиль"
+- assertVisible: "Клиент AlanGo Тест"
+- scrollUntilVisible:
+    element:
+      id: "pref-theme-light"
+    direction: DOWN
+- tapOn:
+    id: "pref-theme-light"
+- tapOn:
+    id: "pref-theme-dark"
+- scrollUntilVisible:
+    element:
+      id: "prefs-account-row"
+    direction: DOWN
+- tapOn:
+    id: "prefs-account-row"
+- assertVisible:
+    id: "account-logout-btn"
+- tapOn:
+    id: "account-logout-btn"
+- tapOn: "Выйти"
+- assertVisible:
+    id: "profile-guest-login-btn"
