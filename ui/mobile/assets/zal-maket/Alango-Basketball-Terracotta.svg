@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="520" viewBox="0 0 840 520">
+  <title>Alango · Terracotta basketball court, top view</title>
+  <rect width="840" height="520" fill="#C8807D"/>
+  <rect x="16" y="16" width="808" height="488" fill="#A64D38"/>
+  <g fill="none" stroke="#F5FBFE" stroke-width="2.8" stroke-linecap="butt" stroke-linejoin="round">
+    <rect x="16" y="16" width="808" height="488"/>
+    <path d="M420 16 V504"/>
+    <circle cx="420" cy="260" r="65"/>
+    <g>
+      <path d="M16 66 H92 A194 194 0 0 1 92 454 H16"/>
+      <path d="M16 195 H207 V325 H16"/>
+      <path d="M207 195 A65 65 0 0 1 207 325"/>
+      <path d="M207 195 A65 65 0 0 0 207 325" stroke-dasharray="10 10"/>
+      <path d="M108 195 V184 M108 325 V336" stroke-width="5.5"/>
+      <path d="M134 195 V184 M160 195 V184 M193 195 V184
+               M134 325 V336 M160 325 V336 M193 325 V336"/>
+      <path d="M36 232 V288"/>
+      <circle cx="49" cy="260" r="9"/>
+    </g>
+    <g transform="translate(840 0) scale(-1 1)">
+      <path d="M16 66 H92 A194 194 0 0 1 92 454 H16"/>
+      <path d="M16 195 H207 V325 H16"/>
+      <path d="M207 195 A65 65 0 0 1 207 325"/>
+      <path d="M207 195 A65 65 0 0 0 207 325" stroke-dasharray="10 10"/>
+      <path d="M108 195 V184 M108 325 V336" stroke-width="5.5"/>
+      <path d="M134 195 V184 M160 195 V184 M193 195 V184
+               M134 325 V336 M160 325 V336 M193 325 V336"/>
+      <path d="M36 232 V288"/>
+      <circle cx="49" cy="260" r="9"/>
+    </g>
+  </g>
+</svg>

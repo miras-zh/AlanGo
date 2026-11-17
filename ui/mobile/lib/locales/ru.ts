@@ -1162,6 +1162,8 @@ export const ru = {
   "dateStrip.nextMonth": "Следующий месяц",
   "dateStrip.windowHint": "Бронировать можно на {n} дней вперёд",
   "hall.requestSentTitle": "Заявка отправлена",
+  "hall.layoutTitle": "Схема зала (вид сверху)",
+  "hall.layoutSub": "Типовой макет площадки",
   "hall.requestSentText": "«{hall}»\n\nДата: {date}\nВремя: {time}\nСумма: {price} ₸\nКод: {code}\n\nСпорткомплекс подтвердит заявку в ближайшее время. Статус — в разделе «Мои записи».",
   "hall.openMyBookings": "Мои брони",
   "myBookings.awaiting": "Ждёт подтверждения",

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="670" viewBox="0 0 480 670">
+  <title>Alango · Football pitch with grass turf · 105 × 68 m</title>
+  <rect x="0" y="0" width="480" height="670" fill="#265B3D" />
+  <g transform="translate(37.295238 22) scale(5.96190476)" stroke-width="0.570288">
+    <rect x="0" y="0" width="68" height="105" fill="#4B9852" />
+    <rect x="0" y="0" width="68" height="8.75" fill="#3C8547" />
+    <rect x="0" y="17.5" width="68" height="8.75" fill="#3C8547" />
+    <rect x="0" y="35" width="68" height="8.75" fill="#3C8547" />
+    <rect x="0" y="52.5" width="68" height="8.75" fill="#3C8547" />
+    <rect x="0" y="70" width="68" height="8.75" fill="#3C8547" />
+    <rect x="0" y="87.5" width="68" height="8.75" fill="#3C8547" />
+    <g fill="none" stroke="#FBFCF5" stroke-linejoin="round" stroke-linecap="round">
+      <rect x="0" y="0" width="68" height="105" />
+      <line x1="0" y1="52.5" x2="68" y2="52.5" />
+      <circle cx="34" cy="52.5" r="9.15" />
+      <circle cx="34" cy="52.5" r="0.45" fill="#FBFCF5" stroke="none" />
+      <path d="M0 1 A1 1 0 0 0 1 0" />
+      <path d="M67 0 A1 1 0 0 0 68 1" />
+      <path d="M0 104 A1 1 0 0 1 1 105" />
+      <path d="M67 105 A1 1 0 0 1 68 104" />
+      <path d="M13.84 0 V16.5 H54.16 V0" />
+      <path d="M24.84 0 V5.5 H43.16 V0" />
+      <path d="M26.687510683768487 16.5 A9.15 9.15 0 0 0 41.31248931623151 16.5" />
+      <circle cx="34" cy="11" r="0.4" fill="#FBFCF5" stroke="none" />
+      <rect x="30.34" y="-2.5" width="7.32" height="2.5" fill="#234F3C" fill-opacity=".25" stroke="none" />
+      <path d="M30.34 0 V-2.5 H37.66 V0" stroke="#FBFCF5" />
+      <line x1="30.34" y1="-1.25" x2="37.66" y2="-1.25" stroke="#FBFCF5" stroke-opacity=".45" />
+      <line x1="32.17" y1="0" x2="32.17" y2="-2.5" stroke="#FBFCF5" stroke-opacity=".45" />
+      <line x1="34" y1="0" x2="34" y2="-2.5" stroke="#FBFCF5" stroke-opacity=".45" />
+      <line x1="35.83" y1="0" x2="35.83" y2="-2.5" stroke="#FBFCF5" stroke-opacity=".45" />
+      <g transform="translate(0 105) scale(1 -1)">
+        <path d="M13.84 0 V16.5 H54.16 V0" />
+        <path d="M24.84 0 V5.5 H43.16 V0" />
+        <path d="M26.687510683768487 16.5 A9.15 9.15 0 0 0 41.31248931623151 16.5" />
+        <circle cx="34" cy="11" r="0.4" fill="#FBFCF5" stroke="none" />
+        <rect x="30.34" y="-2.5" width="7.32" height="2.5" fill="#234F3C" fill-opacity=".25" stroke="none" />
+        <path d="M30.34 0 V-2.5 H37.66 V0" stroke="#FBFCF5" />
+        <line x1="30.34" y1="-1.25" x2="37.66" y2="-1.25" stroke="#FBFCF5" stroke-opacity=".45" />
+        <line x1="32.17" y1="0" x2="32.17" y2="-2.5" stroke="#FBFCF5" stroke-opacity=".45" />
+        <line x1="34" y1="0" x2="34" y2="-2.5" stroke="#FBFCF5" stroke-opacity=".45" />
+        <line x1="35.83" y1="0" x2="35.83" y2="-2.5" stroke="#FBFCF5" stroke-opacity=".45" />
+      </g>
+    </g>
+  </g>
+</svg>

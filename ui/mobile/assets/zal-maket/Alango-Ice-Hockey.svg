@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1018" height="528" viewBox="0 0 1018 528">
+  <title>Alango · Ice hockey rink, top view</title>
+  <defs>
+    <linearGradient id="hockey-background" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#284D67"/>
+      <stop offset="1" stop-color="#163149"/>
+    </linearGradient>
+    <linearGradient id="hockey-boards" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#B8D8E8"/>
+      <stop offset=".5" stop-color="#7BA7C0"/>
+      <stop offset="1" stop-color="#507C9B"/>
+    </linearGradient>
+    <linearGradient id="hockey-ice" x2="95%" y2="100%">
+      <stop offset="0" stop-color="#F9FCFD"/>
+      <stop offset=".58" stop-color="#EEF7FA"/>
+      <stop offset="1" stop-color="#DDECF4"/>
+    </linearGradient>
+    <clipPath id="hockey-rink-clip">
+      <rect width="60" height="30" rx="8.5"/>
+    </clipPath>
+    <pattern id="hockey-goal-mesh" width=".32" height=".32" patternUnits="userSpaceOnUse">
+      <path d="M0 0L.32 .32 M.32 0L0 .32" fill="none" stroke="#8FA9BA" stroke-opacity=".88" stroke-width=".045"/>
+    </pattern>
+    <radialGradient id="hockey-puck-shadow">
+      <stop offset="0" stop-color="#14283B" stop-opacity=".50"/>
+      <stop offset=".55" stop-color="#14283B" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#14283B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hockey-puck" x2="75%" y2="100%">
+      <stop offset="0" stop-color="#545E68"/>
+      <stop offset=".55" stop-color="#2C343D"/>
+      <stop offset="1" stop-color="#141B23"/>
+    </linearGradient>
+
+    <g id="hockey-faceoff-circle" fill="none" stroke="#BA4B5B" stroke-width=".16">
+      <circle r="4.5"/>
+      <path d="M-1.38 -.58H-.66V-.20 M1.38 -.58H.66V-.20
+               M-1.38 .58H-.66V.20 M1.38 .58H.66V.20
+               M-.52 -4.47V-5 M.52 -4.47V-5 M-.52 4.47V5 M.52 4.47V5"/>
+      <circle r=".30" fill="#BA4B5B" stroke="none"/>
+    </g>
+
+    <g id="hockey-half" fill="none">
+      <path d="M4 0V30" stroke="#C65867" stroke-width=".17"/>
+      <path d="M22.86 0V30" stroke="#3D71AD" stroke-width=".31"/>
+      <use href="#hockey-faceoff-circle" x="10" y="8"/>
+      <use href="#hockey-faceoff-circle" x="10" y="22"/>
+      <g fill="#BA4B5B">
+        <circle cx="24.36" cy="8" r=".30"/>
+        <circle cx="24.36" cy="22" r=".30"/>
+      </g>
+      <path d="M4 13.78H5.21 Q6.48 15 5.21 16.22 H4 Z"
+            fill="#B7DCEF" stroke="#B84758" stroke-width=".15"/>
+      <path d="M4 14.085H3.04 Q2.72 14.085 2.72 14.42 V15.58
+               Q2.72 15.915 3.04 15.915 H4 Z"
+            fill="#F8FCFE"/>
+      <path d="M4 14.085H3.04 Q2.72 14.085 2.72 14.42 V15.58
+               Q2.72 15.915 3.04 15.915 H4 Z"
+            fill="url(#hockey-goal-mesh)" stroke="#AF3E50" stroke-width=".17"/>
+    </g>
+  </defs>
+
+  <rect width="1018" height="528" fill="url(#hockey-background)"/>
+  <rect x="17" y="15" width="984" height="505" rx="151" fill="#142B40" opacity=".74"/>
+  <rect x="22" y="15" width="974" height="498" rx="146" fill="url(#hockey-boards)" stroke="#3F6686" stroke-width="2"/>
+  <rect x="26" y="19" width="966" height="490" rx="141.5" fill="none" stroke="#DCF3FC" stroke-opacity=".67" stroke-width="1.55"/>
+
+  <g transform="translate(33 26) scale(15.866666667)">
+    <g clip-path="url(#hockey-rink-clip)">
+      <rect width="60" height="30" fill="url(#hockey-ice)"/>
+      <rect x="22.86" width="14.28" height="30" fill="#B6D8EB" opacity=".22"/>
+      <path d="M6 12Q14 15 21 12 M12 21Q22 18 28 21 M22 8Q28 5 37 7
+               M36 24Q43 26 54 22 M40 13Q46 16 53 12"
+            fill="none" stroke="#83B1CD" stroke-opacity=".26" stroke-width=".055" stroke-linecap="round"/>
+      <use href="#hockey-half"/>
+      <use href="#hockey-half" transform="translate(60 0) scale(-1 1)"/>
+      <path d="M30 0V30" fill="none" stroke="#BD4C5D" stroke-width=".31"/>
+      <path d="M30 .2V29.8" fill="none" stroke="#F7E2E5" stroke-width=".075" stroke-dasharray=".25 .41"/>
+      <circle cx="30" cy="15" r="4.5" fill="none" stroke="#3D71AD" stroke-width=".17"/>
+      <circle cx="30" cy="15" r=".22" fill="#3D71AD"/>
+      <path d="M27 0 A3 3 0 0 0 33 0" fill="none" stroke="#BE5262" stroke-width=".15"/>
+    </g>
+    <rect width="60" height="30" rx="8.5" fill="none" stroke="#4F7892" stroke-width=".24"/>
+    <rect x=".15" y=".15" width="59.7" height="29.7" rx="8.35"
+          fill="none" stroke="#E3C77D" stroke-opacity=".81" stroke-width=".075"/>
+  </g>
+
+  <g transform="translate(679 301)">
+    <ellipse cx="3.5" cy="4" rx="14" ry="11" fill="url(#hockey-puck-shadow)"/>
+    <circle r="9.2" fill="url(#hockey-puck)" stroke="#131B23" stroke-width="1.2"/>
+    <circle r="7.1" fill="none" stroke="#7F8B95" stroke-opacity=".28" stroke-width=".65"/>
+    <path d="M-5.8 -4.5 A7.1 7.1 0 0 1 .8 -7.2"
+          fill="none" stroke="#ACBAC3" stroke-opacity=".62" stroke-width=".8" stroke-linecap="round"/>
+  </g>
+</svg>

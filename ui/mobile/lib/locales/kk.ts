@@ -1159,6 +1159,8 @@ export const kk: Record<MessageKey, string> = {
   "dateStrip.nextMonth": "Келесі ай",
   "dateStrip.windowHint": "{n} күн алдын ала брондауға болады",
   "hall.requestSentTitle": "Өтінім жіберілді",
+  "hall.layoutTitle": "Зал сызбасы (жоғарыдан көрініс)",
+  "hall.layoutSub": "Алаңның типтік макеті",
   "hall.requestSentText": "«{hall}»\n\nКүні: {date}\nУақыты: {time}\nСомасы: {price} ₸\nКоды: {code}\n\nСпорт кешені өтінімді жақын арада растайды. Күйі — «Менің жазбаларым» бөлімінде.",
   "hall.openMyBookings": "Менің броньдарым",
   "myBookings.awaiting": "Растауды күтуде",

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1018" height="528" viewBox="0 0 1018 528">
+  <title>Alango · Blue tennis court with singles and doubles markings</title>
+  <rect width="1018" height="528" fill="#3E87BD"/>
+  <rect x="16" y="34" width="986" height="472" fill="#35526C"/>
+  <g fill="none" stroke="#FBFDFF" stroke-width="4.5" stroke-linejoin="miter">
+    <rect x="16" y="34" width="986" height="472"/>
+    <path d="M16 86H1002 M16 454H1002"/>
+    <path d="M262 86V454 M756 86V454 M262 270H756"/>
+    <path d="M16 270H34 M984 270H1002"/>
+    <path d="M509 2V526"/>
+  </g>
+</svg>

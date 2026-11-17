@@ -1159,6 +1159,8 @@ export const en: Record<MessageKey, string> = {
   "dateStrip.nextMonth": "Next month",
   "dateStrip.windowHint": "You can book up to {n} days ahead",
   "hall.requestSentTitle": "Request sent",
+  "hall.layoutTitle": "Hall layout (top view)",
+  "hall.layoutSub": "Standard court plan",
   "hall.requestSentText": "“{hall}”\n\nDate: {date}\nTime: {time}\nTotal: {price} ₸\nCode: {code}\n\nThe sports complex will confirm your request shortly. Track it in “My Bookings”.",
   "hall.openMyBookings": "My bookings",
   "myBookings.awaiting": "Awaiting confirmation",

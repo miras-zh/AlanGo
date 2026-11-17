@@ -30,6 +30,7 @@ import {
 } from "@/lib/sportRentData";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { PhotoGallery } from "@/components/PhotoGallery";
+import { HallLayoutCard } from "@/components/HallLayoutCard";
 import { capacityLabel, sizeLabel } from "@/lib/hallOptions";
 import { getSessionUser } from "@/lib/auth";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
@@ -455,6 +456,9 @@ export default function HallDetailScreen() {
                   </Text>
                 </View>
               </Pressable>
+
+              {/* Top-view court layout */}
+              <HallLayoutCard hall={hall} />
             </View>
           )}
 

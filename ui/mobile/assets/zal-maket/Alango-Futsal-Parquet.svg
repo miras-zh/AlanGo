@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="670" viewBox="0 0 480 670">
+  <title>Alango · Futsal court, top view</title>
+  <rect width="480" height="670" fill="#CD7F6A"/>
+  <rect x="18" y="10" width="444" height="650" fill="#BC8651"/>
+  <g fill="none" stroke="#FBFCF5" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="18" y="10" width="444" height="650"/>
+    <path d="M18 335 H462"/>
+    <circle cx="240" cy="335" r="69"/>
+    <circle cx="240" cy="335" r="5.5" fill="#FBFCF5" stroke="none"/>
+    <g>
+      <path d="M18 25 A15 15 0 0 0 33 10 M447 10 A15 15 0 0 0 462 25"/>
+      <path d="M78 10 C93 66 138 116 206 116 H274 C342 116 387 66 402 10"/>
+      <path d="M198 10 V27 H282 V10"/>
+      <path d="M202 18 H278 M219 12 V25 M240 12 V25 M261 12 V25"
+            stroke-width="1" stroke-opacity=".46"/>
+      <path d="M9 174 H27 M9 255 H27"/>
+      <g fill="#FBFCF5" stroke="none">
+        <circle cx="132" cy="149" r="3.8"/>
+        <circle cx="240" cy="149" r="3.8"/>
+        <circle cx="348" cy="149" r="3.8"/>
+      </g>
+    </g>
+    <g transform="translate(0 670) scale(1 -1)">
+      <path d="M18 25 A15 15 0 0 0 33 10 M447 10 A15 15 0 0 0 462 25"/>
+      <path d="M78 10 C93 66 138 116 206 116 H274 C342 116 387 66 402 10"/>
+      <path d="M198 10 V27 H282 V10"/>
+      <path d="M202 18 H278 M219 12 V25 M240 12 V25 M261 12 V25"
+            stroke-width="1" stroke-opacity=".46"/>
+      <path d="M9 174 H27 M9 255 H27"/>
+      <g fill="#FBFCF5" stroke="none">
+        <circle cx="132" cy="149" r="3.8"/>
+        <circle cx="240" cy="149" r="3.8"/>
+        <circle cx="348" cy="149" r="3.8"/>
+      </g>
+    </g>
+  </g>
+</svg>

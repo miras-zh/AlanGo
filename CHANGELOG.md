@@ -9,6 +9,11 @@
 
 ## [Unreleased]
 
+### 🗺️ Схемы залов (вид сверху) в разделе «О зале»
+- **`ui/mobile/lib/hallLayouts.ts`**: добавлен маппинг 12 SVG-макетов из `ui/mobile/assets/zal-maket/` (`pickHallLayout`) по виду спорта, названию и покрытию зала (баскетбол, футбол/футзал, волейбол, теннис, хоккей).
+- **`ui/mobile/components/HallLayoutCard.tsx` и `ui/mobile/app/hall/[id].tsx`**: в нижней части вкладки «О зале» отображается векторная схема площадки (вид сверху) через `WebView`; если у зала указаны длина и ширина (`lengthM`/`widthM`), поверх макета снизу выводится плашка с размерами (например, `110 × 80 м`).
+- **`ui/mobile/lib/locales/{ru,en,kk}.ts`**: добавлены ключи `hall.layoutTitle` и `hall.layoutSub`.
+
 ### 🚀 Деплой бэкенда на VPS (2026-11-16, 05:33 UTC)
 - **Бэкап базы перед деплоем**: `/root/backups/alango/alango_backup_20261116_102815.sql.gz` (`pg_dump -U postgres alango`, проверен `gzip -t`).
 - **Выкатка**:
