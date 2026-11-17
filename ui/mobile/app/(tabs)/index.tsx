@@ -37,7 +37,7 @@ import {
 } from "@/components/SportSearchFiltersModal";
 import { radii, spacing, typography } from "@/constants/theme";
 
-import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { cardShadow, usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 import { useAppTheme } from "@/theme/ThemeProvider";
 
 const { width } = Dimensions.get("window");
@@ -757,11 +757,13 @@ const createStyles = (c: Palette) =>
     borderWidth: 1,
     borderColor: c.border,
     backgroundColor: c.surface,
-    overflow: "hidden",
+    ...cardShadow(c),
   },
   popularImage: {
     width: "100%",
     height: 96,
+    borderTopLeftRadius: radii.card - 1,
+    borderTopRightRadius: radii.card - 1,
   },
   popularImageEmpty: {
     alignItems: "center",
@@ -1081,12 +1083,15 @@ const createStyles = (c: Palette) =>
     borderRadius: radii.card, // 18px
     borderWidth: 1,
     borderColor: c.border,
-    overflow: "hidden",
+    ...cardShadow(c),
   },
   arenaImageWrap: {
     width: "100%",
     height: 128,
     position: "relative",
+    borderTopLeftRadius: radii.card - 1,
+    borderTopRightRadius: radii.card - 1,
+    overflow: "hidden",
   },
   arenaImage: {
     width: "100%",

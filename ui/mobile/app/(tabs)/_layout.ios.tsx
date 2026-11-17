@@ -1,4 +1,5 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { useAppTheme } from "@/theme/ThemeProvider";
 import { usePalette } from "@/theme/palette";
 import { useT } from "@/lib/i18n";
 
@@ -12,9 +13,16 @@ import { useT } from "@/lib/i18n";
 // a visible tab here.
 export default function TabsLayout() {
   const c = usePalette();
+  const { themeName } = useAppTheme();
   const t = useT();
+  const isLight = themeName === "light";
   return (
-    <NativeTabs tintColor={c.primary}>
+    <NativeTabs
+      tintColor={c.primary}
+      backgroundColor={isLight ? "rgba(255, 255, 255, 0.86)" : undefined}
+      blurEffect={isLight ? "systemChromeMaterialLight" : undefined}
+      shadowColor={isLight ? "rgba(23, 43, 37, 0.14)" : undefined}
+    >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>{t("tabs.home")}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: "house", selected: "house.fill" }} />

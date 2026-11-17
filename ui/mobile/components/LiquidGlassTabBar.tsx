@@ -8,7 +8,7 @@ import { usePendingCount } from "@/lib/pendingBookings";
 import { useMyArenaId } from "@/lib/business";
 
 
-import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { lightPalette, usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 type TabEntry = {
   labelKey: MessageKey;
@@ -243,13 +243,15 @@ const createStyles = (c: Palette) =>
     height: 66,
     borderRadius: 33,
     marginBottom: Platform.OS === "ios" ? 22 : 12,
-    backgroundColor: "rgba(18, 24, 20, 0.88)",
+    backgroundColor: c.background === lightPalette.background
+      ? "rgba(255, 255, 255, 0.86)"
+      : "rgba(18, 24, 20, 0.88)",
     borderWidth: 1,
-    borderColor: c.subtle,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
+    borderColor: c.glassBorder,
+    shadowColor: c.background === lightPalette.background ? "#172B25" : "#000000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: c.background === lightPalette.background ? 0.14 : 0.45,
+    shadowRadius: 18,
     elevation: 10,
     justifyContent: "center",
   },

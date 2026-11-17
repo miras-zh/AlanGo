@@ -1,6 +1,7 @@
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View, UIManager } from "react-native";
 
+import { useAppTheme } from "@/theme/ThemeProvider";
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 // Safe check to avoid "Unimplemented component: <ViewManagerAdapter_ExpoBlur_ExpoBlurView>"
@@ -24,6 +25,8 @@ function isBlurSupported(): boolean {
  */
 export function TabBarGlassBackground({ isCapsule = false }: { isCapsule?: boolean }) {
   const c = usePalette();
+  const { themeName } = useAppTheme();
+  const isLight = themeName === "light";
   const styles = useThemedStyles(createStyles);
   const canBlur = isBlurSupported();
 
@@ -36,31 +39,35 @@ export function TabBarGlassBackground({ isCapsule = false }: { isCapsule?: boole
     >
       {canBlur ? (
         <BlurView
-          tint="systemChromeMaterialDark"
-          intensity={Platform.OS === "android" ? 60 : 70}
+          tint={isLight ? "systemChromeMaterialLight" : "systemChromeMaterialDark"}
+          intensity={Platform.OS === "android" ? 65 : 75}
           style={StyleSheet.absoluteFill}
         />
       ) : null}
 
-      {/* Dark tint overlay with liquid glass transparency */}
+      {/* Translucent tint overlay for strong separation from content */}
       <View
         style={[
           StyleSheet.absoluteFill,
           {
-            backgroundColor: canBlur
-              ? "rgba(11, 15, 13, 0.72)"
-              : "rgba(18, 24, 20, 0.92)",
+            backgroundColor: isLight
+              ? canBlur
+                ? "rgba(255, 255, 255, 0.82)"
+                : "rgba(255, 255, 255, 0.94)"
+              : canBlur
+                ? "rgba(11, 15, 13, 0.72)"
+                : "rgba(18, 24, 20, 0.92)",
           },
           isCapsule && { borderRadius: 32 },
         ]}
       />
 
-      {/* Subtle glass hairline highlight */}
+      {/* Crisp glass border for separation */}
       <View
         style={[
           isCapsule ? styles.capsuleBorder : styles.hairline,
           {
-            borderColor: c.subtle,
+            borderColor: isLight ? "rgba(23, 43, 37, 0.14)" : c.subtle,
           },
         ]}
       />

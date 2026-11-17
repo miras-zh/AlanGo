@@ -56,29 +56,40 @@ export const darkPalette: Palette = {
 };
 
 export const lightPalette: Palette = {
-  background: "#F3F6F4",
+  background: "#F2F5F3",
   surface: "#FFFFFF",
   surfaceElevated: "#EAF0EC",
   primary: "#00A65A",
   primaryGlow: "#00C968",
   primarySoft: "rgba(0,166,90,0.12)",
   accent: "#E5384A",
-  textPrimary: "#0F1F17",
-  textSecondary: "#5A7065",
-  textMuted: "#7E928A",
-  border: "#DCE6E0",
-  hairline: "rgba(15,31,23,0.08)",
-  subtle: "rgba(15,31,23,0.05)",
-  glassBorder: "rgba(15,31,23,0.08)",
-  glassBackground: "rgba(255,255,255,0.82)",
+  textPrimary: "#172B25",
+  textSecondary: "#556B63",
+  textMuted: "#7C9088",
+  border: "#DCE5DF",
+  hairline: "rgba(23,43,37,0.08)",
+  subtle: "rgba(23,43,37,0.05)",
+  glassBorder: "rgba(23,43,37,0.12)",
+  glassBackground: "rgba(255,255,255,0.86)",
   success: "#00A65A",
   warning: "#B7791F",
   warningSoft: "rgba(183,121,31,0.12)",
   error: "#DC2626",
   onPrimary: "#FFFFFF",
   onImage: "#FFFFFF",
-  overlay: "rgba(15,31,23,0.45)",
+  overlay: "rgba(23,43,37,0.45)",
 };
+
+export function cardShadow(c: Palette) {
+  if (c.background !== lightPalette.background) return {};
+  return {
+    shadowColor: "#172B25",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
+  };
+}
 
 export function usePalette(): Palette {
   const { themeName } = useAppTheme();

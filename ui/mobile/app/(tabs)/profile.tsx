@@ -24,7 +24,7 @@ import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { useT } from "@/lib/i18n";
 
-import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { cardShadow, usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 import { radii, spacing } from "@/constants/theme";
 
 export default function ProfileScreen() {
@@ -457,6 +457,7 @@ const createStyles = (c: Palette) =>
     borderWidth: 1,
     borderColor: c.border,
     padding: spacing.md + 2,
+    ...cardShadow(c),
   },
   myBookingsIcon: {
     width: 40,

@@ -4,7 +4,7 @@ import type { ArenaWithHalls, Hall } from "@/lib/sportRentData";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 import { radii, spacing, typography } from "@/constants/theme";
 
-import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { cardShadow, usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 import { formatNumber, useT, type MessageKey } from "@/lib/i18n";
 import { categoryLabel, sportLabel, workingHoursLabel } from "@/lib/dataLabels";
 
@@ -194,7 +194,7 @@ const createStyles = (c: Palette) =>
     borderWidth: 1,
     borderColor: c.border,
     backgroundColor: c.surface,
-    overflow: "hidden",
+    ...cardShadow(c),
   },
   pressed: {
     opacity: 0.92,
@@ -203,6 +203,9 @@ const createStyles = (c: Palette) =>
     height: 200,
     justifyContent: "space-between",
     backgroundColor: c.surfaceElevated,
+    borderTopLeftRadius: radii.card - 1,
+    borderTopRightRadius: radii.card - 1,
+    overflow: "hidden",
   },
   coverEmpty: {
     alignItems: "center",

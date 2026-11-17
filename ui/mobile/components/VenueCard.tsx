@@ -10,7 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { radii, spacing, typography } from "@/constants/theme";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
-import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
+import { cardShadow, usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 import { formatNumber, useT } from "@/lib/i18n";
 import { sportLabel } from "@/lib/dataLabels";
 import { sportImage } from "@/components/SportCategoryTiles";
@@ -275,12 +275,13 @@ export function VenueCard({
 const createStyles = (c: Palette) =>
   StyleSheet.create({
   card: {
-    backgroundColor: c.glassBackground,
+    backgroundColor: c.surface,
     borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: c.glassBorder,
+    borderColor: c.border,
     padding: spacing.sm,
     marginBottom: spacing.card,
+    ...cardShadow(c),
   },
   topRow: {
     flexDirection: "row",

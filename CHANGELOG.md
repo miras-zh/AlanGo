@@ -9,6 +9,11 @@
 
 ## [Unreleased]
 
+### 🎨 Доработка светлой темы
+- **`ui/mobile/theme/palette.ts`**: основной фон обновлён на `#F2F5F3`, заголовки и основной текст — на `#172B25`, карточки `#FFFFFF` с тонкой рамкой `#DCE5DF` и хелпером мягкой тени `cardShadow(c)`.
+- **`ui/mobile/app/(tabs)/index.tsx`, `profile.tsx`, `ui/mobile/components/VenueCard.tsx`, `ArenaCard.tsx`**: подключена мягкая тень `cardShadow(c)` для карточек в светлой теме.
+- **`ui/mobile/components/TabBarGlassBackground.tsx`, `LiquidGlassTabBar.tsx`, `ui/mobile/app/(tabs)/_layout.ios.tsx`**: нижняя навигация в светлой теме сделана полупрозрачной (`rgba(255,255,255,0.86)` / `systemChromeMaterialLight`) с более чёткой рамкой и тенью для отделения от контента.
+
 ### 🎨 Иконка и логотип для светлой темы (бэклог №9, 2026-11-17)
 - **Appearance-иконка приложения на iOS (`ui/mobile/app.json`)**: добавлен объект `ios.icon` с вариантами `light` (`./assets/light_icon.png` — светлое «стекло»), `dark` (`./assets/icon.png` — тёмное «стекло») и `tinted` (`./assets/icon.png`). Верхнеуровневый `icon` оставлен как fallback для Android и старых iOS. `assets/light_icon.png` приведён к 1024×1024 (`sips`, RGB без альфа-канала). Конфиг провалидирован `expo prebuild -p ios`: сгенерированный `ios/AlanGo/Images.xcassets/AppIcon.appiconset/Contents.json` содержит три записи с `appearances: luminosity = dark/tinted`, а дефолтная (светлая) `App-Icon-1024x1024@1x.png` соответствует `light_icon.png`.
 - **Тема-зависимый логотип в шапке (`app/(tabs)/index.tsx`, `app/login.tsx`)**: прежний `assets/logo.png` — зелёно-красная «A» на тёмной плитке — в светлой теме выглядел чужеродно (тёмный тайл на светлом фоне). Добавлен `assets/logo_light.png` (та же «A» на прозрачном фоне, тёмная плитка удалена chroma-ключом с устранением тёмной каймы), источник логотипа выбирается через `isDark` из `useAppTheme()`: тёмная тема → `logo.png`, светлая → `logo_light.png`. Задействованы оба места использования логотипа (главная и экран входа).
