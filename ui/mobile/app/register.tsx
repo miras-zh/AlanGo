@@ -17,6 +17,7 @@ import {
   startRegistration,
   verifyRegistration,
   resendRegistrationCode,
+  passwordStrengthError,
 } from "@/lib/registration";
 import { PasswordInput } from "@/components/PasswordInput";
 import { SocialAuthButtons } from "@/components/SocialAuthButtons";
@@ -53,7 +54,8 @@ export default function RegisterScreen() {
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
 
-    if (!trimmedName || !trimmedEmail || password.length < 8) {
+    const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+    if (!trimmedName || !emailIsValid || passwordStrengthError(password)) {
       Alert.alert(
         t("common.error"),
         t("register.fillForm")

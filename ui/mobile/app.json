@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "scheme": "alango",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#080D0B"
-    },
     "ios": {
       "bundleIdentifier": "kz.alango.app",
       "buildNumber": "11",
@@ -46,6 +41,15 @@
       "./plugins/withUIScene",
       "expo-router",
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#080D0B"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Приложение использует доступ к галерее для загрузки фото.",
@@ -56,7 +60,7 @@
       [
         "expo-notifications",
         {
-          "color": "#6D4BFF"
+          "color": "#00C968"
         }
       ],
       "expo-status-bar",

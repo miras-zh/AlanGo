@@ -111,6 +111,14 @@ export default function LoginScreen() {
           />
 
           <Pressable
+            onPress={() => router.push("/forgot-password")}
+            style={styles.forgotLink}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.forgotLinkText}>{t("forgot.title")}</Text>
+          </Pressable>
+
+          <Pressable
             onPress={handleLogin}
             disabled={loading}
             style={styles.primaryBtn}
@@ -195,6 +203,17 @@ const createStyles = (c: Palette) =>
     color: c.textSecondary,
     marginTop: 6,
     lineHeight: 20,
+  },
+  forgotLink: {
+    minHeight: 44,
+    alignSelf: "flex-end",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  forgotLinkText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: c.primary,
   },
 
   // Dev Quick Login Card
