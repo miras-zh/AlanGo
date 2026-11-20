@@ -3,7 +3,7 @@ import {
   ActivityIndicator,
   ActionSheetIOS,
   Image,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
   Pressable,
   ScrollView,
@@ -14,6 +14,7 @@ import {
   Platform,
 } from "react-native";
 import { appAlert } from "@/lib/alert";
+import { KeyboardSheetView } from "@/components/KeyboardSheetView";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { resolveMyArenaId } from "@/lib/business";
@@ -584,10 +585,7 @@ export default function BusinessProfileScreen() {
 
       {/* Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
+        <KeyboardSheetView style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t("bizProfile.params")}</Text>
@@ -599,7 +597,12 @@ export default function BusinessProfileScreen() {
               </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              contentContainerStyle={styles.modalScroll}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+            >
+              <Pressable onPress={Keyboard.dismiss} accessible={false}>
               <Text style={styles.inputLabel}>
                 {t(isSingleVenue ? "bizProfile.singleName" : "bizProfile.complexName")}
               </Text>
@@ -665,17 +668,15 @@ export default function BusinessProfileScreen() {
                   {saving ? t("common.saving") : t("account.saveChanges")}
                 </Text>
               </Pressable>
+              </Pressable>
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
+        </KeyboardSheetView>
       </Modal>
 
       {/* Complex Working Hours Modal */}
       <Modal visible={hoursModalVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
+        <KeyboardSheetView style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
@@ -778,7 +779,7 @@ export default function BusinessProfileScreen() {
               </Pressable>
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
+        </KeyboardSheetView>
       </Modal>
 
       {cropSource ? (

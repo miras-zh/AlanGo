@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -120,7 +121,12 @@ export default function AccountSettingsScreen() {
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <Pressable onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>{t("account.personal")}</Text>
             {user?.email ? <Text style={styles.email}>{user.email}</Text> : null}
@@ -176,6 +182,7 @@ export default function AccountSettingsScreen() {
               <Text style={styles.deleteText}>{t("account.delete")}</Text>
             </Pressable>
           </View>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

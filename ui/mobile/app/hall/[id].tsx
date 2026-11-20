@@ -4,7 +4,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -15,7 +15,8 @@ import {
   View,
 } from "react-native";
 import { appAlert } from "@/lib/alert";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardSheetView } from "@/components/KeyboardSheetView";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -91,6 +92,7 @@ const HERO_HEIGHT = 270;
 export default function HallDetailScreen() {
   const t = useT();
   const c = usePalette();
+  const insets = useSafeAreaInsets();
   const styles = useThemedStyles(createStyles);
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -268,39 +270,6 @@ export default function HallDetailScreen() {
           <PhotoGallery
             photos={hall.photos?.length ? hall.photos : hall.imageUrl ? [hall.imageUrl] : []}
             height={HERO_HEIGHT}
-            overlay={
-              <>
-          {/* Top Floating Buttons Bar */}
-          <View style={styles.floatingTopBar}>
-            {/* Back Button */}
-            <Pressable
-              testID="hall-back-btn"
-              style={styles.circleBtn}
-              onPress={() => {
-                hapticSelection();
-                router.back();
-              }}
-            >
-              <Ionicons name="arrow-back" size={20} color={c.textPrimary} />
-            </Pressable>
-
-            {/* Right Buttons: Share & Favorite */}
-            <View style={styles.topRightBtns}>
-              <Pressable style={styles.circleBtn} onPress={handleShare}>
-                <Ionicons name="share-outline" size={19} color={c.textPrimary} />
-              </Pressable>
-
-              <Pressable style={styles.circleBtn} onPress={handleToggleFav}>
-                <Ionicons
-                  name={isFav ? "heart" : "heart-outline"}
-                  size={20}
-                  color={isFav ? c.accent : c.textPrimary}
-                />
-              </Pressable>
-            </View>
-          </View>
-              </>
-            }
           />
         </View>
 
@@ -602,6 +571,34 @@ export default function HallDetailScreen() {
         </View>
       </ScrollView>
 
+      {/* Fixed Top Floating Buttons Bar */}
+      <View style={[styles.floatingTopBar, { top: insets.top + 12 }]} pointerEvents="box-none">
+        <Pressable
+          testID="hall-back-btn"
+          style={styles.circleBtn}
+          onPress={() => {
+            hapticSelection();
+            router.back();
+          }}
+        >
+          <Ionicons name="arrow-back" size={20} color={c.textPrimary} />
+        </Pressable>
+
+        <View style={styles.topRightBtns} pointerEvents="box-none">
+          <Pressable style={styles.circleBtn} onPress={handleShare}>
+            <Ionicons name="share-outline" size={19} color={c.textPrimary} />
+          </Pressable>
+
+          <Pressable style={styles.circleBtn} onPress={handleToggleFav}>
+            <Ionicons
+              name={isFav ? "heart" : "heart-outline"}
+              size={20}
+              color={isFav ? c.accent : c.textPrimary}
+            />
+          </Pressable>
+        </View>
+      </View>
+
       {/* 5. Sticky Bottom Action Bar (Screen 4) */}
       <View style={styles.stickyFooter}>
         <View style={styles.footerPriceWrap}>
@@ -640,89 +637,91 @@ export default function HallDetailScreen() {
         transparent
         onRequestClose={() => setBookingModalOpen(false)}
       >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+        <KeyboardSheetView style={styles.modalOverlay}>
           <Pressable
             style={styles.modalBackdrop}
             onPress={() => setBookingModalOpen(false)}
           />
           <View style={styles.bookingSheet}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t("hall.confirmTitle")}</Text>
-              <Pressable
-                onPress={() => setBookingModalOpen(false)}
-                hitSlop={10}
-              >
-                <Ionicons name="close" size={22} color={c.textPrimary} />
-              </Pressable>
-            </View>
+            <Pressable onPress={Keyboard.dismiss} accessible={false}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t("hall.confirmTitle")}</Text>
+                <Pressable
+                  onPress={() => setBookingModalOpen(false)}
+                  hitSlop={10}
+                >
+                  <Ionicons name="close" size={22} color={c.textPrimary} />
+                </Pressable>
+              </View>
+            </Pressable>
 
             <ScrollView
               bounces={false}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
             >
-              <View style={styles.modalSummaryBox}>
-                <Text style={styles.summaryTitle}>{hall.title}</Text>
-                <Text style={styles.summarySub}>{hall.arenaTitle}</Text>
+              <Pressable onPress={Keyboard.dismiss} accessible={false}>
+                <View style={styles.modalSummaryBox}>
+                  <Text style={styles.summaryTitle}>{hall.title}</Text>
+                  <Text style={styles.summarySub}>{hall.arenaTitle}</Text>
 
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>{t("hall.gameDate")}</Text>
-                  <Text style={styles.summaryValue}>{dayLabel}</Text>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>{t("hall.gameDate")}</Text>
+                    <Text style={styles.summaryValue}>{dayLabel}</Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>{t("hall.slotTime")}</Text>
+                    <Text style={styles.summaryValue}>{selectedSlot?.label ?? ""}</Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>{t("hall.totalToPay")}</Text>
+                    <Text style={styles.summaryTotal}>
+                      {formatNumber((availability?.price ?? hall.pricePerHour))} ₸
+                    </Text>
+                  </View>
                 </View>
 
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>{t("hall.slotTime")}</Text>
-                  <Text style={styles.summaryValue}>{selectedSlot?.label ?? ""}</Text>
-                </View>
+                <Text style={styles.contactLabel}>{t("hall.name")}</Text>
+                <TextInput
+                  value={clientName}
+                  onChangeText={setClientName}
+                  placeholder={t("account.namePlaceholder")}
+                  placeholderTextColor={c.textSecondary}
+                  style={styles.contactInput}
+                />
+                <Text style={styles.contactLabel}>{t("account.phone")}</Text>
+                <TextInput
+                  value={clientPhone}
+                  onChangeText={setClientPhone}
+                  placeholder="+7 (7__) ___-__-__"
+                  placeholderTextColor={c.textSecondary}
+                  keyboardType="phone-pad"
+                  style={styles.contactInput}
+                />
 
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>{t("hall.totalToPay")}</Text>
-                  <Text style={styles.summaryTotal}>
-                    {formatNumber((availability?.price ?? hall.pricePerHour))} ₸
-                  </Text>
-                </View>
-              </View>
-
-              <Text style={styles.contactLabel}>{t("hall.name")}</Text>
-              <TextInput
-                value={clientName}
-                onChangeText={setClientName}
-                placeholder={t("account.namePlaceholder")}
-                placeholderTextColor={c.textSecondary}
-                style={styles.contactInput}
-              />
-              <Text style={styles.contactLabel}>{t("account.phone")}</Text>
-              <TextInput
-                value={clientPhone}
-                onChangeText={setClientPhone}
-                placeholder="+7 (7__) ___-__-__"
-                placeholderTextColor={c.textSecondary}
-                keyboardType="phone-pad"
-                style={styles.contactInput}
-              />
-
-              <Pressable
-                style={[
-                  styles.confirmBookingBtn,
-                  bookingLoading && { opacity: 0.5 },
-                ]}
-                onPress={handleConfirmBooking}
-                disabled={bookingLoading}
-              >
-                {bookingLoading ? (
-                  <ActivityIndicator color={c.background} />
-                ) : (
-                  <Text style={styles.confirmBookingBtnText}>
-                    {t("hall.confirmBooking")}
-                  </Text>
-                )}
+                <Pressable
+                  style={[
+                    styles.confirmBookingBtn,
+                    bookingLoading && { opacity: 0.5 },
+                  ]}
+                  onPress={handleConfirmBooking}
+                  disabled={bookingLoading}
+                >
+                  {bookingLoading ? (
+                    <ActivityIndicator color={c.background} />
+                  ) : (
+                    <Text style={styles.confirmBookingBtnText}>
+                      {t("hall.confirmBooking")}
+                    </Text>
+                  )}
+                </Pressable>
               </Pressable>
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
+        </KeyboardSheetView>
       </Modal>
     </SafeAreaView>
   );
@@ -758,6 +757,7 @@ const createStyles = (c: Palette) =>
     top: 12,
     left: 0,
     right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

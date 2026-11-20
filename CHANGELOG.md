@@ -9,6 +9,20 @@
 
 ## [Unreleased]
 
+### 📌 Фиксированная кнопка «Назад» на экране зала (2026-11-20)
+- **`ui/mobile/app/hall/[id].tsx`**: верхняя панель с кнопками «Назад», «Поделиться» и «Избранное» (`floatingTopBar`) вынесена из `PhotoGallery` / `ScrollView` на уровень `SafeAreaView` с `zIndex: 10`, `pointerEvents="box-none"` и `top: insets.top + 12` (`useSafeAreaInsets`), чтобы кнопки всегда оставались закреплены сверху при прокрутке страницы вниз.
+- **Проверено**: `npx tsc --noEmit` (0 ошибок), `git diff --check` (0 замечаний); в iOS Simulator (`Expo Go`) проверена прокрутка экрана зала вниз — кнопка «Назад» остаётся сверху слева и возвращает на предыдущий экран.
+
+### ✨ Плавный спуск модальных шитов синхронно с клавиатурой (2026-11-20)
+- **`ui/mobile/components/KeyboardSheetView.tsx`**: создан компонент-обёртка для нижних модалок, который синхронно с `keyboardWillShow` / `keyboardWillHide` на iOS (и `keyboardDidShow` / `keyboardDidHide` на Android) анимирует `paddingBottom` через `Animated.timing` с длительностью `event.duration` и кривой клавиатуры iOS — убран пустой зазор и резкое падение шита вниз при скрытии клавиатуры.
+- **Подключён в модалках**: `app/hall/[id].tsx`, `ManualBookingModal.tsx`, `EditBookingModal.tsx`, `RejectBookingModal.tsx`, `PaymentModal.tsx`, `app/business/staff.tsx`, `app/business/(cabinet)/halls.tsx`, `app/business/(cabinet)/profile.tsx`.
+- **Проверено**: `npx tsc --noEmit` (0 ошибок), `git diff --check` (0 замечаний); в `Expo Go` проверены фокус и снятие фокуса в «Заявка на бронь» (финальную плавность с экранной клавиатурой рекомендуется проверить с `⌘K` в окне симулятора).
+
+### ⌨️ Скрытие клавиатуры по тапу вне поля ввода (2026-11-20)
+- **`ui/mobile/app/hall/[id].tsx`**: в окне «Заявка на бронь» добавлен `Keyboard.dismiss()` по тапу на шапку и область контента вне `TextInput` (`Pressable` с `accessible={false}`), а также `keyboardDismissMode="on-drag"`.
+- **Остальные модалки и экраны с формами**: добавлен `Keyboard.dismiss()` по тапу вне полей ввода (и `keyboardDismissMode="on-drag"` для скролл-форм) в `ManualBookingModal.tsx`, `EditBookingModal.tsx`, `RejectBookingModal.tsx`, `PaymentModal.tsx`, `settings/account.tsx`, `login.tsx`, `register.tsx`, `forgot-password.tsx`, `apple-name.tsx`, `business/staff.tsx`, `business/(cabinet)/halls.tsx`, `business/(cabinet)/profile.tsx`.
+- **Проверено**: `npx tsc --noEmit` (0 ошибок), `git diff --check` (0 замечаний); в iOS Simulator (`Expo Go`) проверено снятие фокуса с поля «Телефон» при тапе на карточку сводки в «Заявка на бронь».
+
 ### ⌨️ Защита от перекрытия полей ввода клавиатурой в модалках (2026-11-20)
 - **`ui/mobile/app/hall/[id].tsx`**: нижний шит «Заявка на бронь» обёрнут в `KeyboardAvoidingView` (`behavior={Platform.OS === "ios" ? "padding" : "height"}`) и `ScrollView` (`keyboardShouldPersistTaps="handled"`, `maxHeight: "90%"`), чтобы при открытии текстовой и цифровой клавиатуры поля «Имя», «Телефон» и кнопка «Отправить заявку» поднимались над клавиатурой и не перекрывались.
 - **Остальные модалки с `TextInput`**: добавлены `KeyboardAvoidingView` (и `keyboardShouldPersistTaps="handled"` для скролл-областей) в `ManualBookingModal.tsx`, `RejectBookingModal.tsx`, `PaymentModal.tsx`, `app/business/staff.tsx` и `app/business/(cabinet)/halls.tsx`.

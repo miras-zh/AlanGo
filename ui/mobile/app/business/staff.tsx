@@ -10,11 +10,11 @@ import {
   Linking,
   RefreshControl,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   ScrollView,
 } from "react-native";
 import { appAlert } from "@/lib/alert";
+import { KeyboardSheetView } from "@/components/KeyboardSheetView";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -281,10 +281,7 @@ export default function BusinessStaffScreen() {
 
       {/* Add Staff Modal */}
       <Modal visible={modalOpen} animationType="slide" transparent>
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+        <KeyboardSheetView style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t("staff.newTitle")}</Text>
@@ -296,7 +293,9 @@ export default function BusinessStaffScreen() {
             <ScrollView
               contentContainerStyle={styles.modalScroll}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
             >
+              <Pressable onPress={Keyboard.dismiss} accessible={false}>
               <Text style={styles.inputLabel}>{t("staff.name")}</Text>
               <TextInput
                 style={styles.input}
@@ -354,9 +353,10 @@ export default function BusinessStaffScreen() {
               <Pressable style={styles.submitBtn} onPress={handleAddStaff}>
                 <Text style={styles.submitBtnText}>{t("staff.save")}</Text>
               </Pressable>
+              </Pressable>
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
+        </KeyboardSheetView>
       </Modal>
     </SafeAreaView>
   );

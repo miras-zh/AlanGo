@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   Image,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -64,7 +65,12 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.background }]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <Pressable onPress={Keyboard.dismiss} accessible={false}>
         {/* Top Bar with Back button */}
         <View style={styles.topBar}>
           <Pressable
@@ -151,6 +157,7 @@ export default function LoginScreen() {
             </Text>
           </Pressable>
         </View>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -10,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { appAlert } from "@/lib/alert";
+import { KeyboardSheetView } from "@/components/KeyboardSheetView";
 import { Ionicons } from "@expo/vector-icons";
 import { Booking } from "@/lib/sportRentData";
 import { radii, spacing, typography } from "@/constants/theme";
@@ -71,12 +71,15 @@ export function PaymentModal({
   };
 
   const content = (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <KeyboardSheetView style={{ flex: 1 }}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-      <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+      <Pressable
+        style={styles.modalCard}
+        onPress={(e) => {
+          e.stopPropagation();
+          Keyboard.dismiss();
+        }}
+      >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTitleWrap}>
@@ -248,7 +251,7 @@ export function PaymentModal({
           </Pressable>
         </Pressable>
       </Pressable>
-    </KeyboardAvoidingView>
+    </KeyboardSheetView>
   );
 
   if (!useModal) {

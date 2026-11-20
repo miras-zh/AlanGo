@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -134,7 +135,12 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.background }]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <Pressable onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.topBar}>
           <Pressable
             testID="register-back-btn"
@@ -277,6 +283,7 @@ export default function RegisterScreen() {
             </View>
           </>
         )}
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

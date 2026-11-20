@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Keyboard,
   Pressable,
   StyleSheet,
   Text,
@@ -46,7 +47,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.background }]}>
-      <View style={styles.content}>
+      <Pressable style={styles.content} onPress={Keyboard.dismiss} accessible={false}>
         <Pressable
           testID="forgot-close-btn"
           onPress={() => router.back()}
@@ -84,7 +85,7 @@ export default function ForgotPasswordScreen() {
             {loading ? t("forgot.sending") : t("forgot.submit")}
           </Text>
         </Pressable>
-      </View>
+      </Pressable>
     </SafeAreaView>
   );
 }

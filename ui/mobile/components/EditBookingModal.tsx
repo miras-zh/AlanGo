@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardSheetView } from "@/components/KeyboardSheetView";
 import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -58,9 +59,10 @@ export function EditBookingModal({ booking, onClose, onSave, useModal = true }: 
   };
 
   const content = (
-    <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardSheetView style={styles.overlay}>
       <Pressable style={{ flex: 1 }} onPress={onClose} accessible={false} />
       <SafeAreaView style={styles.sheet} edges={["bottom"]}>
+        <Pressable onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>{t("request.editContacts")}</Text>
@@ -98,8 +100,9 @@ export function EditBookingModal({ booking, onClose, onSave, useModal = true }: 
               {saving ? <ActivityIndicator color={c.onPrimary} /> : <Text style={styles.saveText}>{t("common.save")}</Text>}
             </Pressable>
           </View>
-        </SafeAreaView>
-    </KeyboardAvoidingView>
+        </Pressable>
+      </SafeAreaView>
+    </KeyboardSheetView>
   );
 
   if (!useModal) {

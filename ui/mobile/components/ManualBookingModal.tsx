@@ -10,9 +10,10 @@ import {
   SafeAreaView,
   Platform,
   ActivityIndicator,
-  KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
 import { appAlert } from "@/lib/alert";
+import { KeyboardSheetView } from "@/components/KeyboardSheetView";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Booking,
@@ -131,10 +132,7 @@ export function ManualBookingModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
+      <KeyboardSheetView style={styles.overlay}>
         <SafeAreaView style={styles.sheetContainer}>
           {/* Header */}
           <View style={styles.header}>
@@ -163,7 +161,9 @@ export function ManualBookingModal({
             style={styles.scrollArea}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
+            <Pressable onPress={Keyboard.dismiss} accessible={false}>
             {/* 1. Выбор зала */}
             <Text style={styles.sectionLabel}>{t("manual.hall")}</Text>
             <ScrollView
@@ -190,7 +190,7 @@ export function ManualBookingModal({
                   </Pressable>
                 );
               })}
-            </ScrollView>
+          </ScrollView>
 
             {/* 2. Дата */}
             <Text style={styles.sectionLabel}>{t("manual.day")}</Text>
@@ -290,6 +290,7 @@ export function ManualBookingModal({
                 {t("manual.price", { price: formatNumber(availability.price), n: availability.durationMinutes })}
               </Text>
             ) : null}
+            </Pressable>
           </ScrollView>
 
           {/* Bottom Button */}
@@ -310,7 +311,7 @@ export function ManualBookingModal({
             </Pressable>
           </View>
         </SafeAreaView>
-      </KeyboardAvoidingView>
+      </KeyboardSheetView>
     </Modal>
   );
 }

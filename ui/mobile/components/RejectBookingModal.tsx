@@ -8,8 +8,9 @@ import {
   TextInput,
   SafeAreaView,
   Platform,
-  KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
+import { KeyboardSheetView } from "@/components/KeyboardSheetView";
 import { Ionicons } from "@expo/vector-icons";
 import { Booking } from "@/lib/sportRentData";
 import { hapticSelection, hapticImpact } from "@/lib/haptics";
@@ -61,12 +62,10 @@ export function RejectBookingModal({
   if (!booking || (!useModal && !visible)) return null;
 
   const content = (
-    <KeyboardAvoidingView
-      style={styles.overlay}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <KeyboardSheetView style={styles.overlay}>
       <Pressable style={{ flex: 1 }} onPress={onClose} accessible={false} />
       <SafeAreaView style={styles.sheetContainer}>
+        <Pressable onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <Ionicons name="close-circle" size={22} color={c.error} />
@@ -137,8 +136,9 @@ export function RejectBookingModal({
               <Text style={styles.rejectBtnText}>{t("reject.submit")}</Text>
             </Pressable>
           </View>
-        </SafeAreaView>
-      </KeyboardAvoidingView>
+        </Pressable>
+      </SafeAreaView>
+    </KeyboardSheetView>
   );
 
   if (!useModal) {

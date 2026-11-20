@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -53,7 +53,7 @@ export default function AppleNameScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={styles.content}>
+      <Pressable style={styles.content} onPress={Keyboard.dismiss} accessible={false}>
         <Text style={[styles.title, { color: colors.text }]}>{t("appleName.title")}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {t("appleName.subtitle")}
@@ -72,7 +72,7 @@ export default function AppleNameScreen() {
         >
           <Text style={styles.primaryBtnText}>{saving ? t("common.saving") : t("common.continue")}</Text>
         </Pressable>
-      </View>
+      </Pressable>
     </SafeAreaView>
   );
 }

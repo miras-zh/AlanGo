@@ -3,9 +3,8 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
-  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { appAlert } from "@/lib/alert";
+import { KeyboardSheetView } from "@/components/KeyboardSheetView";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -500,10 +500,7 @@ export default function BusinessHallsScreen() {
 
       {/* Edit / Add Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+        <KeyboardSheetView style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
@@ -524,6 +521,7 @@ export default function BusinessHallsScreen() {
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
             >
+              <Pressable onPress={Keyboard.dismiss} accessible={false}>
               {/* Hall Title */}
               <Text style={styles.inputLabel}>{t("bizHalls.name")}</Text>
               <TextInput
@@ -752,9 +750,10 @@ export default function BusinessHallsScreen() {
                   </Text>
                 )}
               </Pressable>
+              </Pressable>
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
+        </KeyboardSheetView>
       </Modal>
     </SafeAreaView>
   );
