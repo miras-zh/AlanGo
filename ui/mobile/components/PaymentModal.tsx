@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Booking } from "@/lib/sportRentData";
 import { radii, spacing, typography } from "@/constants/theme";
@@ -62,14 +64,18 @@ export function PaymentModal({
       hapticSuccess();
       onClose();
     } catch {
-      Alert.alert(t("common.error"), t("payment.updateError"));
+      appAlert(t("common.error"), t("payment.updateError"));
     } finally {
       setSaving(false);
     }
   };
 
   const content = (
-    <Pressable style={styles.backdrop} onPress={onClose}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <Pressable style={styles.backdrop} onPress={onClose}>
       <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
         {/* Header */}
         <View style={styles.header}>
@@ -242,6 +248,7 @@ export function PaymentModal({
           </Pressable>
         </Pressable>
       </Pressable>
+    </KeyboardAvoidingView>
   );
 
   if (!useModal) {

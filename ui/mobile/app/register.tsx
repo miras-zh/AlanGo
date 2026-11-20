@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,6 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -56,7 +56,7 @@ export default function RegisterScreen() {
 
     const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
     if (!trimmedName || !emailIsValid || passwordStrengthError(password)) {
-      Alert.alert(
+      appAlert(
         t("common.error"),
         t("register.fillForm")
       );
@@ -75,7 +75,7 @@ export default function RegisterScreen() {
       setStep("code");
       setCooldown(60);
     } catch (err) {
-      Alert.alert(t("register.errorTitle"), getErrorMessage(err));
+      appAlert(t("register.errorTitle"), getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -84,7 +84,7 @@ export default function RegisterScreen() {
   const handleVerifyCode = async () => {
     const trimmedCode = code.trim();
     if (trimmedCode.length < 4) {
-      Alert.alert(t("common.error"), t("register.enterCode"));
+      appAlert(t("common.error"), t("register.enterCode"));
       return;
     }
 
@@ -92,14 +92,14 @@ export default function RegisterScreen() {
     try {
       await verifyRegistration(regToken, trimmedCode);
       hapticSuccess();
-      Alert.alert(t("register.successTitle"), t("register.successText"), [
+      appAlert(t("register.successTitle"), t("register.successText"), [
         {
           text: t("register.start"),
           onPress: () => router.replace("/(tabs)"),
         },
       ]);
     } catch (err) {
-      Alert.alert(t("register.verifyErrorTitle"), getErrorMessage(err));
+      appAlert(t("register.verifyErrorTitle"), getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -113,9 +113,9 @@ export default function RegisterScreen() {
       await resendRegistrationCode(regToken);
       hapticSuccess();
       setCooldown(60);
-      Alert.alert(t("register.sentTitle"), t("register.sentText"));
+      appAlert(t("register.sentTitle"), t("register.sentText"));
     } catch (err) {
-      Alert.alert(t("common.error"), getErrorMessage(err));
+      appAlert(t("common.error"), getErrorMessage(err));
     } finally {
       setLoading(false);
     }

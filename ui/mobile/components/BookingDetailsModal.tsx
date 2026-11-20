@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { Booking } from "@/lib/sportRentData";
@@ -73,7 +74,7 @@ export function BookingDetailsModal({
 
   const contact = (fn: () => Promise<void>) => {
     hapticSelection();
-    fn().catch(() => Alert.alert(t("common.error"), t("request.contactError")));
+    fn().catch(() => appAlert(t("common.error"), t("request.contactError")));
   };
 
   const run = async (fn: () => Promise<void>) => {
@@ -208,7 +209,7 @@ export function BookingDetailsModal({
                   style={styles.rejectBtn}
                   disabled={busy}
                   onPress={() =>
-                    Alert.alert(t("request.cancelTitle"), t("request.cancelText"), [
+                    appAlert(t("request.cancelTitle"), t("request.cancelText"), [
                       { text: t("request.keep"), style: "cancel" },
                       { text: t("request.cancelBooking"), style: "destructive", onPress: () => run(() => onCancel(b)) },
                     ])

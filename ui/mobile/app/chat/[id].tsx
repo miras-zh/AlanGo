@@ -10,10 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking,
-  Alert,
   ActivityIndicator,
   ScrollView,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -119,7 +119,7 @@ export default function ChatScreen() {
     hapticSelection();
     const phone = dialog?.clientPhone || "+77011234567";
     Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`).catch(() => {
-      Alert.alert(t("chat.call"), t("chat.arenaPhone", { phone }));
+      appAlert(t("chat.call"), t("chat.arenaPhone", { phone }));
     });
   };
 

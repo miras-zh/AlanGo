@@ -9,9 +9,10 @@ import {
   ScrollView,
   SafeAreaView,
   Platform,
-  Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Booking,
@@ -92,15 +93,15 @@ export function ManualBookingModal({
 
   const handleSave = async () => {
     if (!selectedHall || !slotStart || !availability) {
-      Alert.alert(t("common.error"), t("manual.chooseTime"));
+      appAlert(t("common.error"), t("manual.chooseTime"));
       return;
     }
     if (!clientName.trim()) {
-      Alert.alert(t("common.error"), t("manual.nameRequired"));
+      appAlert(t("common.error"), t("manual.nameRequired"));
       return;
     }
     if (clientPhone.replace(/\D/g, "").length < 10) {
-      Alert.alert(t("common.error"), t("manual.phoneInvalid"));
+      appAlert(t("common.error"), t("manual.phoneInvalid"));
       return;
     }
     setSaving(true);
@@ -122,7 +123,7 @@ export function ManualBookingModal({
       setNotes("");
       setSlotStart(null);
     } catch (err) {
-      Alert.alert(t("manual.error"), getErrorMessage(err));
+      appAlert(t("manual.error"), getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -130,7 +131,10 @@ export function ManualBookingModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <SafeAreaView style={styles.sheetContainer}>
           {/* Header */}
           <View style={styles.header}>
@@ -155,7 +159,11 @@ export function ManualBookingModal({
             </Pressable>
           </View>
 
-          <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
+          <ScrollView
+            style={styles.scrollArea}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* 1. Выбор зала */}
             <Text style={styles.sectionLabel}>{t("manual.hall")}</Text>
             <ScrollView
@@ -302,7 +310,7 @@ export function ManualBookingModal({
             </Pressable>
           </View>
         </SafeAreaView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

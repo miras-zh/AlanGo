@@ -6,8 +6,8 @@ import {
   Pressable,
   ScrollView,
   Switch,
-  Alert,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -135,7 +135,7 @@ export default function BusinessPromotionsScreen() {
           style={styles.addCustomBtn}
           onPress={() => {
             hapticSelection();
-            Alert.alert(
+            appAlert(
               t("promo.customTitle"),
               t("promo.customText")
             );

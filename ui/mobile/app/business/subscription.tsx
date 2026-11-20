@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -9,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -79,7 +79,7 @@ export default function BusinessSubscriptionScreen() {
 
   const handleRequest = (plan: SubscriptionPlan) => {
     hapticSelection();
-    Alert.alert(
+    appAlert(
       t("sub.planTitle", { name: plan.name }),
       t("sub.planText", { price: formatPrice(plan) }),
       [
@@ -92,9 +92,9 @@ export default function BusinessSubscriptionScreen() {
               await requestSubscriptionPlan(plan.id);
               await load();
               hapticSuccess();
-              Alert.alert(t("sub.sentTitle"), t("sub.sentText"));
+              appAlert(t("sub.sentTitle"), t("sub.sentText"));
             } catch (err) {
-              Alert.alert(t("sub.sendError"), getErrorMessage(err));
+              appAlert(t("sub.sendError"), getErrorMessage(err));
             } finally {
               setBusyPlan(null);
             }
@@ -106,7 +106,7 @@ export default function BusinessSubscriptionScreen() {
 
   const handleCancel = () => {
     hapticSelection();
-    Alert.alert(t("sub.cancelTitle"), undefined, [
+    appAlert(t("sub.cancelTitle"), undefined, [
       { text: t("common.no"), style: "cancel" },
       {
         text: t("sub.cancel"),
@@ -116,7 +116,7 @@ export default function BusinessSubscriptionScreen() {
             await cancelSubscriptionRequest();
             await load();
           } catch (err) {
-            Alert.alert(t("common.error"), getErrorMessage(err));
+            appAlert(t("common.error"), getErrorMessage(err));
           }
         },
       },

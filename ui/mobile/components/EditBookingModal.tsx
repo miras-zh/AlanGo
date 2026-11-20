@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { Booking } from "@/lib/sportRentData";
@@ -40,7 +41,7 @@ export function EditBookingModal({ booking, onClose, onSave, useModal = true }: 
 
   const save = async () => {
     if (!clientName.trim() || clientPhone.replace(/\D/g, "").length < 10) {
-      Alert.alert(t("common.error"), t("edit.nameAndPhone"));
+      appAlert(t("common.error"), t("edit.nameAndPhone"));
       return;
     }
     hapticImpact();
@@ -50,7 +51,7 @@ export function EditBookingModal({ booking, onClose, onSave, useModal = true }: 
       hapticSuccess();
       onClose();
     } catch (err) {
-      Alert.alert(t("common.error"), getErrorMessage(err, t("edit.saveError")));
+      appAlert(t("common.error"), getErrorMessage(err, t("edit.saveError")));
     } finally {
       setSaving(false);
     }

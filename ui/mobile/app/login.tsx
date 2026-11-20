@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -9,6 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,7 +34,7 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     const trimmed = email.trim();
     if (!trimmed || !password) {
-      Alert.alert(t("common.error"), t("login.enterEmailPassword"));
+      appAlert(t("common.error"), t("login.enterEmailPassword"));
       return;
     }
     setLoading(true);
@@ -47,7 +47,7 @@ export default function LoginScreen() {
         router.replace("/(tabs)");
       }
     } catch (err) {
-      Alert.alert(t("login.errorTitle"), getErrorMessage(err));
+      appAlert(t("login.errorTitle"), getErrorMessage(err));
     } finally {
       setLoading(false);
     }

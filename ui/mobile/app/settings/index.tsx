@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 import {
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -9,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -48,7 +48,7 @@ function formatBytes(bytes: number): string {
 function openMail(subject: string, body = "") {
   const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   Linking.openURL(url).catch(() =>
-    Alert.alert(tr("settings.mailNotSet"), tr("settings.mailWriteUs", { email: SUPPORT_EMAIL })),
+    appAlert(tr("settings.mailNotSet"), tr("settings.mailWriteUs", { email: SUPPORT_EMAIL })),
   );
 }
 
@@ -105,7 +105,7 @@ export default function SettingsScreen() {
 
   const handleClearCache = () => {
     hapticSelection();
-    Alert.alert(
+    appAlert(
       t("settings.clearCacheTitle"),
       t("settings.clearCacheText"),
       [
@@ -116,7 +116,7 @@ export default function SettingsScreen() {
           onPress: async () => {
             await AsyncStorage.multiRemove(await cacheKeys());
             await refresh();
-            Alert.alert(SITE_NAME, t("settings.cacheCleared"));
+            appAlert(SITE_NAME, t("settings.cacheCleared"));
           },
         },
       ],

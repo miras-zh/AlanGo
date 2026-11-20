@@ -1,12 +1,12 @@
 import { useState } from "react";
 import {
-  Alert,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,19 +26,19 @@ export default function ForgotPasswordScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim()) {
-      Alert.alert(t("common.error"), t("forgot.enterEmail"));
+      appAlert(t("common.error"), t("forgot.enterEmail"));
       return;
     }
     setLoading(true);
     try {
       await requestPasswordReset(email.trim());
-      Alert.alert(
+      appAlert(
         t("forgot.checkMailTitle"),
         t("forgot.checkMailText"),
         [{ text: "OK", onPress: () => router.back() }]
       );
     } catch (err) {
-      Alert.alert(t("common.error"), getErrorMessage(err));
+      appAlert(t("common.error"), getErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -55,7 +56,7 @@ export function BusinessAccountCard() {
 
   const handleDisable = () => {
     hapticImpact();
-    Alert.alert(
+    appAlert(
       t("biz.disableTitle"),
       t("biz.disableText"),
       [
@@ -72,7 +73,7 @@ export function BusinessAccountCard() {
               // Leave the business cabinet if we were in it — the account is a client now.
               router.replace("/(tabs)/profile");
             } catch (err) {
-              Alert.alert(t("common.error"), getErrorMessage(err, t("biz.disableError")));
+              appAlert(t("common.error"), getErrorMessage(err, t("biz.disableError")));
             } finally {
               setBusy(false);
             }
@@ -91,7 +92,7 @@ export function BusinessAccountCard() {
       hapticSuccess();
       router.replace("/business");
     } catch (err) {
-      Alert.alert(t("common.error"), getErrorMessage(err, t("biz.enableError")));
+      appAlert(t("common.error"), getErrorMessage(err, t("biz.enableError")));
     } finally {
       setBusy(false);
     }
@@ -114,7 +115,7 @@ export function BusinessAccountCard() {
           const user = getSessionUser();
           const [token, refreshToken] = await Promise.all([getToken(), getRefreshToken()]);
           if (!user || user.role === "guest" || (!token && !refreshToken)) {
-            Alert.alert(
+            appAlert(
               t("biz.authRequired"),
               t("biz.authRequiredText"),
               [

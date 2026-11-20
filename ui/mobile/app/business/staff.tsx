@@ -8,11 +8,13 @@ import {
   Modal,
   TextInput,
   Linking,
-  Alert,
   RefreshControl,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -72,7 +74,7 @@ export default function BusinessStaffScreen() {
     hapticSuccess();
     const updated = await loginAsStaff(member);
     setCurrentUser(updated);
-    Alert.alert(
+    appAlert(
       t("staff.switchedTitle"),
       t("staff.switchedText", {
         name: member.name,
@@ -89,13 +91,13 @@ export default function BusinessStaffScreen() {
   const handleCall = (phone: string) => {
     hapticImpact();
     Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`).catch(() => {
-      Alert.alert(t("chat.call"), t("staff.phone", { phone }));
+      appAlert(t("chat.call"), t("staff.phone", { phone }));
     });
   };
 
   const handleRemove = (id: string, name: string) => {
     hapticImpact();
-    Alert.alert(
+    appAlert(
       t("staff.deleteTitle"),
       t("staff.deleteText", { name }),
       [
@@ -114,7 +116,7 @@ export default function BusinessStaffScreen() {
 
   const handleAddStaff = async () => {
     if (!newName.trim() || !newPhone.trim()) {
-      Alert.alert(t("common.error"), t("staff.required"));
+      appAlert(t("common.error"), t("staff.required"));
       return;
     }
 
@@ -133,7 +135,7 @@ export default function BusinessStaffScreen() {
     setNewName("");
     setNewPhone("");
     await loadData();
-    Alert.alert(t("common.success"), t("staff.added"));
+    appAlert(t("common.success"), t("staff.added"));
   };
 
   return (
@@ -279,7 +281,10 @@ export default function BusinessStaffScreen() {
 
       {/* Add Staff Modal */}
       <Modal visible={modalOpen} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t("staff.newTitle")}</Text>
@@ -288,7 +293,10 @@ export default function BusinessStaffScreen() {
               </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalScroll}>
+            <ScrollView
+              contentContainerStyle={styles.modalScroll}
+              keyboardShouldPersistTaps="handled"
+            >
               <Text style={styles.inputLabel}>{t("staff.name")}</Text>
               <TextInput
                 style={styles.input}
@@ -348,7 +356,7 @@ export default function BusinessStaffScreen() {
               </Pressable>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

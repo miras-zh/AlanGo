@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Animated,
   Dimensions,
   Image,
@@ -16,6 +15,7 @@ import {
   type ImageStyle,
   type StyleProp,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -239,7 +239,7 @@ export default function HomeScreen() {
     hapticSuccess();
     const hallTitle = selectedHall.title;
     setSelectedHall(null);
-    Alert.alert(
+    appAlert(
       t("home.bookedTitle"),
       t("home.bookedText", { hall: hallTitle, date: dayOptionLabel(selectedDate), slot: selectedSlot }),
       [{ text: t("home.great") }]

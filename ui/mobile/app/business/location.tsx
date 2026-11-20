@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -100,7 +101,7 @@ export default function ArenaLocationScreen() {
     const res = await getCurrentLocation();
     setLocating(false);
     if (res.status !== "granted") {
-      Alert.alert(t("bizLocation.noGpsTitle"), t("bizLocation.noGpsText"));
+      appAlert(t("bizLocation.noGpsTitle"), t("bizLocation.noGpsText"));
       return;
     }
     setPoint(res.coords);
@@ -114,9 +115,9 @@ export default function ArenaLocationScreen() {
     try {
       await saveArenaLocation(arenaId, point.lat, point.lng);
       hapticSuccess();
-      Alert.alert(t("account.savedTitle"), t("bizLocation.saved"), [{ text: t("common.ok"), onPress: () => router.back() }]);
+      appAlert(t("account.savedTitle"), t("bizLocation.saved"), [{ text: t("common.ok"), onPress: () => router.back() }]);
     } catch (err) {
-      Alert.alert(t("common.error"), getErrorMessage(err, t("bizProfile.saveError")));
+      appAlert(t("common.error"), getErrorMessage(err, t("bizProfile.saveError")));
     } finally {
       setSaving(false);
     }

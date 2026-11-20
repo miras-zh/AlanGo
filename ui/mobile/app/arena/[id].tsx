@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Dimensions,
   Image,
   Linking,
@@ -10,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -62,7 +62,7 @@ export default function ArenaDetailScreen() {
   const handleCall = () => {
     hapticSelection();
     Linking.openURL(`tel:${arena.phone.replace(/[^0-9+]/g, "")}`).catch(() => {
-      Alert.alert(t("arena.contacts"), t("chat.arenaPhone", { phone: arena.phone }));
+      appAlert(t("arena.contacts"), t("chat.arenaPhone", { phone: arena.phone }));
     });
   };
 

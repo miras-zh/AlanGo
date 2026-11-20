@@ -9,6 +9,26 @@
 
 ## [Unreleased]
 
+### ⌨️ Защита от перекрытия полей ввода клавиатурой в модалках (2026-11-20)
+- **`ui/mobile/app/hall/[id].tsx`**: нижний шит «Заявка на бронь» обёрнут в `KeyboardAvoidingView` (`behavior={Platform.OS === "ios" ? "padding" : "height"}`) и `ScrollView` (`keyboardShouldPersistTaps="handled"`, `maxHeight: "90%"`), чтобы при открытии текстовой и цифровой клавиатуры поля «Имя», «Телефон» и кнопка «Отправить заявку» поднимались над клавиатурой и не перекрывались.
+- **Остальные модалки с `TextInput`**: добавлены `KeyboardAvoidingView` (и `keyboardShouldPersistTaps="handled"` для скролл-областей) в `ManualBookingModal.tsx`, `RejectBookingModal.tsx`, `PaymentModal.tsx`, `app/business/staff.tsx` и `app/business/(cabinet)/halls.tsx`.
+- **Проверено**: `npx tsc --noEmit` (0 ошибок), `git diff --check` (0 замечаний); в iOS Simulator (`Expo Go`) проверено открытие шита «Заявка на бронь» и фокус на поле «Телефон» (прокрутка с открытой экранной клавиатурой в embedded-симуляторе без отдельного окна `Simulator.app` не триггерилась через `Cmd+K` программно — поведение `KeyboardAvoidingView` + `ScrollView` стандартное для iOS).
+
+### 🎨 Фирменная кастомная модалка вместо системного `Alert.alert` (бэклог №11, 2026-11-20)
+- **`ui/mobile/lib/alert.ts` + `ui/mobile/components/AppAlertHost.tsx`**: добавлена глобальная система кастомных алертов `appAlert(title, message?, buttons?, options?)` с очередью уведомлений и автоматическим определением тона (`success`, `error`, `warning`, `info`, `destructive`). Карточка оформлена по `DESIGN_SYSTEM.md` и `usePalette()` (поддержка тёмной и светлой тем, `radii.modal = 24`, `radii.button = 14`, плавная spring-анимация, иконка-бейдж, горизонтальное/вертикальное размещение кнопок). На iOS рендерится через `FullWindowOverlay` (`react-native-screens`) поверх любых открытых модалок, на Android/Web — через `Modal`.
+- **`ui/mobile/app/_layout.tsx` и `ui/mobile/lib/confirm.ts`**: смонтирован `<AppAlertHost />` в корневом layout, `confirmDestructive` переведён на `appAlert`.
+- **Замена во всём приложении (`29` файлов в `ui/mobile/app/` и `ui/mobile/components/`)**: все вызовы системного `Alert.alert` (настройки аккаунта, карточка зала, авторизация, профиль, события, чат, бизнес-кабинет и модалки бронирования/оплаты) переведены на `appAlert`.
+- **Проверено**: `npx tsc --noEmit` (0 ошибок), `rg` подтвердил отсутствие прямых вызовов `Alert.alert` вне fallback в `lib/alert.ts`; в iOS Simulator (`Expo Go`) проверены светлая и тёмная темы: «Выберите время» в `hall/[id]`, ошибка входа в `login`, подтверждение очистки кэша в `settings`, «Сохранено» в `settings/account`.
+
+### 📱 Подготовка сборки iOS для TestFlight (билд 12)
+- **Номер сборки → 12** (версия `1.0.0`):
+  - `ui/mobile/app.json`: `ios.buildNumber = "12"`;
+  - `ui/mobile/ios/AlanGo/Info.plist`: `CFBundleVersion = "12"` (ключ `NSMotionUsageDescription` на месте);
+  - `ui/mobile/ios/AlanGo.xcodeproj/project.pbxproj`: `CURRENT_PROJECT_VERSION = 12` (Debug и Release).
+- **Синхронизация CocoaPods**: `Podfile.lock` и `Pods/Manifest.lock` полностью совпадают.
+- **Что входит в билд 12**: доработанная светлая тема (`#F2F5F3`, белые карточки с тенью, `#172B25`, полупрозрачная нижняя навигация), светлая иконка и логотип, схемы залов (вид сверху) с размерами в разделе «О зале», 6 ближайших слотов, «Мои записи» и «Мои избранные», заявки на бронь.
+- **Сборка в Xcode**: открыть `ui/mobile/ios/AlanGo.xcworkspace` → схема **AlanGo**, цель **Any iOS Device (arm64)** → **Product → Archive** → **Distribute App** → **App Store Connect** → **Upload**.
+
 ### 🎨 Доработка светлой темы
 - **`ui/mobile/theme/palette.ts`**: основной фон обновлён на `#F2F5F3`, заголовки и основной текст — на `#172B25`, карточки `#FFFFFF` с тонкой рамкой `#DCE5DF` и хелпером мягкой тени `cardShadow(c)`.
 - **`ui/mobile/app/(tabs)/index.tsx`, `profile.tsx`, `ui/mobile/components/VenueCard.tsx`, `ArenaCard.tsx`**: подключена мягкая тень `cardShadow(c)` для карточек в светлой теме.
@@ -48,6 +68,11 @@
 
 ### 📖 Инструкции по UI-тестированию для агентов (2026-11-17)
 - **`docs/UI_TESTING.md` и `AGENTS.md`**: добавлено руководство по UI-тестированию мобильного клиента в iOS-симуляторе (`Expo Go` vs старая standalone-сборка `kz.alango.app`, проверка Metro и `EXPO_PUBLIC_API_URL`, тестовые аккаунты, правила безопасного использования `idb` и проверки `<Modal>`); в `AGENTS.md` добавлено обязательное правило обращаться к `docs/UI_TESTING.md` перед тестированием UI.
+
+### 🧪 E2E-тестирование Maestro на iOS-симуляторе (2026-11-18)
+- **Окружение и пересборка симулятора**: установлены `openjdk@17` и `maestro` CLI (`2.12.1`); синхронизирован `ui/mobile/ios/Podfile.lock` и собрана свежая `Release` (`arm64`) сборка `kz.alango.app` под iOS-симулятор с актуальным `ui/mobile/.env` (`https://alango.78.140.223.90.sslip.io`).
+- **`testID`-разметка критических путей**: добавлены стабильные `testID` и `tabBarButtonTestID` в `login.tsx`, `register.tsx`, `forgot-password.tsx`, `(tabs)/profile.tsx`, `(tabs)/items.tsx`, `hall/[id].tsx`, `my-bookings.tsx`, `settings/account.tsx`, `business/_layout.tsx`, `business/bookings.tsx`, `business/profile.tsx`, `LiquidGlassTabBar.tsx`, `ProfilePreferences.tsx`, `BookingDetailsModal.tsx`, `PaymentModal.tsx`, `RescheduleBookingModal.tsx`, `EditBookingModal.tsx`.
+- **Базовые сценарии `ui/mobile/.maestro/`**: созданы `config.yaml`, `subflows/ensure_guest.yaml`, `subflows/login_from_guest.yaml`, а также `01_auth_and_theme.yaml`, `02_client_catalog_and_hall.yaml`, `03_business_single_zal1.yaml`, `04_business_complex_arena1.yaml`; обновлена памятка [docs/UI_TESTING.md](file:///Users/miko/MyProduction/AlanGo/docs/UI_TESTING.md).
 
 ### 🐛 Точность удобств на экране зала
 - Экран зала больше не показывает статический набор «Парковка / Раздевалка / Душ / Wi-Fi»: карточки строятся по фактическим удобствам арены и оборудованию зала, а отсутствующие опции скрываются.

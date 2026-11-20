@@ -9,6 +9,7 @@ import { hydrateSession } from "@/lib/auth";
 import { initPushNotifications } from "@/lib/push";
 import { trackFirstLaunchOnce, startOnlineHeartbeat, stopOnlineHeartbeat } from "@/lib/analytics";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
+import { AppAlertHost } from "@/components/AppAlertHost";
 import { AnimatedSplashScreen } from "@/components/AnimatedSplashScreen";
 import { usePalette } from "@/theme/palette";
 
@@ -55,6 +56,7 @@ function RootNavigator() {
         <Stack.Screen name="arenas" />
       </Stack>
       <AppUpdatePrompt />
+      <AppAlertHost />
     </>
   );
 }

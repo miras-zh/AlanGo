@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   KeyboardAvoidingView,
   Platform,
@@ -12,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -60,7 +60,7 @@ export default function BusinessOnboardingScreen() {
   const congratsScale = useRef(new Animated.Value(0.6)).current;
 
   const promptLogin = (onCancel?: () => void) => {
-    Alert.alert(
+    appAlert(
       t("biz.authRequired"),
       t("onb.sessionMissing"),
       [
@@ -135,7 +135,7 @@ export default function BusinessOnboardingScreen() {
       if ((err as any)?.response?.status === 401) {
         promptLogin();
       } else {
-        Alert.alert(t("onb.openError"), getErrorMessage(err));
+        appAlert(t("onb.openError"), getErrorMessage(err));
       }
     } finally {
       setSubmitting(false);

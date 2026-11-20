@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ActionSheetIOS,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -14,6 +13,7 @@ import {
   View,
   Platform,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { resolveMyArenaId } from "@/lib/business";
@@ -145,7 +145,7 @@ export default function BusinessProfileScreen() {
       const picked = await pickImageAsJpeg("arena-logo");
       if (picked) setCropSource(picked.uri);
     } catch (err) {
-      Alert.alert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
+      appAlert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
     }
   };
 
@@ -157,7 +157,7 @@ export default function BusinessProfileScreen() {
       await applyLogo("");
       hapticSuccess();
     } catch (err) {
-      Alert.alert(t("bizProfile.logoDeleteError"), getErrorMessage(err));
+      appAlert(t("bizProfile.logoDeleteError"), getErrorMessage(err));
     } finally {
       setUploadingLogo(false);
     }
@@ -183,7 +183,7 @@ export default function BusinessProfileScreen() {
         },
       );
     } else {
-      Alert.alert(t("bizProfile.logo"), undefined, [
+      appAlert(t("bizProfile.logo"), undefined, [
         { text: t("bizProfile.chooseNewPhoto"), onPress: pickLogo },
         { text: t("bizProfile.deleteLogo"), style: "destructive", onPress: removeLogo },
         { text: t("common.cancel"), style: "cancel" },
@@ -206,7 +206,7 @@ export default function BusinessProfileScreen() {
     try {
       picked = await pickImageAsJpeg("arena-cover");
     } catch (err) {
-      Alert.alert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
+      appAlert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
       return;
     }
     if (!picked) return;
@@ -216,7 +216,7 @@ export default function BusinessProfileScreen() {
       await applyCover(url);
       hapticSuccess();
     } catch (err) {
-      Alert.alert(t("bizProfile.coverUploadError"), getErrorMessage(err));
+      appAlert(t("bizProfile.coverUploadError"), getErrorMessage(err));
     } finally {
       setUploadingCover(false);
     }
@@ -230,7 +230,7 @@ export default function BusinessProfileScreen() {
       await applyCover("");
       hapticSuccess();
     } catch (err) {
-      Alert.alert(t("bizProfile.coverDeleteError"), getErrorMessage(err));
+      appAlert(t("bizProfile.coverDeleteError"), getErrorMessage(err));
     } finally {
       setUploadingCover(false);
     }
@@ -256,7 +256,7 @@ export default function BusinessProfileScreen() {
         },
       );
     } else {
-      Alert.alert(t("bizProfile.cover"), undefined, [
+      appAlert(t("bizProfile.cover"), undefined, [
         { text: t("bizProfile.replaceCover"), onPress: pickCover },
         { text: t("bizProfile.deleteCover"), style: "destructive", onPress: removeCover },
         { text: t("common.cancel"), style: "cancel" },
@@ -273,7 +273,7 @@ export default function BusinessProfileScreen() {
       await applyLogo(url);
       hapticSuccess();
     } catch (err) {
-      Alert.alert(t("bizProfile.logoUploadError"), getErrorMessage(err));
+      appAlert(t("bizProfile.logoUploadError"), getErrorMessage(err));
     } finally {
       setUploadingLogo(false);
     }
@@ -293,7 +293,7 @@ export default function BusinessProfileScreen() {
   const handleSaveArena = async () => {
     if (!arena) return;
     if (!title.trim()) {
-      Alert.alert(t("common.error"), t("bizProfile.nameRequired"));
+      appAlert(t("common.error"), t("bizProfile.nameRequired"));
       return;
     }
     setSaving(true);
@@ -310,9 +310,9 @@ export default function BusinessProfileScreen() {
       setArena(updated);
       hapticSuccess();
       setModalVisible(false);
-      Alert.alert(t("common.success"), t("bizProfile.updated"));
+      appAlert(t("common.success"), t("bizProfile.updated"));
     } catch (err) {
-      Alert.alert(t("common.error"), getErrorMessage(err, t("bizProfile.saveError")));
+      appAlert(t("common.error"), getErrorMessage(err, t("bizProfile.saveError")));
     } finally {
       setSaving(false);
     }
@@ -357,7 +357,7 @@ export default function BusinessProfileScreen() {
     if (!arena) return;
     const nextHours = hoursText.trim();
     if (!nextHours) {
-      Alert.alert(t("common.error"), t("bizProfile.hoursRequired"));
+      appAlert(t("common.error"), t("bizProfile.hoursRequired"));
       return;
     }
     setSavingHours(true);
@@ -367,9 +367,9 @@ export default function BusinessProfileScreen() {
       setArena(updated);
       hapticSuccess();
       setHoursModalVisible(false);
-      Alert.alert(t("common.success"), t("bizProfile.hoursUpdated"));
+      appAlert(t("common.success"), t("bizProfile.hoursUpdated"));
     } catch (err) {
-      Alert.alert(t("common.error"), getErrorMessage(err, t("sched.saveError")));
+      appAlert(t("common.error"), getErrorMessage(err, t("sched.saveError")));
     } finally {
       setSavingHours(false);
     }
@@ -377,7 +377,7 @@ export default function BusinessProfileScreen() {
 
   const handleLogout = async () => {
     hapticImpact();
-    Alert.alert(t("bizProfile.logoutTitle"), t("bizProfile.logoutText"), [
+    appAlert(t("bizProfile.logoutTitle"), t("bizProfile.logoutText"), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("account.logout"),

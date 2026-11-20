@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { getHallAvailability, type Booking, type HallAvailability, type HallSlot } from "@/lib/sportRentData";
@@ -75,7 +76,7 @@ export function RescheduleBookingModal({ booking, onClose, onSubmit, useModal = 
       await onSubmit(b, { date, startTime: slot.start, durationMinutes: availability.durationMinutes });
       hapticSuccess();
     } catch (err) {
-      Alert.alert(t("reschedule.failed"), getErrorMessage(err));
+      appAlert(t("reschedule.failed"), getErrorMessage(err));
     } finally {
       setSaving(false);
     }

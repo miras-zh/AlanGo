@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAppTheme } from "@/theme/ThemeProvider";
@@ -27,7 +28,7 @@ export default function AppleNameScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert(t("account.nameRequiredTitle"), t("appleName.requiredText"));
+      appAlert(t("account.nameRequiredTitle"), t("appleName.requiredText"));
       return;
     }
     setSaving(true);
@@ -44,7 +45,7 @@ export default function AppleNameScreen() {
         router.replace("/(tabs)");
       }
     } catch (err) {
-      Alert.alert(t("common.error"), getErrorMessage(err));
+      appAlert(t("common.error"), getErrorMessage(err));
     } finally {
       setSaving(false);
     }

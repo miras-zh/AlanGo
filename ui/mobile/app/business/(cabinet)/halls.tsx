@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,6 +14,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -183,7 +185,7 @@ export default function BusinessHallsScreen() {
 
   const handleAddPhoto = async () => {
     if (photoCount >= MAX_HALL_PHOTOS) {
-      Alert.alert(t("bizHalls.maxPhotosTitle"), t("bizHalls.maxPhotosText"));
+      appAlert(t("bizHalls.maxPhotosTitle"), t("bizHalls.maxPhotosText"));
       return;
     }
     hapticSelection();
@@ -191,7 +193,7 @@ export default function BusinessHallsScreen() {
     try {
       picked = await pickImageAsJpeg("hall");
     } catch (err) {
-      Alert.alert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
+      appAlert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
       return;
     }
     if (!picked) return;
@@ -202,7 +204,7 @@ export default function BusinessHallsScreen() {
         const res = await uploadHallPhoto(editingId, picked);
         setPhotos(res.photos);
       } catch (err) {
-        Alert.alert(t("profile.avatarUploadError"), getErrorMessage(err));
+        appAlert(t("profile.avatarUploadError"), getErrorMessage(err));
       } finally {
         setPhotoBusy(false);
       }
@@ -218,7 +220,7 @@ export default function BusinessHallsScreen() {
       return;
     }
     if (!editingId) return;
-    Alert.alert(t("bizHalls.deletePhotoTitle"), t("bizHalls.deletePhotoText"), [
+    appAlert(t("bizHalls.deletePhotoTitle"), t("bizHalls.deletePhotoText"), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("common.delete"),
@@ -229,7 +231,7 @@ export default function BusinessHallsScreen() {
             const res = await deleteHallPhoto(editingId, photo);
             setPhotos(res.photos);
           } catch (err) {
-            Alert.alert(t("bizHalls.deletePhotoError"), getErrorMessage(err));
+            appAlert(t("bizHalls.deletePhotoError"), getErrorMessage(err));
           } finally {
             setPhotoBusy(false);
           }
@@ -240,20 +242,20 @@ export default function BusinessHallsScreen() {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      Alert.alert(t("common.error"), t("bizHalls.nameRequired"));
+      appAlert(t("common.error"), t("bizHalls.nameRequired"));
       return;
     }
     if (!surfaceType) {
-      Alert.alert(t("common.error"), t("bizHalls.surfaceRequired"));
+      appAlert(t("common.error"), t("bizHalls.surfaceRequired"));
       return;
     }
     const numPrice = parseInt(pricePerHour.replace(/\D/g, ""), 10) || 0;
     if (numPrice <= 0) {
-      Alert.alert(t("common.error"), t("bizHalls.priceRequired"));
+      appAlert(t("common.error"), t("bizHalls.priceRequired"));
       return;
     }
     if (!arenaId) {
-      Alert.alert(t("common.error"), t("bizHalls.arenaUnknown"));
+      appAlert(t("common.error"), t("bizHalls.arenaUnknown"));
       return;
     }
 
@@ -291,7 +293,7 @@ export default function BusinessHallsScreen() {
         }
         hapticSuccess();
         if (failed > 0) {
-          Alert.alert(
+          appAlert(
             t("bizHalls.createdTitle"),
             t("bizHalls.createdPhotosFailed", { n: failed }),
           );
@@ -300,7 +302,7 @@ export default function BusinessHallsScreen() {
       setModalVisible(false);
       loadHalls();
     } catch (e) {
-      Alert.alert(t("bizHalls.saveError"), getErrorMessage(e));
+      appAlert(t("bizHalls.saveError"), getErrorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -313,7 +315,7 @@ export default function BusinessHallsScreen() {
       await saveUpdatedHall({ ...hall, status: nextStatus });
       loadHalls();
     } catch (e) {
-      Alert.alert(t("common.error"), getErrorMessage(e));
+      appAlert(t("common.error"), getErrorMessage(e));
     }
   };
 
@@ -498,7 +500,10 @@ export default function BusinessHallsScreen() {
 
       {/* Edit / Add Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
@@ -749,7 +754,7 @@ export default function BusinessHallsScreen() {
               </Pressable>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

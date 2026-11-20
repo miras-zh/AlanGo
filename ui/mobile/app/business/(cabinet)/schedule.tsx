@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -95,7 +95,7 @@ export default function BusinessScheduleScreen() {
     if (!hallId) return;
     getHallSchedule(hallId)
       .then(setSchedule)
-      .catch((err) => Alert.alert(t("common.error"), getErrorMessage(err, t("sched.loadError"))));
+      .catch((err) => appAlert(t("common.error"), getErrorMessage(err, t("sched.loadError"))));
   }, [hallId]);
 
   const toggleDayClosed = (index: number) => {
@@ -124,7 +124,7 @@ export default function BusinessScheduleScreen() {
       let updated: number[];
       if (current.includes(duration)) {
         if (current.length === 1) {
-          Alert.alert(t("sched.attention"), t("sched.oneDurationRequired"));
+          appAlert(t("sched.attention"), t("sched.oneDurationRequired"));
           return prev;
         }
         updated = current.filter((d) => d !== duration);
@@ -165,7 +165,7 @@ export default function BusinessScheduleScreen() {
   const applyMondayToAll = () => {
     hapticImpact();
     const monday = schedule[0];
-    Alert.alert(
+    appAlert(
       t("sched.syncTitle"),
       t("sched.syncText", {
         start: monday.startTime,
@@ -208,9 +208,9 @@ export default function BusinessScheduleScreen() {
     try {
       setSchedule(await saveHallSchedule(hallId, schedule));
       hapticSuccess();
-      Alert.alert(t("account.savedTitle"), t("sched.savedText", { hall: currentHall?.title ?? "" }));
+      appAlert(t("account.savedTitle"), t("sched.savedText", { hall: currentHall?.title ?? "" }));
     } catch (err) {
-      Alert.alert(t("sched.saveError"), getErrorMessage(err));
+      appAlert(t("sched.saveError"), getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -219,7 +219,7 @@ export default function BusinessScheduleScreen() {
   const copyToAllHalls = () => {
     if (!hallId || halls.length < 2) return;
     hapticImpact();
-    Alert.alert(
+    appAlert(
       t("sched.copyTitle"),
       t("sched.copyText", { hall: currentHall?.title ?? "", n: halls.length - 1 }),
       [
@@ -233,9 +233,9 @@ export default function BusinessScheduleScreen() {
                 await saveHallSchedule(h.id, schedule);
               }
               hapticSuccess();
-              Alert.alert(t("common.done"), t("sched.copied"));
+              appAlert(t("common.done"), t("sched.copied"));
             } catch (err) {
-              Alert.alert(t("sched.copyError"), getErrorMessage(err));
+              appAlert(t("sched.copyError"), getErrorMessage(err));
             } finally {
               setSaving(false);
             }

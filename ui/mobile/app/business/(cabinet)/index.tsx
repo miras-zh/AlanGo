@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   Image,
   Pressable,
   RefreshControl,
@@ -9,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -484,9 +484,9 @@ export default function BusinessDashboardScreen() {
                     try {
                       await updateBookingStatus(b, "confirmed");
                       hapticSuccess();
-                      Alert.alert(t("status.confirmed"), t("bizHome.confirmedText", { id: b.id }));
+                      appAlert(t("status.confirmed"), t("bizHome.confirmedText", { id: b.id }));
                     } catch (err) {
-                      Alert.alert(t("common.error"), getErrorMessage(err));
+                      appAlert(t("common.error"), getErrorMessage(err));
                     }
                     loadData();
                   }}

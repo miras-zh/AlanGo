@@ -8,6 +8,7 @@ import {
   TextInput,
   SafeAreaView,
   Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Booking } from "@/lib/sportRentData";
@@ -60,7 +61,10 @@ export function RejectBookingModal({
   if (!booking || (!useModal && !visible)) return null;
 
   const content = (
-    <View style={styles.overlay}>
+    <KeyboardAvoidingView
+      style={styles.overlay}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       <Pressable style={{ flex: 1 }} onPress={onClose} accessible={false} />
       <SafeAreaView style={styles.sheetContainer}>
           <View style={styles.header}>
@@ -134,7 +138,7 @@ export function RejectBookingModal({
             </Pressable>
           </View>
         </SafeAreaView>
-      </View>
+      </KeyboardAvoidingView>
   );
 
   if (!useModal) {

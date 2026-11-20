@@ -7,10 +7,10 @@ import {
   FlatList,
   TextInput,
   Linking,
-  Alert,
   RefreshControl,
   ActivityIndicator,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -70,7 +70,7 @@ export default function BusinessClientsScreen() {
   const handleCall = (phone: string) => {
     hapticImpact();
     Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`).catch(() => {
-      Alert.alert(t("chat.call"), t("clients.phone", { phone }));
+      appAlert(t("chat.call"), t("clients.phone", { phone }));
     });
   };
 
@@ -91,7 +91,7 @@ export default function BusinessClientsScreen() {
         }
       })
       .catch(() => {
-        Alert.alert("WhatsApp", t("clients.phone", { phone }));
+        appAlert("WhatsApp", t("clients.phone", { phone }));
       });
   };
 

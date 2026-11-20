@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -10,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -139,7 +139,7 @@ export default function BusinessBookingsScreen() {
     setDetailTarget((d) => (d && d.dbId === updated.dbId ? { ...d, ...updated } : d));
   };
 
-  const failed = (err: unknown) => Alert.alert(t("common.error"), getErrorMessage(err));
+  const failed = (err: unknown) => appAlert(t("common.error"), getErrorMessage(err));
 
   // Business rates the client after the game; the average becomes the
   // client's rating in their profile (5.0 until the first score).
@@ -153,7 +153,7 @@ export default function BusinessBookingsScreen() {
       hapticSuccess();
     } catch (err) {
       setBookings((list) => list.map((b) => (b.id === booking.id ? { ...b, clientRating: prev } : b)));
-      Alert.alert(t("bookings.rateError"), getErrorMessage(err));
+      appAlert(t("bookings.rateError"), getErrorMessage(err));
     }
   };
 
@@ -162,7 +162,7 @@ export default function BusinessBookingsScreen() {
     if (!target) return;
     try {
       applyUpdated(await updateBookingPayment(target, paidAmount));
-      Alert.alert(t("bookings.paymentUpdated"), t("bookings.paidAmount", { price: formatNumber(paidAmount) }));
+      appAlert(t("bookings.paymentUpdated"), t("bookings.paidAmount", { price: formatNumber(paidAmount) }));
     } catch (err) {
       failed(err);
     }
@@ -192,7 +192,7 @@ export default function BusinessBookingsScreen() {
       applyUpdated(await updateBookingStatus(booking, "confirmed"));
       hapticSuccess();
       setDetailTarget(null);
-      Alert.alert(t("bookings.confirmedTitle"), t("request.confirmedText", { name: booking.clientName }));
+      appAlert(t("bookings.confirmedTitle"), t("request.confirmedText", { name: booking.clientName }));
     } catch (err) {
       failed(err);
       loadData();
@@ -203,7 +203,7 @@ export default function BusinessBookingsScreen() {
     try {
       applyUpdated(await updateBookingStatus(booking, "cancelled"));
       setDetailTarget(null);
-      Alert.alert(t("bookings.cancelledTitle"), t("bookings.statusChanged", { id: booking.id }));
+      appAlert(t("bookings.cancelledTitle"), t("bookings.statusChanged", { id: booking.id }));
     } catch (err) {
       failed(err);
       loadData();
@@ -213,7 +213,7 @@ export default function BusinessBookingsScreen() {
   const handleCall = (phone: string) => {
     hapticSelection();
     callPhone(phone).catch(() => {
-      Alert.alert(t("chat.call"), t("bookings.clientPhone", { phone }));
+      appAlert(t("chat.call"), t("bookings.clientPhone", { phone }));
     });
   };
 
@@ -231,7 +231,7 @@ export default function BusinessBookingsScreen() {
       applyUpdated(await rejectBookingWithReason(rejectTarget, reason));
       setRejectTarget(null);
       setDetailTarget(null);
-      Alert.alert(t("bookings.rejectedTitle"), t("bookings.reason", { reason }));
+      appAlert(t("bookings.rejectedTitle"), t("bookings.reason", { reason }));
     } catch (err) {
       failed(err);
     }
@@ -245,7 +245,7 @@ export default function BusinessBookingsScreen() {
     const updated = await rescheduleBooking(booking, data);
     applyUpdated(updated);
     setRescheduleTarget(null);
-    Alert.alert(
+    appAlert(
       t("request.rescheduledTitle"),
       t("request.rescheduledText", { date: displayDate(updated.date, t), time: updated.timeSlot }),
     );

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -50,7 +50,7 @@ export default function ProfileScreen() {
       const picked = await pickImageAsJpeg("avatar");
       if (picked) setCropSource(picked.uri);
     } catch (err) {
-      Alert.alert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
+      appAlert(pickErrorTitle(err), getErrorMessage(err, t("profile.galleryError")));
     }
   };
 
@@ -63,7 +63,7 @@ export default function ProfileScreen() {
       await updateSessionUser({ photo, avatar_url: photo });
       hapticSuccess();
     } catch (err) {
-      Alert.alert(t("profile.avatarUploadError"), getErrorMessage(err));
+      appAlert(t("profile.avatarUploadError"), getErrorMessage(err));
     } finally {
       setUploadingAvatar(false);
     }

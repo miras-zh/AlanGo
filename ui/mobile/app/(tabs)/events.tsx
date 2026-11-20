@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -10,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { radii, spacing } from "@/constants/theme";
@@ -109,7 +109,7 @@ export default function EventsScreen() {
 
   const handleRegister = (ev: SportEvent) => {
     if (registered.includes(ev.id)) {
-      Alert.alert(t("events.cancelRegTitle"), t("events.cancelRegText", { title: ev.title }), [
+      appAlert(t("events.cancelRegTitle"), t("events.cancelRegText", { title: ev.title }), [
         { text: t("common.no"), style: "cancel" },
         {
           text: t("events.cancelReg"),
@@ -129,7 +129,7 @@ export default function EventsScreen() {
       registerForEvent(ev.id);
       setRegistering(null);
       hapticSuccess();
-      Alert.alert(
+      appAlert(
         t("events.registerTitle"),
         t("events.registeredText", {
           title: ev.title,
@@ -144,7 +144,7 @@ export default function EventsScreen() {
 
   const openDetails = (ev: SportEvent) => {
     const price = eventPrice(ev, t);
-    Alert.alert(
+    appAlert(
       ev.title,
       t("events.details", {
         category: t(EVENT_SPORT_LABEL[ev.sport]),

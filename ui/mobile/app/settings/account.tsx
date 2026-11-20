@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -48,16 +48,16 @@ export default function AccountSettingsScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert(t("account.nameRequiredTitle"), t("account.nameRequiredText"));
+      appAlert(t("account.nameRequiredTitle"), t("account.nameRequiredText"));
       return;
     }
     setSaving(true);
     try {
       await updateMyProfile({ name: name.trim(), phone: phone.trim(), city: city.trim() });
       hapticSuccess();
-      Alert.alert(t("account.savedTitle"), t("account.savedText"));
+      appAlert(t("account.savedTitle"), t("account.savedText"));
     } catch (err) {
-      Alert.alert(t("common.error"), getErrorMessage(err));
+      appAlert(t("common.error"), getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -65,7 +65,7 @@ export default function AccountSettingsScreen() {
 
   const handleLogout = () => {
     hapticImpact();
-    Alert.alert(t("account.logoutTitle"), t("account.logoutText"), [
+    appAlert(t("account.logoutTitle"), t("account.logoutText"), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("account.logout"),
@@ -80,7 +80,7 @@ export default function AccountSettingsScreen() {
 
   const handleDeleteAccount = () => {
     hapticImpact();
-    Alert.alert(
+    appAlert(
       t("account.deleteTitle"),
       t("account.deleteText"),
       [
@@ -92,10 +92,10 @@ export default function AccountSettingsScreen() {
             try {
               await deleteAccountApi();
               hapticSuccess();
-              Alert.alert(t("account.deletedTitle"), t("account.deletedText"));
+              appAlert(t("account.deletedTitle"), t("account.deletedText"));
               router.replace("/login");
             } catch (e) {
-              Alert.alert(t("common.error"), getErrorMessage(e));
+              appAlert(t("common.error"), getErrorMessage(e));
             }
           },
         },

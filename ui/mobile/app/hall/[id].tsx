@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import {
   TextInput,
   ActivityIndicator,
-  Alert,
   Dimensions,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -13,6 +14,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -208,11 +210,11 @@ export default function HallDetailScreen() {
     if (!selectedSlot || !availability) return;
     const phoneDigits = clientPhone.replace(/\D/g, "");
     if (!clientName.trim()) {
-      Alert.alert(t("account.nameRequiredTitle"), t("hall.nameRequired"));
+      appAlert(t("account.nameRequiredTitle"), t("hall.nameRequired"));
       return;
     }
     if (phoneDigits.length < 10) {
-      Alert.alert(t("hall.phoneRequiredTitle"), t("hall.phoneRequiredText"));
+      appAlert(t("hall.phoneRequiredTitle"), t("hall.phoneRequiredText"));
       return;
     }
     hapticSelection();
@@ -231,7 +233,7 @@ export default function HallDetailScreen() {
       setSelectedSlot(null);
       loadSlots();
       const pending = booking.status === "pending";
-      Alert.alert(
+      appAlert(
         pending ? t("hall.requestSentTitle") : t("hall.bookedTitle"),
         t(pending ? "hall.requestSentText" : "hall.bookedText", {
           hall: hall.title,
@@ -248,7 +250,7 @@ export default function HallDetailScreen() {
           : undefined,
       );
     } catch (err) {
-      Alert.alert(t("hall.bookingFailed"), getErrorMessage(err));
+      appAlert(t("hall.bookingFailed"), getErrorMessage(err));
       loadSlots();
     } finally {
       setBookingLoading(false);
@@ -619,7 +621,7 @@ export default function HallDetailScreen() {
             hapticImpact();
             if (!selectedSlot) {
               setActiveTab("schedule");
-              Alert.alert(t("hall.chooseTimeTitle"), t("hall.chooseTimeText"));
+              appAlert(t("hall.chooseTimeTitle"), t("hall.chooseTimeText"));
               return;
             }
             setBookingModalOpen(true);
@@ -638,7 +640,10 @@ export default function HallDetailScreen() {
         transparent
         onRequestClose={() => setBookingModalOpen(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <Pressable
             style={styles.modalBackdrop}
             onPress={() => setBookingModalOpen(false)}
@@ -654,64 +659,70 @@ export default function HallDetailScreen() {
               </Pressable>
             </View>
 
-            <View style={styles.modalSummaryBox}>
-              <Text style={styles.summaryTitle}>{hall.title}</Text>
-              <Text style={styles.summarySub}>{hall.arenaTitle}</Text>
-
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t("hall.gameDate")}</Text>
-                <Text style={styles.summaryValue}>{dayLabel}</Text>
-              </View>
-
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t("hall.slotTime")}</Text>
-                <Text style={styles.summaryValue}>{selectedSlot?.label ?? ""}</Text>
-              </View>
-
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t("hall.totalToPay")}</Text>
-                <Text style={styles.summaryTotal}>
-                  {formatNumber((availability?.price ?? hall.pricePerHour))} ₸
-                </Text>
-              </View>
-            </View>
-
-            <Text style={styles.contactLabel}>{t("hall.name")}</Text>
-            <TextInput
-              value={clientName}
-              onChangeText={setClientName}
-              placeholder={t("account.namePlaceholder")}
-              placeholderTextColor={c.textSecondary}
-              style={styles.contactInput}
-            />
-            <Text style={styles.contactLabel}>{t("account.phone")}</Text>
-            <TextInput
-              value={clientPhone}
-              onChangeText={setClientPhone}
-              placeholder="+7 (7__) ___-__-__"
-              placeholderTextColor={c.textSecondary}
-              keyboardType="phone-pad"
-              style={styles.contactInput}
-            />
-
-            <Pressable
-              style={[
-                styles.confirmBookingBtn,
-                bookingLoading && { opacity: 0.5 },
-              ]}
-              onPress={handleConfirmBooking}
-              disabled={bookingLoading}
+            <ScrollView
+              bounces={false}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
-              {bookingLoading ? (
-                <ActivityIndicator color={c.background} />
-              ) : (
-                <Text style={styles.confirmBookingBtnText}>
-                  {t("hall.confirmBooking")}
-                </Text>
-              )}
-            </Pressable>
+              <View style={styles.modalSummaryBox}>
+                <Text style={styles.summaryTitle}>{hall.title}</Text>
+                <Text style={styles.summarySub}>{hall.arenaTitle}</Text>
+
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>{t("hall.gameDate")}</Text>
+                  <Text style={styles.summaryValue}>{dayLabel}</Text>
+                </View>
+
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>{t("hall.slotTime")}</Text>
+                  <Text style={styles.summaryValue}>{selectedSlot?.label ?? ""}</Text>
+                </View>
+
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>{t("hall.totalToPay")}</Text>
+                  <Text style={styles.summaryTotal}>
+                    {formatNumber((availability?.price ?? hall.pricePerHour))} ₸
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.contactLabel}>{t("hall.name")}</Text>
+              <TextInput
+                value={clientName}
+                onChangeText={setClientName}
+                placeholder={t("account.namePlaceholder")}
+                placeholderTextColor={c.textSecondary}
+                style={styles.contactInput}
+              />
+              <Text style={styles.contactLabel}>{t("account.phone")}</Text>
+              <TextInput
+                value={clientPhone}
+                onChangeText={setClientPhone}
+                placeholder="+7 (7__) ___-__-__"
+                placeholderTextColor={c.textSecondary}
+                keyboardType="phone-pad"
+                style={styles.contactInput}
+              />
+
+              <Pressable
+                style={[
+                  styles.confirmBookingBtn,
+                  bookingLoading && { opacity: 0.5 },
+                ]}
+                onPress={handleConfirmBooking}
+                disabled={bookingLoading}
+              >
+                {bookingLoading ? (
+                  <ActivityIndicator color={c.background} />
+                ) : (
+                  <Text style={styles.confirmBookingBtnText}>
+                    {t("hall.confirmBooking")}
+                  </Text>
+                )}
+              </Pressable>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -1172,6 +1183,7 @@ const createStyles = (c: Palette) =>
     borderTopWidth: 1,
     borderColor: c.border,
     paddingBottom: 32,
+    maxHeight: "90%",
   },
   modalHeader: {
     flexDirection: "row",
