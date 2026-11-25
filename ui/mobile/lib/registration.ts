@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import { saveSession, clearSession, type SessionUser } from "@/lib/auth";
+import { logout } from "@/lib/user";
 import { tr } from "@/lib/i18n";
 
 export type StartRegistrationRequest = {
@@ -110,11 +111,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
 }
 
 export async function logoutCurrentSession(): Promise<void> {
-  try {
-    await api.post("/api/logout").catch(() => {});
-  } finally {
-    await clearSession();
-  }
+  await logout();
 }
 
 // Shared by Apple / Google sign-in and business-mode switches: the backend

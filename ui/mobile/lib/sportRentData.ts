@@ -1,6 +1,19 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, apiFetch, UPLOAD_TIMEOUT_MS } from "@/lib/api";
-import { getSessionUser, getToken } from "@/lib/auth";
+import { getSessionUser, getToken, hasRealSession } from "@/lib/auth";
+
+const ALMATY_OFFSET_MS = 5 * 60 * 60 * 1000;
+
+function almatyDateParts(d = new Date(), offsetDays = 0) {
+  const shifted = new Date(d.getTime() + ALMATY_OFFSET_MS + offsetDays * 86_400_000);
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+    hours: shifted.getUTCHours(),
+    minutes: shifted.getUTCMinutes(),
+  };
+}
 
 export type SportType = "Футбол" | "Баскетбол" | "Теннис" | "Волейбол" | "Сквош и падл" | "Хоккей" | "Другое";
 
@@ -1007,7 +1020,7 @@ export async function getStoredArenas(params?: {
     if (params?.sport) query.set("sport", params.sport);
     const qs = query.toString();
     const res = await apiFetch<{ arenas: any[] }>(`/arenas${qs ? `?${qs}` : ""}`);
-    if (res?.arenas && Array.isArray(res.arenas) && res.arenas.length > 0) {
+    if (res?.arenas && Array.isArray(res.arenas)) {
       const mapped: Arena[] = res.arenas.map((a: any) => ({
         id: a.id,
         ownerId: a.ownerId ?? a.owner_id ?? 0,
@@ -1032,7 +1045,9 @@ export async function getStoredArenas(params?: {
         longitude: a.longitude ?? a.lng,
         venueType: a.venue_type ?? "complex",
       }));
-      await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(mapped));
+      if (!qs) {
+        await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(mapped));
+      }
       return mapped;
     }
   } catch {
@@ -1042,27 +1057,10 @@ export async function getStoredArenas(params?: {
   try {
     const raw = await AsyncStorage.getItem(ARENAS_KEY);
     if (raw) {
-      let parsed: Arena[] = JSON.parse(raw);
-      // Ensure coordinates from INITIAL_ARENAS are attached
-      parsed = parsed.map((item) => {
-        const init = INITIAL_ARENAS.find((ia) => ia.id === item.id);
-        return {
-          ...item,
-          latitude: item.latitude || init?.latitude,
-          longitude: item.longitude || init?.longitude,
-        };
-      });
-      const existingIds = new Set(parsed.map((a) => a.id));
-      const missing = INITIAL_ARENAS.filter((a) => !existingIds.has(a.id));
-      if (missing.length > 0) {
-        const merged = [...parsed, ...missing];
-        await AsyncStorage.setItem(ARENAS_KEY, JSON.stringify(merged));
-        return merged;
-      }
-      return parsed;
+      return JSON.parse(raw) as Arena[];
     }
   } catch {}
-  return INITIAL_ARENAS;
+  return [];
 }
 
 export async function getStoredHalls(params?: {
@@ -1077,7 +1075,7 @@ export async function getStoredHalls(params?: {
     if (params?.q) query.set("q", params.q);
     const qs = query.toString();
     const res = await apiFetch<{ halls: any[] }>(`/halls${qs ? `?${qs}` : ""}`);
-    if (res?.halls && Array.isArray(res.halls) && res.halls.length > 0) {
+    if (res?.halls && Array.isArray(res.halls)) {
       const mapped: Hall[] = res.halls.map((h: any) => ({
         id: h.id,
         arenaId: h.arenaId ?? h.arena_id,
@@ -1100,7 +1098,9 @@ export async function getStoredHalls(params?: {
         rating: h.rating ?? 0,
         reviewsCount: h.reviewsCount ?? h.reviews_count ?? 0,
       }));
-      await AsyncStorage.setItem(HALLS_KEY, JSON.stringify(mapped));
+      if (!qs) {
+        await AsyncStorage.setItem(HALLS_KEY, JSON.stringify(mapped));
+      }
       return mapped;
     }
   } catch {
@@ -1110,18 +1110,10 @@ export async function getStoredHalls(params?: {
   try {
     const raw = await AsyncStorage.getItem(HALLS_KEY);
     if (raw) {
-      const parsed: Hall[] = JSON.parse(raw);
-      const existingIds = new Set(parsed.map((h) => h.id));
-      const missing = INITIAL_HALLS.filter((h) => !existingIds.has(h.id));
-      if (missing.length > 0) {
-        const merged = [...parsed, ...missing];
-        await AsyncStorage.setItem(HALLS_KEY, JSON.stringify(merged));
-        return merged;
-      }
-      return parsed;
+      return JSON.parse(raw) as Hall[];
     }
   } catch {}
-  return INITIAL_HALLS;
+  return [];
 }
 
 export type ArenaWithHalls = Arena & {
@@ -1255,7 +1247,7 @@ export async function getStoredBookings(arenaId?: number): Promise<Booking[]> {
     const res = await apiFetch<{ bookings: any[] }>(
       `/bookings${arenaId ? `?arena_id=${arenaId}` : ""}`
     );
-    if (res?.bookings && Array.isArray(res.bookings) && res.bookings.length > 0) {
+    if (res?.bookings && Array.isArray(res.bookings)) {
       const mapped: Booking[] = res.bookings.map(mapApiBooking);
       await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(mapped));
       return mapped;
@@ -1266,12 +1258,11 @@ export async function getStoredBookings(arenaId?: number): Promise<Booking[]> {
     const raw = await AsyncStorage.getItem(BOOKINGS_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
-  return INITIAL_BOOKINGS;
+  return [];
 }
 
 export async function getMyBookings(): Promise<Booking[]> {
-  const user = getSessionUser();
-  if (!user || user.role === "guest") return [];
+  if (!hasRealSession()) return [];
   const token = await getToken();
   if (!token) return [];
 
@@ -1283,37 +1274,28 @@ export async function getMyBookings(): Promise<Booking[]> {
 }
 
 export async function saveNewBooking(booking: Omit<Booking, "id" | "createdAt">): Promise<Booking> {
-  let created: Booking = {
-    ...booking,
-    id: `SR-${Math.floor(100 + Math.random() * 900)}`,
-    createdAt: new Date().toISOString(),
-  };
-
-  try {
-    const res = await apiFetch<any>("/bookings", {
-      method: "POST",
-      body: JSON.stringify({
-        hall_id: booking.hallId,
-        arena_id: booking.arenaId,
-        client_name: booking.clientName,
-        client_phone: booking.clientPhone,
-        booking_date: booking.date,
-        time_slot: booking.timeSlot,
-        duration_minutes: booking.durationMinutes,
-        total_price: booking.totalPrice,
-      }),
-    });
-    if (res && (res.id || res.booking_code)) {
-      created = {
-        ...booking,
-        id: res.booking_code || String(res.id),
-        createdAt: res.created_at || new Date().toISOString(),
-      };
-    }
-  } catch {
-    // Saved locally in AsyncStorage
-  }
-
+  const res = await apiFetch<any>("/bookings", {
+    method: "POST",
+    body: JSON.stringify({
+      hall_id: booking.hallId,
+      arena_id: booking.arenaId,
+      client_name: booking.clientName,
+      client_phone: booking.clientPhone,
+      booking_date: booking.date,
+      time_slot: booking.timeSlot,
+      duration_minutes: booking.durationMinutes,
+      total_price: booking.totalPrice,
+    }),
+  });
+  const created: Booking =
+    res && (res.id || res.booking_code)
+      ? mapApiBooking(res)
+      : {
+          ...booking,
+          id: `SR-${Math.floor(100 + Math.random() * 900)}`,
+          createdAt: new Date().toISOString(),
+        };
+  invalidateHallSlotsCache(created.hallId);
   const current = await getStoredBookings();
   const updated = [created, ...current.filter((b) => b.id !== created.id)];
   await AsyncStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
@@ -1416,6 +1398,7 @@ export async function updateBookingStatus(
     method: "PATCH",
     body: JSON.stringify({ status, reason: reason ?? "" }),
   });
+  invalidateHallSlotsCache(booking.hallId);
   return mapApiBooking(res);
 }
 
@@ -1437,6 +1420,7 @@ export async function rescheduleBooking(
       duration_minutes: data.durationMinutes,
     }),
   });
+  invalidateHallSlotsCache(booking.hallId);
   return mapApiBooking(res);
 }
 
@@ -1681,13 +1665,17 @@ export type HallNearestSlots = {
 const nearestSlotsCache = new Map<number, { expiresAt: number; data: HallNearestSlots }>();
 const NEAREST_SLOTS_TTL_MS = 60_000;
 
+export function invalidateHallSlotsCache(hallId?: number): void {
+  if (hallId != null) {
+    nearestSlotsCache.delete(hallId);
+  } else {
+    nearestSlotsCache.clear();
+  }
+}
+
 function formatLocalDateISO(offsetDays = 0): string {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  const { year, month, day } = almatyDateParts(new Date(), offsetDays);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 export async function getHallNearestSlots(hallId: number): Promise<HallNearestSlots | null> {
@@ -1750,14 +1738,14 @@ export async function createHallBooking(data: {
       notes: data.notes ?? "",
     }),
   });
+  invalidateHallSlotsCache(data.hallId);
   return mapApiBooking(b);
 }
 
-// Local calendar date as YYYY-MM-DD.
+// Almaty (UTC+5) calendar date as YYYY-MM-DD matching the backend venue clock.
 export function isoDate(d: Date): string {
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
+  const { year, month, day } = almatyDateParts(d, 0);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 // The signed-in user's nearest booking today: ongoing, or starting within
@@ -1775,10 +1763,12 @@ export type ActiveBooking = {
 };
 
 export async function getMyActiveBooking(): Promise<ActiveBooking | null> {
+  if (!hasRealSession()) return null;
   const res = await apiFetch<{ bookings: any[] }>("/bookings?my=true");
   const now = new Date();
   const today = isoDate(now);
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const { hours, minutes } = almatyDateParts(now, 0);
+  const nowMin = hours * 60 + minutes;
   const toMin = (t: string) => {
     const [h, m] = String(t || "").split(":").map(Number);
     return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : NaN;

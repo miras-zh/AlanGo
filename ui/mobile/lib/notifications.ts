@@ -60,54 +60,29 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
 ];
 
 export async function getNotifications(limit?: number, offset?: number): Promise<NotificationList> {
-  try {
-    const res = await api.get<NotificationList>("/api/notifications", {
-      params: { limit, offset },
-    });
-    if (res.data?.items && res.data.items.length > 0) {
-      res.data.items = res.data.items.map((i) => ({
+  const res = await api.get<NotificationList>("/api/notifications", {
+    params: { limit, offset },
+  });
+  const items = Array.isArray(res.data?.items)
+    ? res.data.items.map((i) => ({
         ...i,
         is_read: i.is_read ?? i.read,
-      }));
-      return res.data;
-    }
-  } catch {
-    // fallback to mock
-  }
-
+      }))
+    : [];
   return {
-    items: MOCK_NOTIFICATIONS,
-    unread_count: MOCK_NOTIFICATIONS.filter((i) => !i.is_read).length,
+    items,
+    unread_count: res.data?.unread_count ?? items.filter((i) => !i.is_read).length,
   };
 }
 
 export const listNotifications = getNotifications;
 
 export async function markNotificationsRead(): Promise<void> {
-  try {
-    await api.post("/api/notifications/read");
-  } catch {
-    // fallback
-  }
-  MOCK_NOTIFICATIONS.forEach((n) => {
-    n.read = true;
-    n.is_read = true;
-  });
+  await api.post("/api/notifications/read");
 }
 
 export const markAllNotificationsRead = markNotificationsRead;
 
 export async function markNotificationRead(id?: number): Promise<void> {
-  try {
-    await api.post("/api/notifications/read", id ? { id } : {});
-  } catch {
-    // fallback
-  }
-  if (id) {
-    const item = MOCK_NOTIFICATIONS.find((n) => n.id === id);
-    if (item) {
-      item.read = true;
-      item.is_read = true;
-    }
-  }
+  await api.post("/api/notifications/read", id ? { id } : {});
 }

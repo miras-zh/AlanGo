@@ -525,7 +525,7 @@ export default function MapScreen() {
 
               <View style={styles.previewMetaRow}>
                 <View style={styles.ratingBadge}>
-                  <Ionicons name="star" size={13} color="#FBBF24" />
+                  <Ionicons name="star" size={13} color={c.warning} />
                   <Text style={styles.ratingText}>{selectedArena.rating.toFixed(1)}</Text>
                   <Text style={styles.reviewsCount}>({selectedArena.reviewsCount})</Text>
                 </View>
@@ -544,7 +544,7 @@ export default function MapScreen() {
                 }}
               >
                 <Text style={styles.bookBtnText}>{t("map.viewHalls")}</Text>
-                <Ionicons name="arrow-forward" size={15} color={c.background} />
+                <Ionicons name="arrow-forward" size={15} color={c.onPrimary} />
               </Pressable>
             </View>
           </View>
@@ -568,7 +568,7 @@ const createStyles = (c: Palette) =>
     paddingVertical: 10,
     backgroundColor: c.background,
     borderBottomWidth: 1,
-    borderBottomColor: "#18201B",
+    borderBottomColor: c.hairline,
   },
   backBtn: {
     width: 40,
@@ -631,7 +631,7 @@ const createStyles = (c: Palette) =>
     gap: 6,
     backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#202B24",
+    borderColor: c.border,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 12,
@@ -646,7 +646,7 @@ const createStyles = (c: Palette) =>
     color: c.textSecondary,
   },
   filterChipTextActive: {
-    color: c.background,
+    color: c.onPrimary,
     fontWeight: "700",
   },
   mapContainer: {
@@ -687,7 +687,7 @@ const createStyles = (c: Palette) =>
   },
   webView: {
     flex: 1,
-    backgroundColor: "#e5e3df",
+    backgroundColor: c.background,
   },
   previewCard: {
     position: "absolute",
@@ -697,7 +697,7 @@ const createStyles = (c: Palette) =>
     backgroundColor: c.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#223128",
+    borderColor: c.border,
     padding: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
@@ -787,6 +787,6 @@ const createStyles = (c: Palette) =>
   bookBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
 });

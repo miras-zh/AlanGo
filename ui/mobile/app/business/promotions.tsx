@@ -95,7 +95,7 @@ export default function BusinessPromotionsScreen() {
                   { backgroundColor: p.bannerGradient[0] },
                 ]}
               >
-                <Ionicons name={p.icon as any} size={22} color={c.textPrimary} />
+                <Ionicons name={p.icon as any} size={22} color={c.onImage} />
               </View>
               <View style={styles.promoMeta}>
                 <View style={styles.row}>
@@ -153,7 +153,7 @@ const createStyles = (c: Palette) =>
   StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#0d1310",
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -162,7 +162,7 @@ const createStyles = (c: Palette) =>
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#1e2922",
+    borderBottomColor: c.hairline,
   },
   backBtn: {
     width: 40,
@@ -183,11 +183,11 @@ const createStyles = (c: Palette) =>
   },
   infoBanner: {
     flexDirection: "row",
-    backgroundColor: "#13231a",
+    backgroundColor: c.surface,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#1e3d2a",
+    borderColor: c.border,
     gap: 12,
     marginBottom: 20,
   },
@@ -259,7 +259,7 @@ const createStyles = (c: Palette) =>
   conditionBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1b2520",
+    backgroundColor: c.surfaceElevated,
     padding: 10,
     borderRadius: 10,
     gap: 8,
@@ -277,7 +277,7 @@ const createStyles = (c: Palette) =>
     justifyContent: "space-between",
   },
   badgeWrap: {
-    backgroundColor: "#1e3a2b",
+    backgroundColor: c.primarySoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -293,7 +293,7 @@ const createStyles = (c: Palette) =>
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#2d4234",
+    borderColor: c.border,
   },
   codeText: {
     color: c.textSecondary,

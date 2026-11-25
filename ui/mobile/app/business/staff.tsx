@@ -167,7 +167,7 @@ export default function BusinessStaffScreen() {
             setModalOpen(true);
           }}
         >
-          <Ionicons name="add" size={18} color={c.background} />
+          <Ionicons name="add" size={18} color={c.onPrimary} />
           <Text style={styles.addBtnText}>{t("common.add")}</Text>
         </Pressable>
       </View>
@@ -401,7 +401,7 @@ const createStyles = (c: Palette) =>
   addBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
   centerWrap: {
     flex: 1,
@@ -623,7 +623,7 @@ const createStyles = (c: Palette) =>
   submitBtnText: {
     fontSize: 15,
     fontWeight: "800",
-    color: c.background,
+    color: c.onPrimary,
   },
   emptyWrap: {
     alignItems: "center",

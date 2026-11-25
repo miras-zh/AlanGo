@@ -278,7 +278,7 @@ export function SportSearchFiltersModal({
                       <Ionicons
                         name={active ? "checkbox" : "square-outline"}
                         size={22}
-                        color={active ? c.primary : "#4A5851"}
+                        color={active ? c.primary : c.textMuted}
                       />
                     </Pressable>
                   );
@@ -295,7 +295,7 @@ export function SportSearchFiltersModal({
                   ? t("filters.showCount", { count: matchedCount })
                   : t("filters.show")}
               </Text>
-              <Ionicons name="arrow-forward" size={18} color={c.background} />
+              <Ionicons name="arrow-forward" size={18} color={c.onPrimary} />
             </Pressable>
           </View>
         </SafeAreaView>
@@ -345,7 +345,7 @@ const createStyles = (c: Palette) =>
     borderRadius: 10,
   },
   countBadgeText: {
-    color: c.background,
+    color: c.onPrimary,
     fontSize: 12,
     fontWeight: "700",
   },
@@ -430,7 +430,7 @@ const createStyles = (c: Palette) =>
     borderRadius: 14,
     backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#202C26",
+    borderColor: c.border,
   },
   amenityRowActive: {
     borderColor: "rgba(34, 197, 94, 0.4)",
@@ -469,7 +469,7 @@ const createStyles = (c: Palette) =>
     borderRadius: 16,
   },
   applyBtnText: {
-    color: c.background,
+    color: c.onPrimary,
     fontSize: 16,
     fontWeight: "700",
   },

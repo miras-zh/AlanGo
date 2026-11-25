@@ -364,7 +364,7 @@ const createStyles = (c: Palette) =>
   },
   saveText: {
     ...typography.button,
-    color: c.background,
+    color: c.onPrimary,
   },
   pressed: {
     opacity: 0.6,

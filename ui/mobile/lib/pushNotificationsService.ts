@@ -2,18 +2,6 @@ import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import { tr } from "@/lib/i18n";
 
-// Ensure handler is set
-if (Platform.OS !== "web") {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
-}
-
 export async function requestNotificationPermissions(): Promise<boolean> {
   if (Platform.OS === "web") return false;
   try {

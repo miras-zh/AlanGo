@@ -711,7 +711,7 @@ const createStyles = (c: Palette) =>
     width: 78,
     height: 78,
     borderRadius: 10,
-    backgroundColor: "#1E2621",
+    backgroundColor: c.surfaceElevated,
     marginRight: 12,
   },
   hallInfo: {
@@ -815,7 +815,7 @@ const createStyles = (c: Palette) =>
     color: c.primary,
   },
   badgeTextPending: {
-    color: "#EAB308",
+    color: c.warning,
   },
   bookingDetails: {
     gap: 4,
@@ -859,7 +859,7 @@ const createStyles = (c: Palette) =>
   confirmBtnText: {
     fontSize: 11,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
 });
 

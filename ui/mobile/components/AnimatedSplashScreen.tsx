@@ -300,7 +300,7 @@ export function AnimatedSplashScreen({
               <MaterialCommunityIcons
                 name="soccer"
                 size={36}
-                color={c.background}
+                color={c.onPrimary}
               />
             </View>
           </Animated.View>

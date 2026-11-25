@@ -301,10 +301,10 @@ export function ManualBookingModal({
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color={c.background} />
+                <ActivityIndicator color={c.onPrimary} />
               ) : (
                 <>
-                  <Ionicons name="checkmark-done" size={20} color={c.background} />
+                  <Ionicons name="checkmark-done" size={20} color={c.onPrimary} />
                   <Text style={styles.submitBtnText}>{t("manual.submit")}</Text>
                 </>
               )}
@@ -445,7 +445,7 @@ const createStyles = (c: Palette) =>
     fontWeight: "600",
   },
   dateChipTextActive: {
-    color: c.background,
+    color: c.onPrimary,
     fontWeight: "700",
   },
   slotsWrap: {
@@ -556,7 +556,7 @@ const createStyles = (c: Palette) =>
     borderRadius: 16,
   },
   submitBtnText: {
-    color: c.background,
+    color: c.onPrimary,
     fontSize: 16,
     fontWeight: "700",
   },

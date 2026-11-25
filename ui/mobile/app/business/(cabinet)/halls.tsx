@@ -332,7 +332,7 @@ export default function BusinessHallsScreen() {
           </Text>
         </View>
         <Pressable style={styles.addBtn} onPress={openCreateModal}>
-          <Ionicons name="add" size={20} color={c.background} />
+          <Ionicons name="add" size={20} color={c.onPrimary} />
           <Text style={styles.addBtnText}>{t("common.add")}</Text>
         </Pressable>
       </View>
@@ -360,7 +360,7 @@ export default function BusinessHallsScreen() {
                 {t("bizHalls.emptyText")}
               </Text>
               <Pressable style={styles.emptyBtn} onPress={openCreateModal}>
-                <Ionicons name="add" size={18} color={c.background} />
+                <Ionicons name="add" size={18} color={c.onPrimary} />
                 <Text style={styles.emptyBtnText}>{t("bizHalls.addHall")}</Text>
               </Pressable>
             </View>
@@ -743,7 +743,7 @@ export default function BusinessHallsScreen() {
                 disabled={saving || photoBusy}
               >
                 {saving ? (
-                  <ActivityIndicator color={c.background} />
+                  <ActivityIndicator color={c.onPrimary} />
                 ) : (
                   <Text style={styles.saveBtnText}>
                     {isEditing ? t("account.saveChanges") : t("bizHalls.create")}
@@ -803,7 +803,7 @@ const createStyles = (c: Palette) =>
   addBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
   list: {
     padding: 16,
@@ -928,7 +928,7 @@ const createStyles = (c: Palette) =>
   },
   emptyBtnText: {
     ...typography.button,
-    color: c.background,
+    color: c.onPrimary,
   },
   card: {
     backgroundColor: c.surface,
@@ -1217,7 +1217,7 @@ const createStyles = (c: Palette) =>
   saveBtnText: {
     fontSize: 15,
     fontWeight: "800",
-    color: c.background,
+    color: c.onPrimary,
   },
 });
 

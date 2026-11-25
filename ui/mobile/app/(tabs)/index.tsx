@@ -3,7 +3,6 @@ import {
   Animated,
   Dimensions,
   Image,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -17,15 +16,14 @@ import {
 } from "react-native";
 import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { listPublicItems, ItemEntity } from "@/lib/items";
-import { ArenaWithHalls, getArenasWithHalls } from "@/lib/sportRentData";
-import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
+import { ArenaWithHalls, getArenasWithHalls, Hall } from "@/lib/sportRentData";
+import { getFavoriteHallIds, toggleFavoriteHallId } from "@/lib/favorites";
+import { hapticImpact, hapticSelection } from "@/lib/haptics";
 import { getSelectedCity, subscribeCityChange } from "@/lib/cities";
-import { formatNumber, useT, type MessageKey } from "@/lib/i18n";
-import { categoryLabel, cityLabel, dayMonth, sportLabel, weekdayShort } from "@/lib/dataLabels";
+import { formatNumber, useT } from "@/lib/i18n";
+import { categoryLabel, cityLabel, sportLabel } from "@/lib/dataLabels";
 import { CityPickerModal } from "@/components/CityPickerModal";
 import { LiveMatchIsland } from "@/components/LiveMatchIsland";
 import { HomeBannerSlider } from "@/components/HomeBannerSlider";
@@ -41,7 +39,6 @@ import { cardShadow, usePalette, useThemedStyles, type Palette } from "@/theme/p
 import { useAppTheme } from "@/theme/ThemeProvider";
 
 const { width } = Dimensions.get("window");
-const FAVORITES_STORAGE_KEY = "alango_user_favorites";
 
 export default function HomeScreen() {
   const t = useT();
@@ -49,7 +46,6 @@ export default function HomeScreen() {
   const { isDark } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const [items, setItems] = useState<ItemEntity[]>([]);
   const [arenas, setArenas] = useState<ArenaWithHalls[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,27 +59,19 @@ export default function HomeScreen() {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [sportFilters, setSportFilters] = useState<SportFilterState>(DEFAULT_FILTERS);
 
-  // Quick Booking Modal State
-  const [selectedHall, setSelectedHall] = useState<ItemEntity | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<string>("19:00 - 20:00");
-  // Day offset from today in the quick-booking modal.
-  const [selectedDate, setSelectedDate] = useState<number>(0);
-
   useEffect(() => {
     getSelectedCity().then(setCurrentCity);
     const unsubscribe = subscribeCityChange((city) => {
       setCurrentCity(city);
     });
-    // Load favorites from local storage
-    AsyncStorage.getItem(FAVORITES_STORAGE_KEY).then((data) => {
-      if (data) {
-        try {
-          setFavorites(JSON.parse(data));
-        } catch {}
-      }
-    });
     return unsubscribe;
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      getFavoriteHallIds().then(setFavorites).catch(() => {});
+    }, []),
+  );
 
   const activeFiltersCount = useMemo(() => {
     let count =
@@ -96,23 +84,15 @@ export default function HomeScreen() {
 
   const loadHalls = useCallback(async () => {
     try {
-      const [res, loadedArenas] = await Promise.all([
-        listPublicItems({
-          category: selectedCategory === "all" ? undefined : selectedCategory,
-          q: searchQuery.trim() || undefined,
-          limit: 20,
-        }),
-        getArenasWithHalls(),
-      ]);
-      setItems(res.items || []);
+      const loadedArenas = await getArenasWithHalls();
       setArenas(loadedArenas);
     } catch {
-      // fallback handled in listPublicItems
+      // handled gracefully by keeping previous arenas
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedCategory, searchQuery]);
+  }, []);
 
   useEffect(() => {
     loadHalls();
@@ -184,66 +164,47 @@ export default function HomeScreen() {
     });
   }, [arenas, currentCity, selectedCategory, searchQuery, sportFilters]);
 
-  // Filtered Items (Individual halls)
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const itemCity =
-        item.metadata?.city ||
-        (item.metadata?.location ? String(item.metadata.location) : "");
-      if (
-        currentCity &&
-        itemCity &&
-        !itemCity.toLowerCase().includes(currentCity.toLowerCase())
-      ) {
-        return false;
-      }
-      if (sportFilters.sports.length > 0) {
-        const matchesSport = sportFilters.sports.some((sp) =>
-          item.category?.toLowerCase().includes(sp.toLowerCase())
-        );
-        if (!matchesSport) return false;
-      }
-      if (sportFilters.priceRange !== "all") {
-        const p = item.price || 0;
-        if (sportFilters.priceRange === "under10" && p > 10000) return false;
-        if (
-          sportFilters.priceRange === "10to20" &&
-          (p < 10000 || p > 20000)
-        )
-          return false;
-        if (sportFilters.priceRange === "above20" && p < 20000) return false;
-      }
-      return true;
-    });
-  }, [items, currentCity, sportFilters]);
+  // Real popular halls derived from filtered arenas (using actual hall IDs).
+  const popularHalls = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const list: Hall[] = filteredArenas.flatMap((arena) => arena.halls);
+    return list
+      .filter((hall) => {
+        if (selectedCategory !== "all") {
+          const catMatch =
+            hall.sportType.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+            (selectedCategory === "Футбол" && hall.sportType.toLowerCase().includes("мини-футбол")) ||
+            (selectedCategory === "Сквош и падл" &&
+              (hall.sportType.toLowerCase().includes("сквош") ||
+                hall.sportType.toLowerCase().includes("падл") ||
+                hall.sportType.toLowerCase().includes("падел")));
+          if (!catMatch) return false;
+        }
+        if (q) {
+          const hay = `${hall.title} ${hall.arenaTitle} ${hall.arenaAddress} ${hall.sportType}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        if (sportFilters.sports.length > 0) {
+          const matchesSport = sportFilters.sports.some((sp) =>
+            hall.sportType.toLowerCase().includes(sp.toLowerCase()),
+          );
+          if (!matchesSport) return false;
+        }
+        if (sportFilters.priceRange !== "all") {
+          const p = hall.pricePerHour || 0;
+          if (sportFilters.priceRange === "under10" && p > 10000) return false;
+          if (sportFilters.priceRange === "10to20" && (p < 10000 || p > 20000)) return false;
+          if (sportFilters.priceRange === "above20" && p < 20000) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.reviewsCount || 0) - (a.reviewsCount || 0));
+  }, [filteredArenas, selectedCategory, searchQuery, sportFilters]);
 
   const toggleFavorite = async (id: number) => {
     hapticSelection();
-    const nextFavs = favorites.includes(id)
-      ? favorites.filter((favId) => favId !== id)
-      : [...favorites, id];
+    const nextFavs = await toggleFavoriteHallId(id);
     setFavorites(nextFavs);
-    await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(nextFavs));
-  };
-
-  const dayOptionLabel = (offset: number) => {
-    if (offset === 0) return t("date.today");
-    if (offset === 1) return t("date.tomorrow");
-    const d = new Date();
-    d.setDate(d.getDate() + offset);
-    return `${weekdayShort(d.getDay(), t)}, ${dayMonth(d, t)}`;
-  };
-
-  const confirmBooking = () => {
-    if (!selectedHall) return;
-    hapticSuccess();
-    const hallTitle = selectedHall.title;
-    setSelectedHall(null);
-    appAlert(
-      t("home.bookedTitle"),
-      t("home.bookedText", { hall: hallTitle, date: dayOptionLabel(selectedDate), slot: selectedSlot }),
-      [{ text: t("home.great") }]
-    );
   };
 
   return (
@@ -531,8 +492,9 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.popularGrid}>
-            {filteredItems.slice(0, 4).map((hall) => {
+            {popularHalls.slice(0, 4).map((hall) => {
               const isFav = favorites.includes(hall.id);
+              const thumb = hall.imageUrl || hall.photos?.[0] || "";
               return (
                 <Pressable
                   key={hall.id}
@@ -542,8 +504,8 @@ export default function HomeScreen() {
                     router.push(`/hall/${hall.id}`);
                   }}
                 >
-                  {hall.image_url ? (
-                    <Image source={{ uri: hall.image_url }} style={styles.popularImage} />
+                  {thumb ? (
+                    <Image source={{ uri: thumb }} style={styles.popularImage} />
                   ) : (
                     <View style={[styles.popularImage, styles.popularImageEmpty]}>
                       <Ionicons name="layers-outline" size={22} color={c.textSecondary} />
@@ -561,7 +523,7 @@ export default function HomeScreen() {
                     <Ionicons
                       name={isFav ? "heart" : "heart-outline"}
                       size={14}
-                      color={isFav ? c.accent : c.textPrimary}
+                      color={isFav ? c.accent : c.onImage}
                     />
                   </Pressable>
                   <View style={styles.popularBody}>
@@ -569,11 +531,11 @@ export default function HomeScreen() {
                       {hall.title}
                     </Text>
                     <Text style={styles.popularMeta} numberOfLines={1}>
-                      {hall.category ? sportLabel(hall.category, t) : t("home.sportFallback")}
+                      {hall.sportType ? sportLabel(hall.sportType, t) : t("home.sportFallback")}
                     </Text>
-                    {hall.price ? (
+                    {hall.pricePerHour ? (
                       <Text style={styles.popularPrice}>
-                        {formatNumber(Number(hall.price))} ₸<Text style={styles.popularMeta}> {t("common.perHour")}</Text>
+                        {formatNumber(Number(hall.pricePerHour))} ₸<Text style={styles.popularMeta}> {t("common.perHour")}</Text>
                       </Text>
                     ) : null}
                   </View>
@@ -608,114 +570,6 @@ export default function HomeScreen() {
         </Pressable>
 
       </ScrollView>
-
-      {/* --- QUICK BOOKING MODAL --- */}
-      <Modal
-        visible={!!selectedHall}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setSelectedHall(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable
-            style={styles.modalBackdrop}
-            onPress={() => setSelectedHall(null)}
-          />
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle} numberOfLines={1}>
-                  {selectedHall?.title}
-                </Text>
-                <Text style={styles.modalSubtitle}>
-                  📍 {selectedHall?.metadata?.location || cityLabel(currentCity, t)}
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => setSelectedHall(null)}
-                style={styles.modalCloseBtn}
-              >
-                <Ionicons name="close" size={18} color={c.textPrimary} />
-              </Pressable>
-            </View>
-
-            {/* Date Selection */}
-            <Text style={styles.modalSectionLabel}>{t("home.chooseDay")}</Text>
-            <View style={styles.slotRow}>
-              {[0, 1, 2, 3].map((d) => (
-                <Pressable
-                  key={d}
-                  style={[
-                    styles.slotChip,
-                    selectedDate === d && styles.slotChipActive,
-                  ]}
-                  onPress={() => {
-                    hapticSelection();
-                    setSelectedDate(d);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.slotChipText,
-                      selectedDate === d && styles.slotChipTextActive,
-                    ]}
-                  >
-                    {dayOptionLabel(d)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            {/* Time Slot Selection */}
-            <Text style={styles.modalSectionLabel}>{t("home.freeSlots")}</Text>
-            <View style={styles.slotRow}>
-              {[
-                "17:00 - 18:00",
-                "19:00 - 20:00",
-                "20:00 - 21:00",
-                "21:00 - 22:00",
-              ].map((s) => (
-                <Pressable
-                  key={s}
-                  style={[
-                    styles.slotChip,
-                    selectedSlot === s && styles.slotChipActive,
-                  ]}
-                  onPress={() => {
-                    hapticSelection();
-                    setSelectedSlot(s);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.slotChipText,
-                      selectedSlot === s && styles.slotChipTextActive,
-                    ]}
-                  >
-                    {s}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            {/* Modal Footer */}
-            <View style={styles.modalFooter}>
-              <View>
-                <Text style={styles.modalTotalLabel}>{t("home.bookingCost")}</Text>
-                <Text style={styles.modalTotalPrice}>
-                  {formatNumber((selectedHall?.price || 15000))} ₸
-                </Text>
-              </View>
-              <Pressable
-                style={styles.modalBookBtn}
-                onPress={confirmBooking}
-              >
-                <Text style={styles.modalBookBtnText}>{t("common.book")}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* --- CITY PICKER MODAL --- */}
       <CityPickerModal
@@ -893,7 +747,7 @@ const createStyles = (c: Palette) =>
     borderRadius: 8,
   },
   promoBadgeText: {
-    color: c.background,
+    color: c.onPrimary,
     fontSize: 12,
     fontWeight: "800",
   },
@@ -1273,7 +1127,7 @@ const createStyles = (c: Palette) =>
   eventsActionBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
 
   // Modal
@@ -1379,6 +1233,6 @@ const createStyles = (c: Palette) =>
   modalBookBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
 });

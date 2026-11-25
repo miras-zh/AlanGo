@@ -202,7 +202,7 @@ export function BusinessAccountCard() {
           disabled={busy}
         >
           {busy ? (
-            <ActivityIndicator color={c.background} />
+            <ActivityIndicator color={c.onPrimary} />
           ) : (
             <Text style={styles.primaryBtnText}>{t("biz.enable")}</Text>
           )}
@@ -269,7 +269,7 @@ const createStyles = (c: Palette) =>
   },
   primaryBtnText: {
     ...typography.button,
-    color: c.background,
+    color: c.onPrimary,
   },
   secondaryBtn: {
     height: 46,

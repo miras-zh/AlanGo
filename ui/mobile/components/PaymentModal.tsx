@@ -375,12 +375,12 @@ const createStyles = (c: Palette) =>
     color: c.primary,
   },
   remainingDue: {
-    color: "#F59E0B",
+    color: c.warning,
   },
   overviewDivider: {
     width: 1,
     height: 28,
-    backgroundColor: "#2B3A30",
+    backgroundColor: c.border,
   },
   sectionLabel: {
     fontSize: 12,
@@ -398,9 +398,9 @@ const createStyles = (c: Palette) =>
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#1B2420",
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: "#28372D",
+    borderColor: c.border,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
@@ -415,7 +415,7 @@ const createStyles = (c: Palette) =>
     color: c.textSecondary,
   },
   presetBtnTextActive: {
-    color: c.background,
+    color: c.onPrimary,
     fontWeight: "700",
   },
   inputWrap: {
@@ -477,7 +477,7 @@ const createStyles = (c: Palette) =>
   statusBadgeTextPartial: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#F59E0B",
+    color: c.warning,
   },
   statusBadgeNotPaid: {
     backgroundColor: "rgba(239, 68, 68, 0.15)",
@@ -502,6 +502,6 @@ const createStyles = (c: Palette) =>
   saveBtnText: {
     fontSize: 15,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
 });

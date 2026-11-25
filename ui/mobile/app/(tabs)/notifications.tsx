@@ -22,6 +22,7 @@ import {
   getStoredDialogs,
   subscribeToChats,
 } from "@/lib/chatData";
+import { hasRealSession } from "@/lib/auth";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
@@ -44,7 +45,9 @@ export default function NotificationsScreen() {
     try {
       const [storedDialogs, res] = await Promise.all([
         getStoredDialogs(),
-        listNotifications(50, 0).catch(() => ({ items: [] as AppNotification[] })),
+        hasRealSession()
+          ? listNotifications(50, 0).catch(() => ({ items: [] as AppNotification[] }))
+          : Promise.resolve({ items: [] as AppNotification[] }),
       ]);
       setDialogs(storedDialogs);
       setItems(res.items ?? []);
@@ -366,7 +369,7 @@ const createStyles = (c: Palette) =>
   tabBadgeCountText: {
     fontSize: 10,
     fontWeight: "800",
-    color: c.background,
+    color: c.onPrimary,
   },
   readAllText: {
     fontSize: 12,
@@ -448,7 +451,7 @@ const createStyles = (c: Palette) =>
   unreadText: {
     fontSize: 11,
     fontWeight: "800",
-    color: c.background,
+    color: c.onPrimary,
   },
   notifCard: {
     flexDirection: "row",

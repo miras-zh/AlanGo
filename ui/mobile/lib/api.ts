@@ -4,6 +4,8 @@ import {
   clearSession,
   getRefreshToken,
   getToken,
+  hasRealSession,
+  isMockToken,
   setRefreshToken,
   setToken,
 } from "@/lib/auth";
@@ -42,18 +44,24 @@ export async function apiFetch<T = unknown>(
     }
   }
 
-  const res = await api.request<T>({
+  const config: RetriableConfig = {
     url,
     method: options.method || "GET",
     data,
     headers: options.headers,
-  });
+    _skipAuth: options.skipAuth,
+  } as RetriableConfig;
+  const res = await api.request<T>(config);
   return res.data;
 }
 
 api.interceptors.request.use(async (config) => {
+  const reqConfig = config as RetriableConfig;
+  if (reqConfig._skipAuth) {
+    return config;
+  }
   const token = await getToken();
-  if (token) {
+  if (token && !isMockToken(token)) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -65,7 +73,7 @@ async function refreshAccessToken(): Promise<string> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       const refreshToken = await getRefreshToken();
-      if (!refreshToken) {
+      if (!refreshToken || isMockToken(refreshToken)) {
         throw new Error("no refresh token");
       }
       const res = await axios.post<{ token: string; refresh_token?: string }>(
@@ -87,6 +95,7 @@ async function refreshAccessToken(): Promise<string> {
 
 interface RetriableConfig extends InternalAxiosRequestConfig {
   _retried?: boolean;
+  _skipAuth?: boolean;
 }
 
 api.interceptors.response.use(
@@ -99,8 +108,9 @@ api.interceptors.response.use(
       config?.url === "/api/auth/refresh" ||
       config?.url === "/api/auth/apple" ||
       config?.url === "/api/auth/google";
+    const canRefresh = hasRealSession() && !config?._skipAuth;
 
-    if (status === 401 && config && !config._retried && !isAuthEndpoint) {
+    if (status === 401 && config && !config._retried && !isAuthEndpoint && canRefresh) {
       config._retried = true;
       try {
         const token = await refreshAccessToken();
@@ -108,12 +118,14 @@ api.interceptors.response.use(
         config.headers.Authorization = `Bearer ${token}`;
         return api(config);
       } catch {
-        await clearSession();
+        if (hasRealSession()) {
+          await clearSession();
+        }
         return Promise.reject(error);
       }
     }
 
-    if (status === 401 && (!isAuthEndpoint || config?.url === "/api/auth/refresh")) {
+    if (status === 401 && hasRealSession() && (!isAuthEndpoint || config?.url === "/api/auth/refresh") && !config?._skipAuth) {
       await clearSession();
     }
     return Promise.reject(error);

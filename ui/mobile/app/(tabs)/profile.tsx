@@ -13,7 +13,7 @@ import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { getSessionUser, subscribeAuth, updateSessionUser } from "@/lib/auth";
+import { getSessionUser, hasRealSession, subscribeAuth, updateSessionUser } from "@/lib/auth";
 import { EMPTY_STATS, fetchMyStats, uploadAvatar, type MyStats } from "@/lib/user";
 import { pickErrorTitle, pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
 import { AvatarCropModal } from "@/components/AvatarCropModal";
@@ -84,7 +84,7 @@ export default function ProfileScreen() {
   // opened. A new account shows 0 games, 0 h and the starting rating 5.0.
   useFocusEffect(
     useCallback(() => {
-      if (!getSessionUser()) return;
+      if (!hasRealSession()) return;
       fetchMyStats()
         .then(setStats)
         .catch(() => {});
@@ -130,7 +130,7 @@ export default function ProfileScreen() {
                   router.push("/login");
                 }}
               >
-                <Ionicons name="log-in-outline" size={20} color={c.background} />
+                <Ionicons name="log-in-outline" size={20} color={c.onPrimary} />
                 <Text style={styles.guestLoginBtnText}>{t("profile.guestButton")}</Text>
               </Pressable>
             </View>
@@ -163,7 +163,7 @@ export default function ProfileScreen() {
                   hitSlop={8}
                   style={styles.avatarEditBadge}
                 >
-                  <Ionicons name="pencil" size={12} color={c.background} />
+                  <Ionicons name="pencil" size={12} color={c.onPrimary} />
                 </Pressable>
               </View>
               <View style={styles.userInfo}>
@@ -328,7 +328,7 @@ const createStyles = (c: Palette) =>
   guestLoginBtnText: {
     fontSize: 15,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
 
   // User Card
@@ -498,7 +498,7 @@ const createStyles = (c: Palette) =>
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#182B1F",
+    backgroundColor: c.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -516,9 +516,9 @@ const createStyles = (c: Palette) =>
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "rgba(245, 158, 11, 0.12)",
+    backgroundColor: c.warningSoft,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: c.warning,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -528,12 +528,12 @@ const createStyles = (c: Palette) =>
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#F59E0B",
+    backgroundColor: c.warning,
   },
   pendingRequestTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#F59E0B",
+    color: c.warning,
   },
   pendingRequestSub: {
     fontSize: 11,
@@ -550,17 +550,17 @@ const createStyles = (c: Palette) =>
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 12,
-    backgroundColor: "#19221C",
+    backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: "#253329",
+    borderColor: c.border,
   },
   planChipActive: {
-    backgroundColor: "#132E1D",
+    backgroundColor: c.primarySoft,
     borderColor: c.primary,
   },
   planChipPending: {
-    backgroundColor: "rgba(245, 158, 11, 0.08)",
-    borderColor: "#F59E0B",
+    backgroundColor: c.warningSoft,
+    borderColor: c.warning,
   },
   planNameWrap: {
     flexDirection: "row",
@@ -577,14 +577,14 @@ const createStyles = (c: Palette) =>
     fontWeight: "700",
   },
   planNamePending: {
-    color: "#FBBF24",
+    color: c.warning,
     fontWeight: "700",
   },
   pendingBadgeMini: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    backgroundColor: "rgba(245, 158, 11, 0.2)",
+    backgroundColor: c.warningSoft,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -592,7 +592,7 @@ const createStyles = (c: Palette) =>
   pendingBadgeMiniText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#F59E0B",
+    color: c.warning,
   },
   planPrice: {
     fontSize: 13,
@@ -603,21 +603,21 @@ const createStyles = (c: Palette) =>
     fontWeight: "700",
   },
   planPricePending: {
-    color: "#F59E0B",
+    color: c.warning,
     fontWeight: "700",
   },
   cancelRequestBtn: {
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    backgroundColor: c.warningSoft,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: c.warning,
   },
   cancelRequestBtnText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#F59E0B",
+    color: c.warning,
   },
 
   // Form
@@ -635,10 +635,10 @@ const createStyles = (c: Palette) =>
     marginTop: 8,
   },
   input: {
-    backgroundColor: "#19221C",
+    backgroundColor: c.surfaceElevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#253329",
+    borderColor: c.border,
     color: c.textPrimary,
     fontSize: 14,
     paddingHorizontal: 14,
@@ -654,7 +654,7 @@ const createStyles = (c: Palette) =>
   saveBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
   accountActionsCard: {
     backgroundColor: c.surface,

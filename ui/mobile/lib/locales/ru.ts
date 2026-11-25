@@ -1239,6 +1239,13 @@ export const ru = {
   "arena.hallsSingle": "Площадка",
   "arena.noPhoto": "Фото обложки пока не добавлено",
   "bizHalls.titleSingle": "Ваш зал",
+  "myBookings.cancelBtn": "Отменить бронь",
+  "myBookings.cancelTitle": "Отменить бронирование?",
+  "myBookings.cancelText": "Слот станет снова свободным для других игроков.",
+  "myBookings.cancelledSuccess": "Бронирование отменено",
+  "hall.notFound": "Зал не найден или снят с публикации",
+  "arena.notFound": "Спорткомплекс не найден",
+  "common.back": "Назад",
 };
 
 export type MessageKey = keyof typeof ru;

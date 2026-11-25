@@ -375,7 +375,7 @@ export default function ChatScreen() {
             <Ionicons
               name="arrow-up"
               size={18}
-              color={inputText.trim().length > 0 ? c.background : "#4B5563"}
+              color={inputText.trim().length > 0 ? c.onPrimary : c.textMuted}
             />
           </Pressable>
         </View>
@@ -410,7 +410,7 @@ const createStyles = (c: Palette) =>
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#1F2923",
+    backgroundColor: c.surfaceElevated,
   },
   onlineBadge: {
     position: "absolute",
@@ -503,14 +503,16 @@ const createStyles = (c: Palette) =>
     paddingVertical: 10,
   },
   bubbleMe: {
-    backgroundColor: "#166534",
+    backgroundColor: c.primarySoft,
     borderBottomRightRadius: 4,
+    borderWidth: 1,
+    borderColor: c.primary,
   },
   bubbleOther: {
-    backgroundColor: "#18201C",
+    backgroundColor: c.surface,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: c.subtle,
+    borderColor: c.border,
   },
   bubbleBot: {
     backgroundColor: c.surface,
@@ -548,7 +550,7 @@ const createStyles = (c: Palette) =>
     color: c.textPrimary,
   },
   msgTextOther: {
-    color: "#F3F4F6",
+    color: c.textPrimary,
   },
   bookingCardWidget: {
     backgroundColor: "rgba(0, 0, 0, 0.3)",
@@ -615,7 +617,7 @@ const createStyles = (c: Palette) =>
     fontSize: 10,
   },
   timeTextMe: {
-    color: "rgba(255, 255, 255, 0.7)",
+    color: c.textSecondary,
   },
   timeTextOther: {
     color: c.textMuted,
@@ -654,16 +656,16 @@ const createStyles = (c: Palette) =>
   promptChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#18201C",
+    backgroundColor: c.surface,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.25)",
+    borderColor: c.border,
   },
   promptChipText: {
     fontSize: 11,
-    color: "#E5E7EB",
+    color: c.textPrimary,
     fontWeight: "600",
   },
   inputContainer: {

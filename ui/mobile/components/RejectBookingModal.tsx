@@ -233,7 +233,7 @@ const createStyles = (c: Palette) =>
     borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#1E2722",
+    borderColor: c.border,
   },
   reasonRowActive: {
     borderColor: "rgba(239, 68, 68, 0.4)",

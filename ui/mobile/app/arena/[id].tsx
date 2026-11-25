@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   Linking,
@@ -21,8 +22,6 @@ import {
   getStoredHalls,
   getStoredSchedule,
   Hall,
-  INITIAL_ARENAS,
-  INITIAL_HALLS,
   ScheduleDay,
 } from "@/lib/sportRentData";
 import { hapticSelection } from "@/lib/haptics";
@@ -41,39 +40,86 @@ export default function ArenaDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [arena, setArena] = useState<Arena | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [halls, setHalls] = useState<Hall[]>([]);
   const [schedule, setSchedule] = useState<ScheduleDay[]>([]);
   const [hallSchedules, setHallSchedules] = useState<Record<number, ScheduleDay[]>>({});
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setNotFound(false);
     (async () => {
-      const arenas = await getStoredArenas();
-      const match = arenas.find((a) => String(a.id) === String(id)) || INITIAL_ARENAS[0];
-      setArena(match);
+      try {
+        const arenas = await getStoredArenas();
+        if (!active) return;
+        const match = arenas.find((a) => String(a.id) === String(id)) ?? null;
+        if (!match) {
+          setArena(null);
+          setNotFound(true);
+          return;
+        }
+        setArena(match);
 
-      const allHalls = await getStoredHalls();
-      const arenaHalls = allHalls.filter((h) => h.arenaId === match.id);
-      setHalls(arenaHalls);
+        const allHalls = await getStoredHalls();
+        if (!active) return;
+        const arenaHalls = allHalls.filter((h) => h.arenaId === match.id);
+        setHalls(arenaHalls);
 
-      const [sched, perHall] = await Promise.all([
-        getStoredSchedule(match.id),
-        Promise.all(
-          arenaHalls.map(async (h) => {
-            try {
-              const hs = await getHallSchedule(h.id);
-              return [h.id, hs] as const;
-            } catch {
-              return [h.id, [] as ScheduleDay[]] as const;
-            }
-          }),
-        ),
-      ]);
-      setSchedule(sched);
-      setHallSchedules(Object.fromEntries(perHall));
+        const [sched, perHall] = await Promise.all([
+          getStoredSchedule(match.id),
+          Promise.all(
+            arenaHalls.map(async (h) => {
+              try {
+                const hs = await getHallSchedule(h.id);
+                return [h.id, hs] as const;
+              } catch {
+                return [h.id, [] as ScheduleDay[]] as const;
+              }
+            }),
+          ),
+        ]);
+        if (!active) return;
+        setSchedule(sched);
+        setHallSchedules(Object.fromEntries(perHall));
+      } finally {
+        if (active) setLoading(false);
+      }
     })();
+    return () => {
+      active = false;
+    };
   }, [id]);
 
-  if (!arena) return null;
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { alignItems: "center", justifyContent: "center" }]} edges={["top"]}>
+        <ActivityIndicator size="large" color={c.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (notFound || !arena) {
+    return (
+      <SafeAreaView style={[styles.container, { alignItems: "center", justifyContent: "center", paddingHorizontal: 24, gap: 12 }]} edges={["top"]}>
+        <Ionicons name="alert-circle-outline" size={44} color={c.textMuted} />
+        <Text style={{ fontSize: 17, fontWeight: "700", color: c.textPrimary, textAlign: "center" }}>
+          {t("arena.notFound")}
+        </Text>
+        <Pressable
+          onPress={() => {
+            hapticSelection();
+            if (router.canGoBack()) router.back();
+            else router.replace("/(tabs)");
+          }}
+          style={{ backgroundColor: c.primary, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 14, marginTop: 4 }}
+        >
+          <Text style={{ fontSize: 14, fontWeight: "700", color: c.onPrimary }}>{t("common.back")}</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
   const handleCall = () => {
     hapticSelection();
@@ -372,7 +418,7 @@ const createStyles = (c: Palette) =>
   ratingText: {
     fontSize: 12,
     fontWeight: "700",
-    color: c.textPrimary,
+    color: c.onImage,
   },
   infoSection: {
     padding: 16,
@@ -449,11 +495,11 @@ const createStyles = (c: Palette) =>
     marginHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#13231a",
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#1e3d2a",
+    borderColor: c.border,
     gap: 12,
     marginBottom: 14,
   },
@@ -461,7 +507,7 @@ const createStyles = (c: Palette) =>
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#064e3b",
+    backgroundColor: c.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -526,7 +572,7 @@ const createStyles = (c: Palette) =>
     backgroundColor: c.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#243229",
+    borderColor: c.border,
     padding: 10,
     gap: 12,
   },

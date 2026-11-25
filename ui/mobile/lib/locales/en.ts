@@ -1236,4 +1236,11 @@ export const en: Record<MessageKey, string> = {
   "arena.hallsSingle": "Hall",
   "arena.noPhoto": "Cover photo not added yet",
   "bizHalls.titleSingle": "Your Hall",
+  "myBookings.cancelBtn": "Cancel booking",
+  "myBookings.cancelTitle": "Cancel booking?",
+  "myBookings.cancelText": "The slot will become available to other players again.",
+  "myBookings.cancelledSuccess": "Booking cancelled",
+  "hall.notFound": "Hall not found or unpublished",
+  "arena.notFound": "Sports complex not found",
+  "common.back": "Back",
 };

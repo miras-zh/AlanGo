@@ -1,0 +1,4 @@
+assets/templates/
+assets/*.pdf
+key/
+ios/build/

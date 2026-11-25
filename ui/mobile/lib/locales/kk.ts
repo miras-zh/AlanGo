@@ -1236,4 +1236,11 @@ export const kk: Record<MessageKey, string> = {
   "arena.hallsSingle": "Алаң",
   "arena.noPhoto": "Мұқаба суреті әлі қосылмаған",
   "bizHalls.titleSingle": "Сіздің залыңыз",
+  "myBookings.cancelBtn": "Броньнан бас тарту",
+  "myBookings.cancelTitle": "Броньнан бас тартасыз ба?",
+  "myBookings.cancelText": "Бұл уақыт басқа ойыншыларға қайта қолжетімді болады.",
+  "myBookings.cancelledSuccess": "Бронь жойылды",
+  "hall.notFound": "Зал табылмады немесе жарияланымнан алынды",
+  "arena.notFound": "Спорт кешені табылмады",
+  "common.back": "Артқа",
 };

@@ -4,6 +4,7 @@ import { apiFetch } from "./api";
 
 const FIRST_LAUNCH_KEY = "alango_first_launch_tracked";
 const FIRST_VALUE_KEY = "alango_first_value_tracked";
+const GUEST_ID_KEY = "alango_analytics_guest_id";
 
 export type FunnelEventName =
   | "app_install"
@@ -13,19 +14,50 @@ export type FunnelEventName =
   | "paywall_view"
   | "trial_start"
   | "subscribe"
-  | "store_click";
+  | "store_click"
+  | "item_view"
+  | "item_share";
+
+let cachedGuestId: string | null = null;
+
+async function getOrCreateGuestId(): Promise<string> {
+  if (cachedGuestId) return cachedGuestId;
+  try {
+    const existing = await AsyncStorage.getItem(GUEST_ID_KEY);
+    if (existing) {
+      cachedGuestId = existing;
+      return existing;
+    }
+    const generated = `m-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    await AsyncStorage.setItem(GUEST_ID_KEY, generated);
+    cachedGuestId = generated;
+    return generated;
+  } catch {
+    return "m-anonymous";
+  }
+}
 
 export async function trackEvent(
   event: FunnelEventName,
-  metadata?: Record<string, unknown>
+  metadata?: {
+    target_type?: string;
+    target_id?: number;
+    source?: string;
+    [key: string]: unknown;
+  },
 ): Promise<void> {
   try {
+    const deviceId = await getOrCreateGuestId();
     await apiFetch("/api/analytics/events", {
       method: "POST",
+      skipAuth: true,
       body: JSON.stringify({
-        event,
+        event_type: event,
+        target_type: metadata?.target_type ?? "",
+        target_id: typeof metadata?.target_id === "number" ? metadata.target_id : 0,
         platform: Platform.OS,
-        metadata: metadata || {},
+        source: metadata?.source ?? "",
+        device_id: deviceId,
       }),
     });
   } catch {
@@ -76,11 +108,20 @@ let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
 export function startOnlineHeartbeat(intervalMs = 60000) {
   stopOnlineHeartbeat();
-  const send = () => {
-    apiFetch("/analytics/heartbeat", {
-      method: "POST",
-      body: JSON.stringify({ platform: Platform.OS }),
-    }).catch(() => {});
+  const send = async () => {
+    try {
+      const guestId = await getOrCreateGuestId();
+      await apiFetch("/analytics/heartbeat", {
+        method: "POST",
+        body: JSON.stringify({
+          guest_id: guestId,
+          platform: Platform.OS,
+          path: "mobile",
+        }),
+      });
+    } catch {
+      // Non-blocking heartbeat
+    }
   };
   send();
   heartbeatTimer = setInterval(send, intervalMs);

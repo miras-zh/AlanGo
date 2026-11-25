@@ -1,5 +1,5 @@
 import { api, UPLOAD_TIMEOUT_MS } from "@/lib/api";
-import { clearRefreshToken, getRefreshToken, updateSessionUser } from "@/lib/auth";
+import { clearSession, getRefreshToken, hasRealSession, updateSessionUser } from "@/lib/auth";
 
 export type Me = {
   id: number;
@@ -29,22 +29,21 @@ export const MOCK_ME: Me = {
 };
 
 export async function getMe(): Promise<Me> {
-  try {
-    const res = await api.get<Me>("/api/auth/me");
-    if (res.data) return res.data;
-  } catch {
-    // fallback
-  }
-  return MOCK_ME;
+  const res = await api.get<Me>("/api/auth/me");
+  return res.data;
 }
 
 export async function logout(): Promise<void> {
-  const refreshToken = await getRefreshToken();
-  await api.put("/api/profile/push-token", { token: "" }).catch(() => {});
   try {
-    await api.post("/api/logout", refreshToken ? { refresh_token: refreshToken } : undefined);
+    if (hasRealSession()) {
+      const refreshToken = await getRefreshToken();
+      await api.put("/api/profile/push-token", { token: "" }).catch(() => {});
+      await api
+        .post("/api/logout", refreshToken ? { refresh_token: refreshToken } : {})
+        .catch(() => {});
+    }
   } finally {
-    await clearRefreshToken();
+    await clearSession();
   }
 }
 
@@ -52,7 +51,7 @@ export async function deleteMyAccount(): Promise<void> {
   try {
     await api.delete("/api/profile");
   } finally {
-    await clearRefreshToken();
+    await clearSession();
   }
 }
 
@@ -70,31 +69,13 @@ export async function updateMyProfile(data: ProfileUpdate): Promise<Me> {
     ...data,
     full_name: data.full_name || data.name,
   };
-  try {
-    const res = await api.patch<Me>("/api/profile", payload);
-    if (res.data) {
-      await updateSessionUser({
-        name: res.data.full_name,
-        phone: res.data.phone,
-        city: res.data.city,
-      });
-      return res.data;
-    }
-  } catch {
-    // fallback mock update
-  }
-  const updated: Me = {
-    ...MOCK_ME,
-    full_name: payload.full_name || MOCK_ME.full_name,
-    phone: payload.phone || MOCK_ME.phone,
-    city: payload.city || MOCK_ME.city,
-  };
+  const res = await api.patch<Me>("/api/profile", payload);
   await updateSessionUser({
-    name: updated.full_name,
-    phone: updated.phone,
-    city: updated.city,
+    name: res.data.full_name,
+    phone: res.data.phone,
+    city: res.data.city,
   });
-  return updated;
+  return res.data;
 }
 
 export type PendingSubscriptionRequest = {

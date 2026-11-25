@@ -146,7 +146,7 @@ export default function BusinessOnboardingScreen() {
     return (
       <SafeAreaView style={[styles.container, styles.congrats]}>
         <Animated.View style={[styles.congratsIcon, { transform: [{ scale: congratsScale }] }]}>
-          <Ionicons name="trophy" size={44} color={c.background} />
+          <Ionicons name="trophy" size={44} color={c.onPrimary} />
         </Animated.View>
         <Text style={styles.congratsTitle}>{t("onb.congrats")}</Text>
         <Text style={styles.congratsText}>{t("onb.congratsText", { title: title.trim() })}</Text>
@@ -250,7 +250,7 @@ export default function BusinessOnboardingScreen() {
                       style={[styles.chip, selected && styles.chipSelected]}
                     >
                       {selected ? (
-                        <Ionicons name="checkmark" size={14} color={c.background} />
+                        <Ionicons name="checkmark" size={14} color={c.onPrimary} />
                       ) : null}
                       <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{sportLabel(sport, t)}</Text>
                     </Pressable>
@@ -327,7 +327,7 @@ export default function BusinessOnboardingScreen() {
               style={[styles.primaryBtn, submitting && styles.disabled]}
             >
               {submitting ? (
-                <ActivityIndicator color={c.background} />
+                <ActivityIndicator color={c.onPrimary} />
               ) : (
                 <Text style={styles.primaryBtnText}>{t("onb.confirm")}</Text>
               )}
@@ -494,7 +494,7 @@ const createStyles = (c: Palette) =>
     color: c.textPrimary,
   },
   chipTextSelected: {
-    color: c.background,
+    color: c.onPrimary,
     fontWeight: "600",
   },
   searchBox: {
@@ -554,7 +554,7 @@ const createStyles = (c: Palette) =>
   primaryBtnText: {
     ...typography.button,
     fontSize: 16,
-    color: c.background,
+    color: c.onPrimary,
   },
   disabled: {
     opacity: 0.45,

@@ -11,25 +11,26 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { appAlert } from "@/lib/alert";
 import { radii, spacing, typography } from "@/constants/theme";
-import { hapticSelection } from "@/lib/haptics";
+import { getErrorMessage } from "@/lib/errorMessage";
+import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { formatNumber, useT } from "@/lib/i18n";
-import { getMyBookings, type Booking } from "@/lib/sportRentData";
+import {
+  getMyBookings,
+  isBookingFinished,
+  isoDate,
+  updateBookingStatus,
+  type Booking,
+} from "@/lib/sportRentData";
 import { displayDate } from "@/lib/dataLabels";
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 type FilterTab = "upcoming" | "history" | "all";
 
-function localTodayISO(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 function isUpcomingBooking(b: Booking, todayISO: string): boolean {
-  if (b.status === "cancelled" || b.status === "rejected") return false;
+  if (b.status === "cancelled" || b.status === "rejected" || b.status === "completed") return false;
+  if (isBookingFinished(b)) return false;
   if (!b.date || !/^\d{4}-\d{2}-\d{2}$/.test(b.date)) return true;
   return b.date >= todayISO;
 }
@@ -45,6 +46,7 @@ export default function MyBookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -67,7 +69,34 @@ export default function MyBookingsScreen() {
     }, [load]),
   );
 
-  const todayISO = useMemo(() => localTodayISO(), []);
+  const todayISO = useMemo(() => isoDate(new Date()), []);
+
+  const handleCancelBooking = (b: Booking) => {
+    if (!b.dbId || cancellingId) return;
+    hapticImpact();
+    appAlert(t("myBookings.cancelTitle"), t("myBookings.cancelText"), [
+      { text: t("common.no"), style: "cancel" },
+      {
+        text: t("myBookings.cancelBtn"),
+        style: "destructive",
+        onPress: async () => {
+          setCancellingId(b.id);
+          try {
+            const updated = await updateBookingStatus(b, "cancelled");
+            setBookings((prev) =>
+              prev.map((item) => (item.id === b.id ? { ...item, ...updated, status: "cancelled" } : item)),
+            );
+            hapticSuccess();
+            appAlert(t("common.success"), t("myBookings.cancelledSuccess"));
+          } catch (err) {
+            appAlert(t("common.error"), getErrorMessage(err));
+          } finally {
+            setCancellingId(null);
+          }
+        },
+      },
+    ]);
+  };
 
   const filtered = useMemo(() => {
     if (tab === "all") return bookings;
@@ -249,6 +278,33 @@ export default function MyBookingsScreen() {
                     {formatNumber(item.totalPrice || 0)} ₸
                   </Text>
                 </View>
+
+                {(item.status === "pending" || item.status === "confirmed") &&
+                !isBookingFinished(item) &&
+                item.dbId ? (
+                  <Pressable
+                    testID={`my-bookings-cancel-${item.id}`}
+                    style={({ pressed }) => [
+                      styles.cancelBtn,
+                      pressed && { opacity: 0.75 },
+                      cancellingId === item.id && { opacity: 0.5 },
+                    ]}
+                    disabled={cancellingId === item.id}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleCancelBooking(item);
+                    }}
+                  >
+                    {cancellingId === item.id ? (
+                      <ActivityIndicator size="small" color={c.error} />
+                    ) : (
+                      <>
+                        <Ionicons name="close-circle-outline" size={16} color={c.error} />
+                        <Text style={styles.cancelBtnText}>{t("myBookings.cancelBtn")}</Text>
+                      </>
+                    )}
+                  </Pressable>
+                ) : null}
               </Pressable>
             );
           }}
@@ -398,6 +454,23 @@ const createStyles = (c: Palette) =>
       fontSize: 15,
       fontWeight: "800",
       color: c.textPrimary,
+    },
+    cancelBtn: {
+      marginTop: spacing.sm,
+      paddingVertical: 9,
+      paddingHorizontal: 12,
+      borderRadius: radii.smallChip,
+      borderWidth: 1,
+      borderColor: c.error,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+    },
+    cancelBtnText: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: c.error,
     },
     center: {
       flex: 1,

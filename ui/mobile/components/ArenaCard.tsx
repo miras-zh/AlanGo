@@ -179,7 +179,7 @@ export function ArenaCard({ arena, isFavorite = false, onToggleFavorite, onPress
           </View>
           <View style={styles.cta}>
             <Text style={styles.ctaText}>{t("arenaCard.cta")}</Text>
-            <Ionicons name="arrow-forward" size={16} color={c.background} />
+            <Ionicons name="arrow-forward" size={16} color={c.onPrimary} />
           </View>
         </View>
       </View>
@@ -386,6 +386,6 @@ const createStyles = (c: Palette) =>
   },
   ctaText: {
     ...typography.button,
-    color: c.background,
+    color: c.onPrimary,
   },
 });

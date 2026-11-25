@@ -201,10 +201,11 @@ export async function getClientProfiles(arenaId: number): Promise<ClientProfile[
   const clientMap = new Map<string, ClientProfile>();
 
   for (const b of arenaBookings) {
-    const phone = b.clientPhone || "+7 (700) 000-00-00";
+    const rawPhone = b.clientPhone?.trim() || "";
+    const clientKey = rawPhone || `name:${(b.clientName || b.id).trim().toLowerCase()}`;
     // Only bookings that took place (or will) count as money spent.
     const spent = b.status === "confirmed" || b.status === "completed" ? b.totalPrice : 0;
-    const existing = clientMap.get(phone);
+    const existing = clientMap.get(clientKey);
 
     if (existing) {
       existing.totalBookings += 1;
@@ -213,10 +214,10 @@ export async function getClientProfiles(arenaId: number): Promise<ClientProfile[
         existing.lastBookingDate = b.date;
       }
     } else {
-      clientMap.set(phone, {
-        id: `client-${phone.replace(/[^\d]/g, "")}`,
+      clientMap.set(clientKey, {
+        id: rawPhone ? `client-${rawPhone.replace(/[^\d]/g, "")}` : `client-${b.id}`,
         name: b.clientName || tr("user.client"),
-        phone,
+        phone: rawPhone,
         totalBookings: 1,
         totalSpent: spent,
         lastBookingDate: b.date,

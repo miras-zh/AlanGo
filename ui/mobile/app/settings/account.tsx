@@ -165,7 +165,7 @@ export default function AccountSettingsScreen() {
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color={c.background} />
+                <ActivityIndicator color={c.onPrimary} />
               ) : (
                 <Text style={styles.saveBtnText}>{t("account.saveChanges")}</Text>
               )}
@@ -264,7 +264,7 @@ const createStyles = (c: Palette) =>
   },
   saveBtnText: {
     ...typography.button,
-    color: c.background,
+    color: c.onPrimary,
   },
   logoutBtn: {
     height: 50,

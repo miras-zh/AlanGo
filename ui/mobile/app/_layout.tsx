@@ -5,8 +5,9 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider, useAppTheme } from "@/theme/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n";
-import { hydrateSession } from "@/lib/auth";
+import { hasRealSession, hydrateSession, subscribeAuth } from "@/lib/auth";
 import { initPushNotifications } from "@/lib/push";
+import { connectRealtime, disconnectRealtime } from "@/lib/realtime";
 import { trackFirstLaunchOnce, startOnlineHeartbeat, stopOnlineHeartbeat } from "@/lib/analytics";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
 import { AppAlertHost } from "@/components/AppAlertHost";
@@ -19,15 +20,27 @@ function RootNavigator() {
 
   useEffect(() => {
     let mounted = true;
+    const syncSessionServices = () => {
+      if (!mounted) return;
+      if (hasRealSession()) {
+        initPushNotifications();
+        connectRealtime();
+      } else {
+        disconnectRealtime();
+      }
+    };
+    const unsubscribe = subscribeAuth(syncSessionServices);
     (async () => {
       await hydrateSession();
       if (!mounted) return;
       await trackFirstLaunchOnce();
-      await initPushNotifications();
+      syncSessionServices();
       startOnlineHeartbeat();
     })();
     return () => {
       mounted = false;
+      unsubscribe();
+      disconnectRealtime();
       stopOnlineHeartbeat();
     };
   }, []);

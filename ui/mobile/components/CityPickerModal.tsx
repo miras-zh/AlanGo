@@ -157,7 +157,7 @@ export function CityPickerModal({
             }}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Ionicons name="search-outline" size={32} color="#38433D" />
+                <Ionicons name="search-outline" size={32} color={c.textMuted} />
                 <Text style={styles.emptyText}>{t("cities.notFound")}</Text>
               </View>
             }
@@ -234,14 +234,14 @@ const createStyles = (c: Palette) =>
     borderRadius: 12,
     backgroundColor: c.surfaceElevated,
     borderWidth: 1,
-    borderColor: "#23332B",
+    borderColor: c.border,
   },
   topCityChipActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    backgroundColor: c.primarySoft,
     borderColor: c.primary,
   },
   topCityText: {
-    color: "#E2E8E4",
+    color: c.textPrimary,
     fontSize: 13,
     fontWeight: "600",
   },

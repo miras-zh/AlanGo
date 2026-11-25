@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { radii } from "@/constants/theme";
 
+import { useAppTheme } from "@/theme/ThemeProvider";
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
 
 function isBlurSupported(): boolean {
@@ -45,6 +46,8 @@ export function GlassSurface({
   pointerEvents,
 }: GlassSurfaceProps) {
   const c = usePalette();
+  const { themeName } = useAppTheme();
+  const isLight = themeName === "light";
   const styles = useThemedStyles(createStyles);
   const canBlur = isBlurSupported();
   const isSelected = variant === "selected";
@@ -70,7 +73,7 @@ export function GlassSurface({
       >
         {canBlur ? (
           <BlurView
-            tint="systemChromeMaterialDark"
+            tint={isLight ? "systemChromeMaterialLight" : "systemChromeMaterialDark"}
             intensity={Platform.OS === "android" ? Math.min(intensity, 40) : intensity}
             style={StyleSheet.absoluteFill}
           />
@@ -81,11 +84,7 @@ export function GlassSurface({
           style={[
             StyleSheet.absoluteFill,
             {
-              backgroundColor: isSelected
-                ? "rgba(0, 201, 104, 0.16)"
-                : canBlur
-                ? c.glassBackground
-                : c.glassBackground,
+              backgroundColor: isSelected ? c.primarySoft : c.glassBackground,
             },
           ]}
         />
@@ -97,9 +96,7 @@ export function GlassSurface({
             styles.borderOverlay,
             {
               borderRadius,
-              borderColor: isSelected
-                ? "rgba(0, 201, 104, 0.45)"
-                : c.subtle,
+              borderColor: isSelected ? c.primary : c.glassBorder,
             },
           ]}
         />

@@ -367,7 +367,7 @@ const createStyles = (c: Palette) =>
     alignItems: "center",
     marginTop: 10,
   },
-  primaryBtnText: { color: c.background, fontWeight: "700", fontSize: 16 },
+  primaryBtnText: { color: c.onPrimary, fontWeight: "700", fontSize: 16 },
   resendRow: {
     alignItems: "center",
     marginTop: 10,

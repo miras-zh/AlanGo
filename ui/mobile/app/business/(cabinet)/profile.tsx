@@ -25,7 +25,8 @@ import { AvatarCropModal } from "@/components/AvatarCropModal";
 import { radii, spacing } from "@/constants/theme";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { pickErrorTitle, pickImageAsJpeg, type PickedPhoto } from "@/lib/pickImage";
-import { clearSession, getSessionUser } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
+import { logoutCurrentSession } from "@/lib/registration";
 import {
   Arena,
   cacheArenaLogo,
@@ -384,7 +385,7 @@ export default function BusinessProfileScreen() {
         text: t("account.logout"),
         style: "destructive",
         onPress: async () => {
-          await clearSession();
+          await logoutCurrentSession();
           router.replace("/login");
         },
       },
@@ -441,7 +442,7 @@ export default function BusinessProfileScreen() {
                   </View>
                 ) : null}
                 <View style={styles.logoEditBadge}>
-                  <Ionicons name="camera" size={12} color={c.background} />
+                  <Ionicons name="camera" size={12} color={c.onPrimary} />
                 </View>
               </Pressable>
               <View style={styles.arenaIdentityText}>
@@ -1205,6 +1206,6 @@ const createStyles = (c: Palette) =>
   saveModalBtnText: {
     fontSize: 15,
     fontWeight: "800",
-    color: c.background,
+    color: c.onPrimary,
   },
 });

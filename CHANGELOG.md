@@ -9,6 +9,22 @@
 
 ## [Unreleased]
 
+### 📱 Аудит и исправления мобильного клиента `ui/mobile/` (2026-11-25)
+- **Сессии, безопасность и аналитика (`lib/auth.ts`, `lib/api.ts`, `lib/user.ts`, `lib/registration.ts`, `lib/analytics.ts`)**:
+  - Изолированы гостевые/демо-токены (`mock_jwt_token_*`): добавлены `isMockToken()` и `hasRealSession()`, `getToken()` больше не удаляет истёкший токен из хранилища, а `api.ts` не отправляет mock Bearer и не сбрасывает сессию при `401` без реальной авторизации (исправлен автосброс гостевых/staff-сессий в `LiveMatchIsland.tsx`, `(tabs)/profile.tsx`, `(tabs)/notifications.tsx`, `sportRentData.ts`).
+  - Унифицирован полный выход из аккаунта (`logout()` / `logoutCurrentSession()`): очистка `PUT /api/profile/push-token`, отзыв `refresh_token` через `POST /api/logout` и `clearSession()`; подключён также в бизнес-профиле (`app/business/(cabinet)/profile.tsx`).
+  - Исправлен контракт `lib/analytics.ts` под Go-бэкенд: `trackEvent` отправляет `event_type`, `target_type`, `target_id`, `source`, `device_id`; `startOnlineHeartbeat` передаёт постоянный `guest_id` и `path`.
+- **Реальные данные, Главная, отмена брони и таймзона (`app/(tabs)/index.tsx`, `app/hall/[id].tsx`, `app/arena/[id].tsx`, `app/my-bookings.tsx`, `lib/sportRentData.ts`, `lib/notifications.ts`)**:
+  - На Главной блок «Популярные залы» переведён с устаревшего `listPublicItems()` (`/api/items` и `MOCK_SPORT_VENUES`) на реальные залы из `getArenasWithHalls()`, убрана мёртвая модалка быстрого бронирования, а лайки объединены через единый `lib/favorites.ts` (`alango_favorite_halls`).
+  - Убрана тихая подмена на демо-объекты и моки: в `hall/[id].tsx` и `arena/[id].tsx` удалены фоллбэки на `INITIAL_HALLS[0]` / `INITIAL_ARENAS[0]` (добавлено состояние «не найдено» с кнопкой возврата); в `lib/user.ts`, `lib/notifications.ts` и `lib/sportRentData.ts` удалены подмены пустых списков/ошибок на `MOCK_ME`, `MOCK_NOTIFICATIONS`, `INITIAL_ARENAS`/`INITIAL_HALLS`/`INITIAL_BOOKINGS`; добавлена инвалидация `nearestSlotsCache` после бронирования/переноса/отмены.
+  - В `app/my-bookings.tsx` добавлена кнопка отмены активной брони клиентом (`PATCH /api/bookings/{id}/status` со статусом `cancelled`) и добавлены ключи локализации в `lib/locales/{ru,en,kk}.ts`.
+  - Календарные даты/проверки в `sportRentData.ts` (`isoDate`, `formatLocalDateISO`, `getMyActiveBooking`) и `my-bookings.tsx` переведены на время Астаны (`UTC+5`).
+- **Push, Realtime, CRM и Дизайн-система (`lib/push.ts`, `lib/pushNotificationsService.ts`, `lib/realtime.ts`, `app/_layout.tsx`, `components/GlassSurface.tsx`, экраны и компоненты)**:
+  - Удалена ссылка на отсутствующую зависимость `@react-native-firebase/messaging` в `push.ts`, устранён конфликт второго `setNotificationHandler` в `pushNotificationsService.ts`, добавлен guard от параллельной регистрации и привязка `initPushNotifications` / `connectRealtime` / `disconnectRealtime` к `subscribeAuth` в `_layout.tsx`; в `realtime.ts` устранено переподключение после `disconnectRealtime()`.
+  - В `income.tsx` и `clients.tsx` загрузки обёрнуты в `try/finally`, в `businessCrmData.ts` клиенты без телефона больше не сливаются под общим `+7 (700) 000-00-00`, в `business/(cabinet)/_layout.tsx` синхронизировано название первой вкладки с `_layout.ios.tsx` (`venueType === "single"`).
+  - Во всём UI заменены 65 некорректных foreground-токенов `c.background` поверх `c.primary` на `c.onPrimary`; экран `apple-name.tsx` и 70 захардкоженных dark HEX-цветов переведены на семантические токены `usePalette()`, в `GlassSurface.tsx` добавлена поддержка светлой темы (`systemChromeMaterialLight`), локализованы строки геолокации в `ios/AlanGo/Info.plist`, обновлён `scripts/build_testflight.sh` и добавлен `.easignore`.
+- **Проверено**: `./node_modules/.bin/tsc --noEmit` (0 ошибок), 100% паритет ключей локализации (`1241` ключ в `ru`/`en`/`kk`), `Remaining color c.background count: 0`.
+
 ### 🔒 Аудит и исправления безопасности, надёжности и бизнес-логики бэкенда (2026-11-24)
 - **Авторизация и маршрутизация (`internal/router/`, `internal/auth/`, `internal/subscription/`)**:
   - Подключён `auth.RequireAdminType` на `/api/admin/*`; эндпоинты `/api/admin/analytics/funnel|online|traffic` перенесены под админ-авторизацию, `/api/analytics/heartbeat` обёрнут в `optionalAuth`.

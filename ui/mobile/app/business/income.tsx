@@ -49,10 +49,15 @@ export default function BusinessIncomeScreen() {
       setRefreshing(false);
       return;
     }
-    const data = await calculateIncomeStats(arenaId, selectedPeriod);
-    setStats(data);
-    setLoading(false);
-    setRefreshing(false);
+    try {
+      const data = await calculateIncomeStats(arenaId, selectedPeriod);
+      setStats(data);
+    } catch {
+      // keep previous stats
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [arenaId, arenaLoading, selectedPeriod]);
 
   useEffect(() => {
@@ -199,8 +204,8 @@ export default function BusinessIncomeScreen() {
             </View>
 
             <View style={styles.kpiCard}>
-              <View style={[styles.kpiIcon, { backgroundColor: "rgba(234, 179, 8, 0.15)" }]}>
-                <Ionicons name="pie-chart" size={16} color="#EAB308" />
+              <View style={[styles.kpiIcon, { backgroundColor: c.warningSoft }]}>
+                <Ionicons name="pie-chart" size={16} color={c.warning} />
               </View>
               <Text style={styles.kpiValue}>{stats?.period === "all" ? "—" : `${stats?.utilizationRate ?? 0}%`}</Text>
               <Text style={styles.kpiTitle}>{t("income.utilization")}</Text>

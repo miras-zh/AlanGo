@@ -262,7 +262,7 @@ export default function BusinessScheduleScreen() {
           onPress={handleSave}
           disabled={saving || !hallId}
         >
-          <Ionicons name="checkmark-done" size={16} color={c.background} />
+          <Ionicons name="checkmark-done" size={16} color={c.onPrimary} />
           <Text style={styles.saveTopBtnText}>{t("common.save")}</Text>
         </Pressable>
       </View>
@@ -677,7 +677,7 @@ const createStyles = (c: Palette) =>
   saveTopBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
   scroll: {
     padding: 16,
@@ -951,7 +951,7 @@ const createStyles = (c: Palette) =>
   bigSaveBtnText: {
     fontSize: 15,
     fontWeight: "800",
-    color: c.background,
+    color: c.onPrimary,
   },
 });
 

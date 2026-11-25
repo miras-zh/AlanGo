@@ -19,7 +19,6 @@ import { KeyboardSheetView } from "@/components/KeyboardSheetView";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { radii, spacing, typography } from "@/constants/theme";
 import {
   createHallBooking,
@@ -29,15 +28,15 @@ import {
   Hall,
   HallAvailability,
   HallSlot,
-  INITIAL_HALLS,
   isoDate,
 } from "@/lib/sportRentData";
+import { getFavoriteHallIds, toggleFavoriteHallId } from "@/lib/favorites";
 import { getErrorMessage } from "@/lib/errorMessage";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { HallLayoutCard } from "@/components/HallLayoutCard";
 import { capacityLabel, sizeLabel } from "@/lib/hallOptions";
 import { surfaceLabel } from "@/lib/dataLabels";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, subscribeAuth } from "@/lib/auth";
 import { hapticImpact, hapticSelection, hapticSuccess } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
@@ -85,8 +84,6 @@ const REVIEWS_MOCK = [
   },
 ];
 
-const FAVORITES_STORAGE_KEY = "alango_favorite_halls";
-
 const HERO_HEIGHT = 270;
 
 export default function HallDetailScreen() {
@@ -98,6 +95,8 @@ export default function HallDetailScreen() {
   const router = useRouter();
 
   const [hall, setHall] = useState<Hall | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [arenaFeatures, setArenaFeatures] = useState<string[]>([]);
   const [arenaVenueType, setArenaVenueType] = useState<"complex" | "single" | "outdoor">("complex");
   const [activeTab, setActiveTab] = useState<"about" | "schedule" | "reviews">("about");
@@ -117,25 +116,45 @@ export default function HallDetailScreen() {
   const [clientPhone, setClientPhone] = useState(sessionUser?.phone || "");
 
   useEffect(() => {
-    (async () => {
-      const [halls, arenas] = await Promise.all([getStoredHalls(), getStoredArenas()]);
-      const match = halls.find((h) => String(h.id) === String(id)) || INITIAL_HALLS[0];
-      setHall(match);
-      const hallArena = arenas.find((arena) => arena.id === match.arenaId);
-      setArenaFeatures(hallArena?.features ?? []);
-      setArenaVenueType(hallArena?.venueType ?? "complex");
+    return subscribeAuth(() => {
+      const u = getSessionUser();
+      if (u && u.role !== "guest") {
+        setClientName((prev) => prev || u.name || u.full_name || "");
+        setClientPhone((prev) => prev || u.phone || "");
+      }
+    });
+  }, []);
 
-      if (match) {
-        // Check favorite status
-        const favStr = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-        if (favStr) {
-          try {
-            const favIds: number[] = JSON.parse(favStr);
-            setIsFav(favIds.includes(match.id));
-          } catch {}
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setNotFound(false);
+    (async () => {
+      try {
+        const [halls, arenas, favIds] = await Promise.all([
+          getStoredHalls(),
+          getStoredArenas(),
+          getFavoriteHallIds().catch(() => [] as number[]),
+        ]);
+        if (!active) return;
+        const match = halls.find((h) => String(h.id) === String(id)) ?? null;
+        if (!match) {
+          setHall(null);
+          setNotFound(true);
+          return;
         }
+        setHall(match);
+        setIsFav(favIds.includes(match.id));
+        const hallArena = arenas.find((arena) => arena.id === match.arenaId);
+        setArenaFeatures(hallArena?.features ?? []);
+        setArenaVenueType(hallArena?.venueType ?? "complex");
+      } finally {
+        if (active) setLoading(false);
       }
     })();
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   const dayLabel = displayDate(selectedDate, t);
@@ -171,7 +190,7 @@ export default function HallDetailScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hall?.id, selectedDate, duration]);
 
-  if (!hall) {
+  if (loading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator color={c.primary} size="large" />
@@ -179,21 +198,32 @@ export default function HallDetailScreen() {
     );
   }
 
+  if (notFound || !hall) {
+    return (
+      <SafeAreaView style={styles.centerContainer} edges={["top"]}>
+        <Ionicons name="alert-circle-outline" size={44} color={c.textMuted} />
+        <Text style={[styles.hallTitle, { textAlign: "center", marginTop: spacing.md, paddingHorizontal: spacing.xl }]}>
+          {t("hall.notFound")}
+        </Text>
+        <Pressable
+          style={[styles.bookButton, { marginTop: spacing.lg }]}
+          onPress={() => {
+            hapticSelection();
+            if (router.canGoBack()) router.back();
+            else router.replace("/(tabs)");
+          }}
+        >
+          <Text style={styles.bookButtonText}>{t("common.back")}</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
   // Favorite handler
   const handleToggleFav = async () => {
     hapticImpact();
-    const nextFav = !isFav;
-    setIsFav(nextFav);
-    try {
-      const favStr = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-      let favIds: number[] = favStr ? JSON.parse(favStr) : [];
-      if (nextFav) {
-        favIds = [...favIds, hall.id];
-      } else {
-        favIds = favIds.filter((favId) => favId !== hall.id);
-      }
-      await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favIds));
-    } catch {}
+    const nextIds = await toggleFavoriteHallId(hall.id);
+    setIsFav(nextIds.includes(hall.id));
   };
 
   // Share handler
@@ -711,7 +741,7 @@ export default function HallDetailScreen() {
                   disabled={bookingLoading}
                 >
                   {bookingLoading ? (
-                    <ActivityIndicator color={c.background} />
+                    <ActivityIndicator color={c.onPrimary} />
                   ) : (
                     <Text style={styles.confirmBookingBtnText}>
                       {t("hall.confirmBooking")}
@@ -1061,7 +1091,7 @@ const createStyles = (c: Palette) =>
     color: c.textSecondary,
   },
   slotChipTextActive: {
-    color: c.background,
+    color: c.onPrimary,
     fontWeight: "800",
   },
   reviewCard: {
@@ -1165,7 +1195,7 @@ const createStyles = (c: Palette) =>
   bookButtonText: {
     fontSize: 15,
     fontWeight: "800",
-    color: c.background,
+    color: c.onPrimary,
   },
   modalOverlay: {
     flex: 1,
@@ -1242,6 +1272,6 @@ const createStyles = (c: Palette) =>
   confirmBookingBtnText: {
     fontSize: 15,
     fontWeight: "800",
-    color: c.background,
+    color: c.onPrimary,
   },
 });

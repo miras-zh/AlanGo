@@ -15,7 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
-import { getAccessToken } from "@/lib/auth";
+import { hasRealSession } from "@/lib/auth";
 import { getMyActiveBooking, type ActiveBooking } from "@/lib/sportRentData";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
@@ -67,7 +67,7 @@ export function LiveMatchIsland() {
   const [dismissed, setDismissed] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!getAccessToken()) {
+    if (!hasRealSession()) {
       setMatch(null);
       return;
     }
@@ -261,7 +261,7 @@ function LiveMatchIslandView({ match, onPressQr, onClose }: Props) {
             <Text style={styles.qrModalHall}>{match.hallName}</Text>
 
             <View style={styles.qrWhiteBox}>
-              <Ionicons name="qr-code" size={170} color={c.onPrimary} />
+              <Ionicons name="qr-code" size={170} color={c.textPrimary} />
               <Text style={styles.qrCodeString}>{match.qrCode}</Text>
             </View>
 
@@ -290,22 +290,22 @@ const createStyles = (c: Palette) =>
     marginVertical: 10,
   },
   islandPill: {
-    backgroundColor: "#0d1310",
+    backgroundColor: c.surface,
     borderRadius: 24,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1.5,
-    borderColor: "#1b3323",
+    borderColor: c.border,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.18,
     shadowRadius: 10,
-    elevation: 8,
+    elevation: 6,
   },
   islandPillExpanded: {
     paddingBottom: 16,
     borderColor: c.primary,
-    backgroundColor: "#111a14",
+    backgroundColor: c.surface,
   },
   pillRow: {
     flexDirection: "row",
@@ -330,7 +330,7 @@ const createStyles = (c: Palette) =>
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#162e21",
+    backgroundColor: c.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -357,7 +357,7 @@ const createStyles = (c: Palette) =>
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#162e21",
+    backgroundColor: c.primarySoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -374,7 +374,7 @@ const createStyles = (c: Palette) =>
   },
   divider: {
     height: 1,
-    backgroundColor: "#1e2e24",
+    backgroundColor: c.hairline,
     marginBottom: 12,
   },
   detailsRow: {
@@ -425,7 +425,7 @@ const createStyles = (c: Palette) =>
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#162e21",
+    backgroundColor: c.primarySoft,
     paddingVertical: 10,
     borderRadius: 12,
     gap: 6,
@@ -477,14 +477,16 @@ const createStyles = (c: Palette) =>
     marginBottom: 16,
   },
   qrWhiteBox: {
-    backgroundColor: c.textPrimary,
+    backgroundColor: c.surfaceElevated,
     borderRadius: 18,
+    borderWidth: 1,
+    borderColor: c.border,
     padding: 16,
     alignItems: "center",
     marginBottom: 16,
   },
   qrCodeString: {
-    color: c.onPrimary,
+    color: c.textPrimary,
     fontSize: 13,
     fontWeight: "800",
     letterSpacing: 1,

@@ -321,7 +321,7 @@ export default function BusinessBookingsScreen() {
             setManualModalOpen(true);
           }}
         >
-          <Ionicons name="add" size={18} color={c.background} />
+          <Ionicons name="add" size={18} color={c.onPrimary} />
           <Text style={styles.addBtnText}>{t("bookings.add")}</Text>
         </Pressable>
       </View>
@@ -593,7 +593,7 @@ export default function BusinessBookingsScreen() {
                             : "wallet-outline"
                         }
                         size={15}
-                        color={isPaid100 ? c.primary : isPartial ? "#F59E0B" : c.textSecondary}
+                        color={isPaid100 ? c.primary : isPartial ? c.warning : c.textSecondary}
                       />
                       <View style={{ flex: 1 }}>
                         <Text
@@ -666,7 +666,7 @@ export default function BusinessBookingsScreen() {
                           style={styles.confirmBtn}
                           onPress={() => handleConfirm(item)}
                         >
-                          <Ionicons name="checkmark" size={16} color={c.background} />
+                          <Ionicons name="checkmark" size={16} color={c.onPrimary} />
                           <Text style={styles.confirmBtnText}>{t("bookings.accept")}</Text>
                         </Pressable>
                       )}
@@ -815,7 +815,7 @@ const createStyles = (c: Palette) =>
   addBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
   modeTabsRow: {
     flexDirection: "row",
@@ -989,7 +989,7 @@ const createStyles = (c: Palette) =>
     color: c.primary,
   },
   textPending: {
-    color: "#EAB308",
+    color: c.warning,
   },
   textCancelled: {
     color: c.error,
@@ -1101,7 +1101,7 @@ const createStyles = (c: Palette) =>
   confirmBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: c.background,
+    color: c.onPrimary,
   },
   cancelBtn: {
     width: 34,
@@ -1187,7 +1187,7 @@ const createStyles = (c: Palette) =>
     color: c.primary,
   },
   textPartial: {
-    color: "#F59E0B",
+    color: c.warning,
   },
   textNotPaid: {
     color: c.textSecondary,

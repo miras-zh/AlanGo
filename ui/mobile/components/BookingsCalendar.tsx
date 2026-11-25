@@ -185,7 +185,7 @@ export function BookingsCalendar({
               onAddManualBooking();
             }}
           >
-            <Ionicons name="add" size={18} color={c.background} />
+            <Ionicons name="add" size={18} color={c.onPrimary} />
             <Text style={styles.quickAddBtnText}>{t("bookings.add")}</Text>
           </Pressable>
         ) : null}
@@ -347,7 +347,7 @@ export function BookingsCalendar({
                                 onStatusChange(b.id, "confirmed");
                               }}
                             >
-                              <Ionicons name="checkmark" size={14} color={c.background} />
+                              <Ionicons name="checkmark" size={14} color={c.onPrimary} />
                               <Text style={styles.quickConfirmText}>{t("common.confirm")}</Text>
                             </Pressable>
 
@@ -482,7 +482,7 @@ export function BookingsCalendar({
             </View>
             <View style={styles.monthDivider} />
             <View style={styles.monthStatCol}>
-              <Text style={[styles.monthStatNum, { color: "#EAB308" }]}>
+              <Text style={[styles.monthStatNum, { color: c.warning }]}>
                 {bookings.filter((b) => b.status === "pending").length}
               </Text>
               <Text style={styles.monthStatLabel}>{t("cal.requests")}</Text>
@@ -541,7 +541,7 @@ const createStyles = (c: Palette) =>
     fontWeight: "600",
   },
   modeTabTextActive: {
-    color: c.background,
+    color: c.onPrimary,
     fontWeight: "700",
   },
   quickAddBtn: {
@@ -554,7 +554,7 @@ const createStyles = (c: Palette) =>
     borderRadius: 12,
   },
   quickAddBtnText: {
-    color: c.background,
+    color: c.onPrimary,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -627,7 +627,7 @@ const createStyles = (c: Palette) =>
     justifyContent: "center",
   },
   dayNumToday: {
-    backgroundColor: "#1F2B24",
+    backgroundColor: c.surfaceElevated,
   },
   dayNumSelected: {
     backgroundColor: c.primary,
@@ -638,7 +638,7 @@ const createStyles = (c: Palette) =>
     fontWeight: "700",
   },
   weekDayNumberActive: {
-    color: c.background,
+    color: c.onPrimary,
   },
   dotsRow: {
     flexDirection: "row",
@@ -686,7 +686,7 @@ const createStyles = (c: Palette) =>
     borderRadius: 10,
     padding: 10,
     marginBottom: 8,
-    backgroundColor: "#131A16",
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.hairline,
   },
@@ -766,7 +766,7 @@ const createStyles = (c: Palette) =>
     borderRadius: 8,
   },
   quickConfirmText: {
-    color: c.background,
+    color: c.onPrimary,
     fontSize: 11,
     fontWeight: "700",
   },
@@ -828,7 +828,7 @@ const createStyles = (c: Palette) =>
     paddingVertical: 6,
   },
   freeSlotText: {
-    color: "#38433D",
+    color: c.textMuted,
     fontSize: 11,
   },
   weekViewContainer: {

@@ -44,10 +44,15 @@ export default function BusinessClientsScreen() {
 
   const loadData = useCallback(async () => {
     if (arenaLoading) return;
-    const list = arenaId ? await getClientProfiles(arenaId) : [];
-    setClients(list);
-    setLoading(false);
-    setRefreshing(false);
+    try {
+      const list = arenaId ? await getClientProfiles(arenaId) : [];
+      setClients(list);
+    } catch {
+      // keep previous list
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [arenaId, arenaLoading]);
 
   useEffect(() => {
@@ -226,7 +231,7 @@ export default function BusinessClientsScreen() {
                     <Text
                       style={[
                         styles.statusBadgeText,
-                        isVip && { color: "#F59E0B" },
+                        isVip && { color: c.warning },
                         isRegular && { color: c.primary },
                         isNew && { color: "#3B82F6" },
                       ]}

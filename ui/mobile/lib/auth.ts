@@ -105,11 +105,27 @@ function decodeExpiry(token: string): number | null {
   }
 }
 
+export function isMockToken(token: string | null | undefined): boolean {
+  return Boolean(
+    token && (token.startsWith("mock_jwt_token") || token.startsWith("mock_refresh_")),
+  );
+}
+
+export function hasRealSession(): boolean {
+  if (!cachedUser || cachedUser.role === "guest" || cachedUser.staffMemberId) {
+    return false;
+  }
+  const hasRealAccess = Boolean(cachedToken && !isMockToken(cachedToken));
+  const hasRealRefresh = Boolean(cachedRefreshToken && !isMockToken(cachedRefreshToken));
+  return hasRealAccess || hasRealRefresh;
+}
+
 export function getSessionUser(): SessionUser | null {
   return cachedUser;
 }
 
 export function getAccessToken(): string | null {
+  if (isMockToken(cachedToken)) return null;
   return cachedToken;
 }
 
@@ -200,17 +216,18 @@ export async function clearSession(): Promise<void> {
 
 export async function getToken(): Promise<string | null> {
   if (cachedToken) {
+    if (isMockToken(cachedToken)) return null;
     const expiresAt = decodeExpiry(cachedToken);
     if (expiresAt === null || expiresAt >= Date.now()) {
       return cachedToken;
     }
+    return null;
   }
   const token = await storageGet(TOKEN_KEY);
-  if (!token) return null;
+  if (!token || isMockToken(token)) return null;
 
   const expiresAt = decodeExpiry(token);
   if (expiresAt !== null && expiresAt < Date.now()) {
-    await clearToken();
     return null;
   }
 
