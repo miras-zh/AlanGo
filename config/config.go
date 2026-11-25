@@ -64,6 +64,17 @@ func NewConfig() (*Config, error) {
 
 	redisDB, _ := strconv.Atoi(getEnv("REDIS_DB", "0"))
 	serverPort := getEnv("SERVER_PORT", "8092")
+	cookieSecure := getEnv("COOKIE_SECURE", "false") == "true"
+
+	metricsPassword := os.Getenv("METRICS_PASSWORD")
+	if cookieSecure {
+		// In production cookies/deployments, never fall back to a well-known dev password.
+		if metricsPassword == "dev-metrics-password" {
+			metricsPassword = ""
+		}
+	} else if metricsPassword == "" {
+		metricsPassword = "dev-metrics-password"
+	}
 
 	return &Config{
 		SiteName:                   getEnv("SITE_NAME", "AlanGo"),
@@ -90,8 +101,8 @@ func NewConfig() (*Config, error) {
 		SMTPUsername:               getEnv("SMTP_USERNAME", ""),
 		SMTPPassword:               getEnv("SMTP_PASSWORD", ""),
 		SMTPFrom:                   getEnv("SMTP_FROM", "no-reply@example.com"),
-		MetricsPassword:            getEnv("METRICS_PASSWORD", "dev-metrics-password"),
-		CookieSecure:               getEnv("COOKIE_SECURE", "false") == "true",
+		MetricsPassword:            metricsPassword,
+		CookieSecure:               cookieSecure,
 		GoogleClientIDs:            getEnv("GOOGLE_CLIENT_IDS", ""),
 		AppleBundleIDs:             getEnv("APPLE_BUNDLE_IDS", "kz.alango.app"),
 		AppleTeamID:                getEnv("APPLE_TEAM_ID", ""),

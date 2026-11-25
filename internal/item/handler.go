@@ -287,6 +287,20 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	existing, err := h.service.GetByID(r.Context(), uint(id))
+	if err != nil {
+		if errors.Is(err, ErrItemNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to load item", http.StatusInternalServerError)
+		return
+	}
+	if existing.UserID != userID {
+		http.Error(w, ErrForbidden.Error(), http.StatusForbidden)
+		return
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, upload.MaxUploadSize+1024)
 	if err := r.ParseMultipartForm(upload.MaxUploadSize); err != nil {
 		http.Error(w, upload.ErrFileTooLarge.Error(), http.StatusRequestEntityTooLarge)

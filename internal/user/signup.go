@@ -106,25 +106,37 @@ func (s *UserService) emailExists(email string) (bool, error) {
 }
 
 func checkEmailSendAllowed(ctx context.Context, rdb *redis.Client, email string) error {
+	cooldownKey := resendCooldownKey(email)
+	cntKey := emailSendCountKey(email)
+
+	if authGuardMem.exists(cooldownKey) {
+		return ErrResendTooSoon
+	}
+	if authGuardMem.getCount(cntKey) >= maxSendPerEmail {
+		return ErrEmailSendLimitHit
+	}
 	if rdb == nil {
 		return nil
 	}
-	if exists, err := rdb.Exists(ctx, resendCooldownKey(email)).Result(); err == nil && exists > 0 {
+	if exists, err := rdb.Exists(ctx, cooldownKey).Result(); err == nil && exists > 0 {
 		return ErrResendTooSoon
 	}
-	if sends, err := rdb.Get(ctx, emailSendCountKey(email)).Int(); err == nil && sends >= maxSendPerEmail {
+	if sends, err := rdb.Get(ctx, cntKey).Int(); err == nil && sends >= maxSendPerEmail {
 		return ErrEmailSendLimitHit
 	}
 	return nil
 }
 
 func recordEmailSend(ctx context.Context, rdb *redis.Client, email string) {
+	cooldownKey := resendCooldownKey(email)
+	cntKey := emailSendCountKey(email)
+	authGuardMem.setFlag(cooldownKey, resendCooldown)
+	authGuardMem.incr(cntKey, emailSendWindow)
+
 	if rdb == nil {
 		return
 	}
-	_ = rdb.Set(ctx, resendCooldownKey(email), "1", resendCooldown).Err()
-
-	cntKey := emailSendCountKey(email)
+	_ = rdb.Set(ctx, cooldownKey, "1", resendCooldown).Err()
 	if n, err := rdb.Incr(ctx, cntKey).Result(); err == nil && n == 1 {
 		_ = rdb.Expire(ctx, cntKey, emailSendWindow).Err()
 	}
@@ -141,6 +153,9 @@ func sendVerificationCode(sender *appmail.Sender, email, fullName, code string) 
 }
 
 func (h *UserHandler) StartRegistration(ctx context.Context, req *RegisterRequest) (string, error) {
+	if h.Redis == nil {
+		return "", errors.New("registration storage unavailable")
+	}
 	exists, err := h.Service.emailExists(req.Email)
 	if err != nil {
 		return "", err
@@ -196,6 +211,9 @@ func (h *UserHandler) StartRegistration(ctx context.Context, req *RegisterReques
 }
 
 func (h *UserHandler) VerifyRegistration(ctx context.Context, token, code string) (*User, error) {
+	if h.Redis == nil {
+		return nil, errors.New("registration storage unavailable")
+	}
 	key := pendingRegKey(token)
 	attKey := pendingAttemptKey(token)
 	raw, err := h.Redis.Get(ctx, key).Bytes()
@@ -251,6 +269,9 @@ func (h *UserHandler) VerifyRegistration(ctx context.Context, token, code string
 }
 
 func (h *UserHandler) ResendRegistrationCode(ctx context.Context, token string) error {
+	if h.Redis == nil {
+		return errors.New("registration storage unavailable")
+	}
 	key := pendingRegKey(token)
 	raw, err := h.Redis.Get(ctx, key).Bytes()
 	if errors.Is(err, redis.Nil) {

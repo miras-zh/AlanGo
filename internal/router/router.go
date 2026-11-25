@@ -47,7 +47,9 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 
 	r.HandleFunc("/healthz", healthzHandler).Methods("GET")
 	r.HandleFunc("/readyz", readyzHandler(db, rdb)).Methods("GET")
-	r.Handle("/metrics", withMetricsAuth(promhttp.Handler(), cfg.MetricsPassword)).Methods("GET")
+	if cfg.MetricsPassword != "" {
+		r.Handle("/metrics", withMetricsAuth(promhttp.Handler(), cfg.MetricsPassword)).Methods("GET")
+	}
 
 	uploadService := upload.NewService(cfg.UploadDir, cfg.UploadPublicURL)
 	r.PathPrefix("/uploads/").Handler(
@@ -106,7 +108,7 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	sportHandler := sport.NewHandler(sportService, uploadService)
 
 	telegramBot := telegram.NewBotService()
-	telegramHandler := telegram.NewHandler(telegramBot)
+	telegramHandler := telegram.NewHandler(telegramBot, sportService)
 
 	rl := NewRateLimiter(rdb, cfg)
 	optionalAuth := auth.OptionalAuthMiddleware(cfg.JWTSecret, cfg.JWTSecretPrevious, rdb, userService.IsActive)
@@ -123,7 +125,7 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	r.Handle("/api/password-reset/confirm", rl.PasswordReset(http.HandlerFunc(userHandler.ConfirmPasswordResetHandler))).Methods("POST")
 
 	r.HandleFunc("/api/app/version", appversion.Handler()).Methods("GET")
-	r.HandleFunc("/api/analytics/events", analyticsHandler.Track).Methods("POST")
+	r.Handle("/api/analytics/events", rl.PublicForm("analytics", http.HandlerFunc(analyticsHandler.Track))).Methods("POST")
 	r.Handle("/api/analytics/heartbeat", optionalAuth(http.HandlerFunc(analyticsHandler.Heartbeat))).Methods("POST")
 
 	r.HandleFunc("/api/realtime/ws", realtimeHandler.ServeWS).Methods("GET")

@@ -2,6 +2,8 @@ package user
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,5 +32,28 @@ func TestRegisterInputValidation(t *testing.T) {
 		if rec.Code != http.StatusBadRequest {
 			t.Errorf("%s: got %d, want 400 (%s)", tc.name, rec.Code, rec.Body.String())
 		}
+	}
+}
+
+func TestAuthGuardsInMemoryFallback(t *testing.T) {
+	ctx := context.Background()
+	email := "fallback-guard@example.com"
+	clearLoginFailures(ctx, nil, email)
+
+	for i := 0; i < maxLoginFails; i++ {
+		recordLoginFailure(ctx, nil, email)
+	}
+	if !isLoginLocked(ctx, nil, email) {
+		t.Fatalf("expected login lock when rdb is nil after %d failures", maxLoginFails)
+	}
+	clearLoginFailures(ctx, nil, email)
+	if isLoginLocked(ctx, nil, email) {
+		t.Fatalf("expected login lock cleared")
+	}
+
+	regEmail := "fallback-signup@example.com"
+	recordEmailSend(ctx, nil, regEmail)
+	if err := checkEmailSendAllowed(ctx, nil, regEmail); !errors.Is(err, ErrResendTooSoon) {
+		t.Fatalf("expected ErrResendTooSoon with rdb == nil, got %v", err)
 	}
 }

@@ -51,25 +51,37 @@ func hashResetToken(token string) string {
 }
 
 func checkResetSendAllowed(ctx context.Context, rdb *redis.Client, email string) error {
+	cooldownKey := resetCooldownKey(email)
+	cntKey := resetSendCountKey(email)
+
+	if authGuardMem.exists(cooldownKey) {
+		return ErrResetTooSoon
+	}
+	if authGuardMem.getCount(cntKey) >= maxResetPerEmail {
+		return ErrResetSendLimitHit
+	}
 	if rdb == nil {
 		return nil
 	}
-	if exists, err := rdb.Exists(ctx, resetCooldownKey(email)).Result(); err == nil && exists > 0 {
+	if exists, err := rdb.Exists(ctx, cooldownKey).Result(); err == nil && exists > 0 {
 		return ErrResetTooSoon
 	}
-	if sends, err := rdb.Get(ctx, resetSendCountKey(email)).Int(); err == nil && sends >= maxResetPerEmail {
+	if sends, err := rdb.Get(ctx, cntKey).Int(); err == nil && sends >= maxResetPerEmail {
 		return ErrResetSendLimitHit
 	}
 	return nil
 }
 
 func recordResetSend(ctx context.Context, rdb *redis.Client, email string) {
+	cooldownKey := resetCooldownKey(email)
+	cntKey := resetSendCountKey(email)
+	authGuardMem.setFlag(cooldownKey, resetCooldown)
+	authGuardMem.incr(cntKey, resetEmailWindow)
+
 	if rdb == nil {
 		return
 	}
-	_ = rdb.Set(ctx, resetCooldownKey(email), "1", resetCooldown).Err()
-
-	cntKey := resetSendCountKey(email)
+	_ = rdb.Set(ctx, cooldownKey, "1", resetCooldown).Err()
 	if n, err := rdb.Incr(ctx, cntKey).Result(); err == nil && n == 1 {
 		_ = rdb.Expire(ctx, cntKey, resetEmailWindow).Err()
 	}
@@ -88,6 +100,9 @@ func sendPasswordResetEmail(sender *appmail.Sender, siteURL, email, fullName, to
 }
 
 func (h *UserHandler) StartPasswordReset(ctx context.Context, email string) error {
+	if h.Redis == nil {
+		return errors.New("password reset storage unavailable")
+	}
 	email = strings.ToLower(strings.TrimSpace(email))
 
 	if err := checkResetSendAllowed(ctx, h.Redis, email); err != nil {
@@ -134,6 +149,9 @@ func (h *UserHandler) StartPasswordReset(ctx context.Context, email string) erro
 }
 
 func (h *UserHandler) ConfirmPasswordReset(ctx context.Context, token, newPassword string) (uint, error) {
+	if h.Redis == nil {
+		return 0, errors.New("password reset storage unavailable")
+	}
 	token = strings.TrimSpace(token)
 	if token == "" {
 		return 0, ErrResetTokenInvalid

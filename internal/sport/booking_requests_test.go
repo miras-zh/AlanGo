@@ -1,6 +1,7 @@
 package sport
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -106,5 +107,25 @@ func TestValidateDayFields(t *testing.T) {
 	}
 	if len(durs) != 2 || durs[0] != 60 || durs[1] != 90 {
 		t.Errorf("unexpected filtered durations: %v", durs)
+	}
+}
+
+func TestValidateBookingFields(t *testing.T) {
+	if _, err := validateClientName(strings.Repeat("a", maxClientNameRunes+1)); err == nil {
+		t.Errorf("expected error for overlong client name")
+	}
+	if _, _, err := validateClientPhone("+" + strings.Repeat("7", maxClientPhoneRunes)); err == nil {
+		t.Errorf("expected error for overlong client phone")
+	}
+	if _, err := validateBookingNotes(strings.Repeat("x", maxBookingNotesRunes+1)); err == nil {
+		t.Errorf("expected error for overlong notes")
+	}
+	name, err := validateClientName("  Алихан  ")
+	if err != nil || name != "Алихан" {
+		t.Errorf("unexpected client name result: %q, %v", name, err)
+	}
+	phone, tail, err := validateClientPhone("+7 (777) 123-45-67")
+	if err != nil || phone == "" || tail != "7771234567" {
+		t.Errorf("unexpected client phone result: %q, %q, %v", phone, tail, err)
 	}
 }

@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "./site";
-import { clearSession, getAccessToken, getRefreshToken, getSessionUser, saveSession } from "./auth";
+import { clearSession, getAccessToken, getSessionUser, saveSession } from "./auth";
 
 export class ApiError extends Error {
   status: number;
@@ -8,6 +8,8 @@ export class ApiError extends Error {
     this.status = status;
   }
 }
+
+let refreshPromise: Promise<string | null> | null = null;
 
 export async function apiFetch<T = unknown>(
   path: string,
@@ -22,18 +24,21 @@ export async function apiFetch<T = unknown>(
     headers.set("Content-Type", "application/json");
   }
 
-  const token = getAccessToken();
+  let token = getAccessToken();
+  if (!options.skipAuth && !token && getSessionUser()) {
+    token = await tryRefresh();
+  }
   if (!options.skipAuth && token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  let res = await fetch(url, { ...options, headers });
+  let res = await fetch(url, { ...options, headers, credentials: "include" });
 
-  if (res.status === 401 && !options.skipAuth && getRefreshToken()) {
+  if (res.status === 401 && !options.skipAuth && getSessionUser()) {
     const refreshed = await tryRefresh();
     if (refreshed) {
       headers.set("Authorization", `Bearer ${refreshed}`);
-      res = await fetch(url, { ...options, headers });
+      res = await fetch(url, { ...options, headers, credentials: "include" });
     }
   }
 
@@ -62,30 +67,34 @@ export async function apiFetch<T = unknown>(
 }
 
 async function tryRefresh(): Promise<string | null> {
-  const refresh = getRefreshToken();
-  if (!refresh) return null;
-  try {
-    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refresh }),
-    });
-    if (!res.ok) {
-      clearSession();
-      return null;
-    }
-    const data = await res.json();
-    const user = data.user || getSessionUser();
-    if (data.token && user) {
-      saveSession({
-        token: data.token,
-        refreshToken: data.refresh_token || refresh,
-        user,
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
-      return data.token as string;
+      if (!res.ok) {
+        clearSession();
+        return null;
+      }
+      const data = await res.json();
+      const user = getSessionUser() ?? (data.user || null);
+      if (data.token && user) {
+        saveSession({
+          token: data.token,
+          user,
+        });
+        return data.token as string;
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
     }
-    return null;
-  } catch {
-    return null;
-  }
+  })();
+  return refreshPromise;
 }

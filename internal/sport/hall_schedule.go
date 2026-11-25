@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/lib/pq"
 	"gorm.io/gorm"
@@ -25,7 +26,13 @@ import (
 // duration is free when it fits the hours, is not in the past and does not
 // overlap any non-cancelled booking of the same hall.
 
-const SlotStepMinutes = 60
+const (
+	SlotStepMinutes      = 60
+	maxClientNameRunes   = 120
+	maxClientPhoneRunes  = 50
+	maxBookingNotesRunes = 1000
+	maxPendingBookings   = 5
+)
 
 // Kazakhstan is on a single UTC+5 zone; the server may run in UTC.
 var venueTZ = time.FixedZone("KZ", 5*60*60)
@@ -33,15 +40,16 @@ var venueTZ = time.FixedZone("KZ", 5*60*60)
 var dayNames = []string{"Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"}
 
 var (
-	ErrInvalidDate        = errors.New("дата должна быть в формате ГГГГ-ММ-ДД")
-	ErrInvalidTime        = errors.New("время должно быть в формате ЧЧ:ММ")
-	ErrInvalidDuration    = errors.New("недопустимая длительность брони")
-	ErrHallClosed         = errors.New("в этот день зал не работает")
-	ErrOutsideHours       = errors.New("время вне графика работы зала")
-	ErrSlotInPast         = errors.New("это время уже прошло")
-	ErrSlotTaken          = errors.New("это время уже забронировано, выберите другой слот")
-	ErrHallNotBookable    = errors.New("зал сейчас недоступен для бронирования")
-	ErrInvalidClientPhone = errors.New("укажите корректный номер телефона")
+	ErrInvalidDate            = errors.New("дата должна быть в формате ГГГГ-ММ-ДД")
+	ErrInvalidTime            = errors.New("время должно быть в формате ЧЧ:ММ")
+	ErrInvalidDuration        = errors.New("недопустимая длительность брони")
+	ErrHallClosed             = errors.New("в этот день зал не работает")
+	ErrOutsideHours           = errors.New("время вне графика работы зала")
+	ErrSlotInPast             = errors.New("это время уже прошло")
+	ErrSlotTaken              = errors.New("это время уже забронировано, выберите другой слот")
+	ErrHallNotBookable        = errors.New("зал сейчас недоступен для бронирования")
+	ErrInvalidClientPhone     = errors.New("укажите корректный номер телефона")
+	ErrTooManyPendingBookings = errors.New("слишком много активных заявок на бронь, дождитесь ответа по текущим")
 )
 
 type HallScheduleDay struct {
@@ -415,6 +423,41 @@ func bookingRange(req CreateBookingRequest) (int, int, error) {
 	return start, start + duration, nil
 }
 
+func validateClientName(raw string) (string, error) {
+	name := strings.TrimSpace(raw)
+	if name == "" {
+		return "", errors.New("укажите имя клиента")
+	}
+	if utf8.RuneCountInString(name) > maxClientNameRunes {
+		return "", errors.New("имя клиента не должно превышать 120 символов")
+	}
+	return name, nil
+}
+
+func validateClientPhone(raw string) (string, string, error) {
+	phone := strings.TrimSpace(raw)
+	if utf8.RuneCountInString(phone) > maxClientPhoneRunes {
+		return "", "", ErrInvalidClientPhone
+	}
+	digits := strings.Join(digitsRe.FindAllString(phone, -1), "")
+	if len(digits) < 10 {
+		return "", "", ErrInvalidClientPhone
+	}
+	tail := digits
+	if len(tail) > 10 {
+		tail = tail[len(tail)-10:]
+	}
+	return phone, tail, nil
+}
+
+func validateBookingNotes(raw string) (string, error) {
+	notes := strings.TrimSpace(raw)
+	if utf8.RuneCountInString(notes) > maxBookingNotesRunes {
+		return "", errors.New("комментарий к брони не должен превышать 1000 символов")
+	}
+	return notes, nil
+}
+
 // CreateBooking validates the slot against the hall's schedule and existing
 // bookings and inserts it: a client's booking as a pending request (the owner
 // is notified), the arena owner's own booking as confirmed. The hall row is locked for the duration of the
@@ -424,13 +467,17 @@ func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, u
 	if req.HallID == 0 {
 		return nil, errors.New("hall_id is required")
 	}
-	req.ClientName = strings.TrimSpace(req.ClientName)
-	req.ClientPhone = strings.TrimSpace(req.ClientPhone)
-	if req.ClientName == "" {
-		return nil, errors.New("укажите имя клиента")
+	clientName, err := validateClientName(req.ClientName)
+	if err != nil {
+		return nil, err
 	}
-	if len(digitsRe.FindAllString(req.ClientPhone, -1)) < 10 {
-		return nil, ErrInvalidClientPhone
+	clientPhone, phoneTail, err := validateClientPhone(req.ClientPhone)
+	if err != nil {
+		return nil, err
+	}
+	notes, err := validateBookingNotes(req.Notes)
+	if err != nil {
+		return nil, err
 	}
 	day, err := parseDate(req.BookingDate)
 	if err != nil {
@@ -470,6 +517,21 @@ func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, u
 			if userID != nil && arena.OwnerID != nil && *arena.OwnerID == *userID {
 				status = "confirmed"
 			}
+			if status == "pending" {
+				var pendingCount int64
+				q := tx.Model(&Booking{}).Where("status = ?", "pending")
+				if userID != nil {
+					q = q.Where("user_id = ?", *userID)
+				} else {
+					q = q.Where("user_id IS NULL AND RIGHT(regexp_replace(client_phone, '[^0-9]', '', 'g'), 10) = ?", phoneTail)
+				}
+				if err := q.Count(&pendingCount).Error; err != nil {
+					return err
+				}
+				if pendingCount >= maxPendingBookings {
+					return ErrTooManyPendingBookings
+				}
+			}
 			ownerID = arena.OwnerID
 
 			booking := Booking{
@@ -477,8 +539,8 @@ func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, u
 				HallID:          hall.ID,
 				ArenaID:         hall.ArenaID,
 				UserID:          userID,
-				ClientName:      req.ClientName,
-				ClientPhone:     req.ClientPhone,
+				ClientName:      clientName,
+				ClientPhone:     clientPhone,
 				BookingDate:     date,
 				StartTime:       formatClock(start),
 				EndTime:         formatClock(end),
@@ -487,7 +549,7 @@ func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, u
 				TotalPrice:      hall.PricePerHour * (end - start) / 60,
 				Status:          status,
 				PaymentStatus:   "not_paid",
-				Notes:           strings.TrimSpace(req.Notes),
+				Notes:           notes,
 			}
 			if err := tx.Create(&booking).Error; err != nil {
 				return err

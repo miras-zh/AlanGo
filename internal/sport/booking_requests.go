@@ -291,21 +291,25 @@ func (s *Service) UpdateBookingPayment(ctx context.Context, id uint, paid int) (
 func (s *Service) UpdateBookingDetails(ctx context.Context, id uint, req UpdateBookingDetailsRequest) (*Booking, error) {
 	updates := map[string]interface{}{"updated_at": time.Now()}
 	if req.ClientName != nil {
-		name := strings.TrimSpace(*req.ClientName)
-		if name == "" {
-			return nil, errors.New("укажите имя клиента")
+		name, err := validateClientName(*req.ClientName)
+		if err != nil {
+			return nil, err
 		}
 		updates["client_name"] = name
 	}
 	if req.ClientPhone != nil {
-		phone := strings.TrimSpace(*req.ClientPhone)
-		if len(digitsRe.FindAllString(phone, -1)) < 10 {
-			return nil, ErrInvalidClientPhone
+		phone, _, err := validateClientPhone(*req.ClientPhone)
+		if err != nil {
+			return nil, err
 		}
 		updates["client_phone"] = phone
 	}
 	if req.Notes != nil {
-		updates["notes"] = strings.TrimSpace(*req.Notes)
+		notes, err := validateBookingNotes(*req.Notes)
+		if err != nil {
+			return nil, err
+		}
+		updates["notes"] = notes
 	}
 	if err := s.db.WithContext(ctx).Model(&Booking{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return nil, err

@@ -99,6 +99,8 @@ func bookingErrorStatus(err error) int {
 		return http.StatusUnprocessableEntity
 	case errors.Is(err, ErrStatusTransition), errors.Is(err, ErrBookingClosed):
 		return http.StatusConflict
+	case errors.Is(err, ErrTooManyPendingBookings):
+		return http.StatusTooManyRequests
 	default:
 		return http.StatusBadRequest
 	}

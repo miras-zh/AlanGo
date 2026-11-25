@@ -20,5 +20,8 @@ COPY --from=builder /workspace/web/.next/standalone ./
 COPY --from=builder /workspace/web/.next/static ./.next/static
 COPY --from=builder /workspace/web/public ./public
 
+RUN chown -R node:node /app
+USER node
+
 EXPOSE 3000
 CMD ["node", "server.js"]

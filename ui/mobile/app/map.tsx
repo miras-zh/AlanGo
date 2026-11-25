@@ -130,7 +130,15 @@ export default function MapScreen() {
 
   // Generate Leaflet HTML
   const leafletHtml = useMemo(() => {
-    const venuesJson = JSON.stringify(
+    const safeJson = (val: unknown) =>
+      JSON.stringify(val)
+        .replace(/</g, "\\u003c")
+        .replace(/\u2028/g, "\\u2028")
+        .replace(/\u2029/g, "\\u2029");
+    const escapeAttr = (s: string) =>
+      String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    const venuesJson = safeJson(
       filteredArenas.map((a) => ({
         id: a.id,
         title: a.title,
@@ -141,6 +149,8 @@ export default function MapScreen() {
         lng: a.longitude,
       }))
     );
+    const userLocJson = safeJson(userLoc);
+    const locateTitle = escapeAttr(t("map.myLocation"));
 
     return `
 <!DOCTYPE html>
@@ -283,14 +293,14 @@ export default function MapScreen() {
 </head>
 <body>
   <div id="map"></div>
-  <button class="locate-btn" id="locateBtn" title="${t("map.myLocation")}">
+  <button class="locate-btn" id="locateBtn" title="${locateTitle}">
     <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
   </button>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha256-Hk4dIpcqOSb0hZjgyvFOP+cEmDXUKKNE/tT542ZbNQg=" crossorigin="anonymous"></script>
   <script>
-    var userLoc = ${JSON.stringify(userLoc)};
+    var userLoc = ${userLocJson};
     var centerLat = userLoc ? userLoc.lat : ${cityCoords.lat};
     var centerLng = userLoc ? userLoc.lng : ${cityCoords.lng};
     var zoomLevel = userLoc ? 14 : ${cityCoords.zoom};

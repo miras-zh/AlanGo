@@ -23,4 +23,23 @@ func TestNewConfigReadsRateLimitsAndDefaults(t *testing.T) {
 	if cfg.AppleBundleIDs != "kz.alango.app" {
 		t.Fatalf("expected default AppleBundleIDs kz.alango.app, got %q", cfg.AppleBundleIDs)
 	}
+
+	t.Setenv("COOKIE_SECURE", "true")
+	t.Setenv("METRICS_PASSWORD", "dev-metrics-password")
+	prodCfg, err := NewConfig()
+	if err != nil {
+		t.Fatalf("NewConfig prod failed: %v", err)
+	}
+	if prodCfg.MetricsPassword != "" {
+		t.Fatalf("expected empty MetricsPassword in production when dev default is set, got %q", prodCfg.MetricsPassword)
+	}
+
+	t.Setenv("METRICS_PASSWORD", "custom-prod-secret")
+	prodCustom, err := NewConfig()
+	if err != nil {
+		t.Fatalf("NewConfig prod custom failed: %v", err)
+	}
+	if prodCustom.MetricsPassword != "custom-prod-secret" {
+		t.Fatalf("expected custom MetricsPassword, got %q", prodCustom.MetricsPassword)
+	}
 }

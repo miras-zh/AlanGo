@@ -79,4 +79,28 @@ func TestRouterSecurityAndHeaders(t *testing.T) {
 	if mRec.Code != http.StatusUnauthorized {
 		t.Errorf("/metrics without auth: got %d, want 401", mRec.Code)
 	}
+
+	// Rate limit must enforce in-memory fallback even when Redis is nil.
+	rlCfg := *cfg
+	rlCfg.PublicFormRateLimitMax = 2
+	rlCfg.MetricsPassword = ""
+	rlHandler := NewRouter(nil, nil, &rlCfg)
+
+	for i := 1; i <= 3; i++ {
+		aReq := httptest.NewRequest("POST", "/api/analytics/events", nil)
+		aReq.RemoteAddr = "203.0.113.10:12345"
+		aRec := httptest.NewRecorder()
+		rlHandler.ServeHTTP(aRec, aReq)
+		if i == 3 && aRec.Code != http.StatusTooManyRequests {
+			t.Errorf("analytics rate limit 3rd request: got %d, want 429", aRec.Code)
+		}
+	}
+
+	// Empty MetricsPassword must disable /metrics completely (404).
+	disabledReq := httptest.NewRequest("GET", "/metrics", nil)
+	disabledRec := httptest.NewRecorder()
+	rlHandler.ServeHTTP(disabledRec, disabledReq)
+	if disabledRec.Code != http.StatusNotFound {
+		t.Errorf("/metrics with empty password: got %d, want 404", disabledRec.Code)
+	}
 }

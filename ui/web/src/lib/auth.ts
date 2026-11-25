@@ -9,22 +9,30 @@ export interface SessionUser {
   city?: string;
 }
 
-const ACCESS_KEY = "alango_access_token";
-const REFRESH_KEY = "alango_refresh_token";
+const LEGACY_ACCESS_KEY = "alango_access_token";
+const LEGACY_REFRESH_KEY = "alango_refresh_token";
 const USER_KEY = "alango_user";
 
+// Keep short-lived access JWT in memory only; refresh token lives in HttpOnly cookie.
+let memoryAccessToken: string | null = null;
+
+function purgeLegacyTokens() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(LEGACY_ACCESS_KEY);
+  window.localStorage.removeItem(LEGACY_REFRESH_KEY);
+}
+
 export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(ACCESS_KEY);
+  return memoryAccessToken;
 }
 
 export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(REFRESH_KEY);
+  return null;
 }
 
 export function getSessionUser(): SessionUser | null {
   if (typeof window === "undefined") return null;
+  purgeLegacyTokens();
   const raw = window.localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
@@ -39,11 +47,9 @@ export function saveSession(data: {
   refreshToken?: string | null;
   user: SessionUser;
 }) {
+  memoryAccessToken = data.token;
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(ACCESS_KEY, data.token);
-  if (data.refreshToken) {
-    window.localStorage.setItem(REFRESH_KEY, data.refreshToken);
-  }
+  purgeLegacyTokens();
   window.localStorage.setItem(USER_KEY, JSON.stringify(data.user));
 }
 
@@ -55,8 +61,8 @@ export function updateSessionUser(patch: Partial<SessionUser>) {
 }
 
 export function clearSession() {
+  memoryAccessToken = null;
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(ACCESS_KEY);
-  window.localStorage.removeItem(REFRESH_KEY);
+  purgeLegacyTokens();
   window.localStorage.removeItem(USER_KEY);
 }

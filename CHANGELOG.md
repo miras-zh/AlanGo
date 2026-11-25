@@ -9,6 +9,26 @@
 
 ## [Unreleased]
 
+### 🛡️ Комплексный аудит и усиление безопасности (2026-11-25)
+- **Go-бэкенд (`internal/sport/`, `internal/router/`, `internal/user/`, `internal/telegram/`, `internal/item/`, `config/`)**:
+  - `CreateBooking` и `UpdateBookingDetails`: добавлены ограничения длины полей (`ClientName <= 120`, `ClientPhone <= 50`, `Notes <= 1000` рун) и лимит активных `pending`-броней (`<= 5` на пользователя или нормализованный номер телефона гостя) с возвратом `429 Too Many Requests`.
+  - `RateLimiter` (`internal/router/ratelimit.go`): устранён fail-open при `rdb == nil` или ошибках Redis — добавлен потокобезопасный in-memory fixed-window fallback с ограничением размера кэша; на `POST /api/analytics/events` подключён `rl.PublicForm("analytics", ...)`.
+  - Аутентификация и brute-force (`internal/user/bruteforce.go`, `signup.go`, `password_reset.go`): добавлен in-memory fallback для блокировки логина и cooldown/счётчиков отправки писем, а также явные проверки `h.Redis == nil` для fail-closed хранения токенов регистрации и сброса пароля.
+  - `POST /api/business/telegram/notify` (`internal/telegram/handler.go`, `internal/sport/ownership.go`): обязательная проверка владения ареной через `OwnArenaTitle(ctx, userID)`, принудительная подстановка реального названия арены и обрезка длины полей.
+  - `POST /api/items/{id}/image` (`internal/item/handler.go`): проверка существования и владения объявлением (`GetByID` + `existing.UserID != userID`) перенесена до разбора multipart и вызова `SaveImage`.
+  - `config/config.go` и `router.go`: в production-режиме (`COOKIE_SECURE=true`) отключён дефолтный пароль `dev-metrics-password` для `/metrics`; при пустом `METRICS_PASSWORD` маршрут `/metrics` не регистрируется (`404`).
+- **Инфраструктура (`docker/Caddyfile`, `docker/web/Dockerfile`, `docker/docker-compose.server.yaml`, `.gitignore`)**:
+  - В `docker/Caddyfile` заблокирован внешний доступ к `/metrics` (`404`) и добавлены security-заголовки (`Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `-Server`).
+  - В `docker/web/Dockerfile` процесс Next.js переведён на непривилегированного пользователя `node`.
+  - В `docker/docker-compose.server.yaml` healthcheck Redis переведён с флага CLI `-a` на переменную окружения `REDISCLI_AUTH`.
+  - В `.gitignore` добавлена директория `/build-test/`.
+- **Web-клиент (`ui/web/src/lib/`, `ui/web/src/app/register/page.tsx`)**:
+  - Удалено хранение `access_token` и `refresh_token` в `localStorage` (`lib/auth.ts`): `access_token` хранится только в памяти, а обновление сессии выполняется через `HttpOnly` cookie с `credentials: "include"` и single-flight мьютексом `refreshPromise` (`lib/api.ts`) для предотвращения `ReuseDetectedError`.
+  - В `lib/user.ts` и `app/register/page.tsx` форма и клиент адаптированы под двухшаговую регистрацию Go-бэкенда (`POST /api/register` + `POST /api/register/verify` + `POST /api/register/resend`) и схему `user_info`.
+- **Мобильный клиент (`ui/mobile/app/map.tsx`, `ui/mobile/app.json`, `ui/mobile/ios/AlanGo/Info.plist`)**:
+  - Добавлена экранизация JSON (`<` -> `\u003c`, разделители строк) и HTML-атрибутов при инъекции данных площадок и локализации в `<script>` и HTML WebView карты.
+  - Заменён глобальный `NSAllowsArbitraryLoads: true` на `NSAllowsLocalNetworking: true` для iOS ATS.
+
 ### 📱 Аудит и исправления мобильного клиента `ui/mobile/` (2026-11-25)
 - **Сессии, безопасность и аналитика (`lib/auth.ts`, `lib/api.ts`, `lib/user.ts`, `lib/registration.ts`, `lib/analytics.ts`)**:
   - Изолированы гостевые/демо-токены (`mock_jwt_token_*`): добавлены `isMockToken()` и `hasRealSession()`, `getToken()` больше не удаляет истёкший токен из хранилища, а `api.ts` не отправляет mock Bearer и не сбрасывает сессию при `401` без реальной авторизации (исправлен автосброс гостевых/staff-сессий в `LiveMatchIsland.tsx`, `(tabs)/profile.tsx`, `(tabs)/notifications.tsx`, `sportRentData.ts`).

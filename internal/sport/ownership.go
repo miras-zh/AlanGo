@@ -52,6 +52,19 @@ func (s *Service) OwnArenaID(ctx context.Context, userID uint) (uint, error) {
 	return arena.ID, nil
 }
 
+// OwnArenaTitle returns the title of the arena owned by userID.
+func (s *Service) OwnArenaTitle(ctx context.Context, userID uint) (string, error) {
+	var arena Arena
+	err := s.db.WithContext(ctx).Select("id, title").Where("owner_id = ?", userID).Order("id ASC").Take(&arena).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", ErrNoOwnArena
+	}
+	if err != nil {
+		return "", err
+	}
+	return arena.Title, nil
+}
+
 // IsOwnerBusinessActive reports whether userID currently has role='business'.
 func (s *Service) IsOwnerBusinessActive(ctx context.Context, userID uint) (bool, error) {
 	var role string
