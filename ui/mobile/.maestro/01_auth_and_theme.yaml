@@ -1,10 +1,6 @@
 appId: kz.alango.app
 ---
-- launchApp:
-    clearState: true
-    permissions:
-      all: allow
-- tapOn: "Профиль"
+- runFlow: subflows/ensure_guest.yaml
 - tapOn:
     id: "profile-guest-login-btn"
 - assertVisible:
@@ -34,8 +30,13 @@ appId: kz.alango.app
     env:
       EMAIL: "client1@alan.kz"
       PASSWORD: "1234567890Ww+"
+- extendedWaitUntil:
+    visible: "Профиль"
+    timeout: 15000
 - tapOn: "Профиль"
-- assertVisible: "Клиент AlanGo Тест"
+- extendedWaitUntil:
+    visible: "Клиент AlanGo Тест"
+    timeout: 10000
 - scrollUntilVisible:
     element:
       id: "pref-theme-light"
@@ -55,5 +56,13 @@ appId: kz.alango.app
 - tapOn:
     id: "account-logout-btn"
 - tapOn: "Выйти"
-- assertVisible:
-    id: "profile-guest-login-btn"
+- extendedWaitUntil:
+    visible:
+      id: "login-email-input"
+    timeout: 15000
+- tapOn:
+    id: "login-back-btn"
+- extendedWaitUntil:
+    visible:
+      id: "profile-guest-login-btn"
+    timeout: 10000

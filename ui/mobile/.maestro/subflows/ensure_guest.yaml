@@ -1,0 +1,79 @@
+appId: kz.alango.app
+---
+- launchApp:
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: ".*(Профиль|Мой зал|Моя арена|Вход в Alan Go).*"
+    timeout: 20000
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible:
+        id: "login-back-btn"
+    commands:
+      - tapOn:
+          id: "login-back-btn"
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      visible:
+        id: "biz-tab-profile"
+    commands:
+      - tapOn:
+          id: "biz-tab-profile"
+      - scrollUntilVisible:
+          element:
+            id: "biz-logout-btn"
+          direction: DOWN
+      - tapOn:
+          id: "biz-logout-btn"
+      - tapOn: "Выйти"
+      - extendedWaitUntil:
+          visible: ".*(Профиль|Вход в Alan Go).*"
+          timeout: 15000
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Профиль"
+    commands:
+      - tapOn: "Профиль"
+      - extendedWaitUntil:
+          visible: "Мой профиль"
+          timeout: 10000
+- runFlow:
+    when:
+      visible: "Мой профиль"
+      notVisible:
+        id: "profile-guest-login-btn"
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: "prefs-account-row"
+          direction: DOWN
+      - tapOn:
+          id: "prefs-account-row"
+      - extendedWaitUntil:
+          visible:
+            id: "account-logout-btn"
+          timeout: 10000
+      - tapOn:
+          id: "account-logout-btn"
+      - tapOn: "Выйти"
+      - extendedWaitUntil:
+          visible:
+            id: "login-email-input"
+          timeout: 15000
+      - tapOn:
+          id: "login-back-btn"
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Главная"
+      notVisible: "Мой профиль"
+    commands:
+      - tapOn: "Профиль"
+- extendedWaitUntil:
+    visible:
+      id: "profile-guest-login-btn"
+    timeout: 10000

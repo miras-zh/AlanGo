@@ -76,3 +76,23 @@
    git diff --check
    ```
    И обязательная фиксация всех изменений в [CHANGELOG.md](../CHANGELOG.md).
+
+---
+
+## 5. Автотесты Maestro (`ui/mobile/.maestro`)
+
+Для регрессионного прогона критических путей на iOS-симуляторе без траты LLM-токенов используется Maestro (`openjdk@17` + CLI `maestro`):
+
+```bash
+export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
+export PATH="/opt/homebrew/opt/openjdk@17/bin:$HOME/.maestro/bin:$PATH"
+maestro test /Users/miko/MyProduction/AlanGo/ui/mobile/.maestro
+```
+
+- Базовые сценарии (выбираются через `config.yaml`):
+  - `01_auth_and_theme.yaml` — авторизация, регистрация/восстановление, смена темы, выход;
+  - `02_client_catalog_and_hall.yaml` — `client1@alan.kz`: «Мои записи», каталог залов, карточка зала и вкладки;
+  - `03_business_single_zal1.yaml` — `zal1@alan.kz`: «Мой зал / Ваш зал», переходы внутри единого `<Modal>` бронирований (`Оплата / Перенести / Контакты`), выход;
+  - `04_business_complex_arena1.yaml` — `arena1@alan.kz`: спорткомплекс с 3 залами, «Залы комплекса», выход.
+- `subflows/ensure_guest.yaml` принудительно сбрасывает сессию в гостевой режим (на iOS `clearState: true` не очищает Keychain `expo-secure-store`).
+- При изменении `ui/mobile/` для проверки в standalone-приложении `kz.alango.app` симуляторную сборку нужно пересобрать с актуальным `.env` (например, `xcodebuild ... ARCHS=arm64 ONLY_ACTIVE_ARCH=YES` в `Release` или `expo run:ios`).

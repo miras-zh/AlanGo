@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { spacing } from "@/constants/theme";
 import {
   Arena,
+  getHallSchedule,
   getStoredArenas,
   getStoredHalls,
   getStoredSchedule,
@@ -42,6 +43,7 @@ export default function ArenaDetailScreen() {
   const [arena, setArena] = useState<Arena | null>(null);
   const [halls, setHalls] = useState<Hall[]>([]);
   const [schedule, setSchedule] = useState<ScheduleDay[]>([]);
+  const [hallSchedules, setHallSchedules] = useState<Record<number, ScheduleDay[]>>({});
 
   useEffect(() => {
     (async () => {
@@ -50,10 +52,24 @@ export default function ArenaDetailScreen() {
       setArena(match);
 
       const allHalls = await getStoredHalls();
-      setHalls(allHalls.filter((h) => h.arenaId === match.id));
+      const arenaHalls = allHalls.filter((h) => h.arenaId === match.id);
+      setHalls(arenaHalls);
 
-      const sched = await getStoredSchedule(match.id);
+      const [sched, perHall] = await Promise.all([
+        getStoredSchedule(match.id),
+        Promise.all(
+          arenaHalls.map(async (h) => {
+            try {
+              const hs = await getHallSchedule(h.id);
+              return [h.id, hs] as const;
+            } catch {
+              return [h.id, [] as ScheduleDay[]] as const;
+            }
+          }),
+        ),
+      ]);
       setSchedule(sched);
+      setHallSchedules(Object.fromEntries(perHall));
     })();
   }, [id]);
 
@@ -209,18 +225,74 @@ export default function ArenaDetailScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>{t("arena.schedule")}</Text>
           <View style={styles.scheduleList}>
-            {schedule.map((s, idx) => (
-              <View key={`${s.dayOfWeek}-${idx}`} style={styles.scheduleRow}>
-                <Text style={styles.scheduleDayName}>{weekdayName(s.dayOfWeek, t)}</Text>
-                {s.isClosed ? (
-                  <Text style={styles.scheduleClosed}>{t("common.dayOff")}</Text>
-                ) : (
-                  <Text style={styles.scheduleTime}>
-                    {s.startTime} - {s.endTime}
-                  </Text>
-                )}
-              </View>
-            ))}
+            {[...schedule]
+              .sort((a, b) => ((a.dayOfWeek + 6) % 7) - ((b.dayOfWeek + 6) % 7))
+              .map((s, idx, arr) => {
+                const openHalls = halls
+                  .map((h) => {
+                    const hs = hallSchedules[h.id];
+                    const dayEntry = hs?.find((d) => d.dayOfWeek === s.dayOfWeek) ?? s;
+                    if (dayEntry.isClosed) return null;
+                    return {
+                      hall: h,
+                      startTime: dayEntry.startTime,
+                      endTime: dayEntry.endTime,
+                    };
+                  })
+                  .filter(
+                    (item): item is { hall: Hall; startTime: string; endTime: string } =>
+                      item !== null,
+                  );
+
+                const isLast = idx === arr.length - 1;
+
+                return (
+                  <View
+                    key={`${s.dayOfWeek}-${idx}`}
+                    style={[styles.scheduleRow, isLast && styles.scheduleRowLast]}
+                  >
+                    <View style={styles.scheduleDayHeader}>
+                      <Text style={styles.scheduleDayName}>{weekdayName(s.dayOfWeek, t)}</Text>
+                      {halls.length === 0 ? (
+                        s.isClosed ? (
+                          <Text style={styles.scheduleClosed}>{t("common.dayOff")}</Text>
+                        ) : (
+                          <Text style={styles.scheduleTime}>
+                            {s.startTime} - {s.endTime}
+                          </Text>
+                        )
+                      ) : openHalls.length === 0 ? (
+                        <Text style={styles.scheduleClosed}>{t("common.dayOff")}</Text>
+                      ) : null}
+                    </View>
+
+                    {openHalls.length > 0 ? (
+                      <View style={styles.scheduleHallsList}>
+                        {openHalls.map(({ hall, startTime, endTime }) => (
+                          <Pressable
+                            key={hall.id}
+                            style={({ pressed }) => [
+                              styles.scheduleHallRow,
+                              pressed && { opacity: 0.7 },
+                            ]}
+                            onPress={() => {
+                              hapticSelection();
+                              router.push(`/hall/${hall.id}`);
+                            }}
+                          >
+                            <Text style={styles.scheduleHallName} numberOfLines={1}>
+                              {hall.title}
+                            </Text>
+                            <Text style={styles.scheduleHallHours}>
+                              {startTime} - {endTime}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })}
           </View>
         </View>
       </ScrollView>
@@ -483,18 +555,48 @@ const createStyles = (c: Palette) =>
     marginTop: 4,
   },
   scheduleList: {
-    gap: 6,
+    gap: 8,
   },
   scheduleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 4,
+    paddingVertical: 8,
     borderBottomWidth: 0.5,
     borderBottomColor: c.border,
+    gap: 6,
+  },
+  scheduleRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 2,
+  },
+  scheduleDayHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   scheduleDayName: {
     fontSize: 13,
+    fontWeight: "600",
+    color: c.textPrimary,
+  },
+  scheduleHallsList: {
+    gap: 4,
+  },
+  scheduleHallRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 2,
+  },
+  scheduleHallName: {
+    fontSize: 13,
+    fontWeight: "400",
     color: c.textSecondary,
+    flex: 1,
+  },
+  scheduleHallHours: {
+    fontSize: 13,
+    color: c.primary,
+    fontWeight: "600",
   },
   scheduleTime: {
     fontSize: 13,

@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "kz.alango.app",
-      "buildNumber": "11",
+      "buildNumber": "12",
       "icon": {
         "light": "./assets/light_icon.png",
         "dark": "./assets/icon.png",
