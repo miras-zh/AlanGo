@@ -108,6 +108,36 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(it)
 }
 
+const (
+	maxItemTitleBytes    = 255
+	maxItemCategoryBytes = 100
+	maxItemStatusBytes   = 50
+)
+
+func validateCreateItem(req *CreateItemRequest, uploads *upload.Service) string {
+	req.Title = strings.TrimSpace(req.Title)
+	req.Category = strings.TrimSpace(req.Category)
+	req.Status = strings.TrimSpace(req.Status)
+	req.ImageURL = strings.TrimSpace(req.ImageURL)
+
+	if req.Title == "" {
+		return "title is required"
+	}
+	if len(req.Title) > maxItemTitleBytes {
+		return "title is too long"
+	}
+	if len(req.Category) > maxItemCategoryBytes {
+		return "category is too long"
+	}
+	if len(req.Status) > maxItemStatusBytes {
+		return "status is too long"
+	}
+	if req.ImageURL != "" && !uploads.IsValidExternalImageURL(req.ImageURL) {
+		return "invalid image_url"
+	}
+	return ""
+}
+
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.GetUserID(r)
 	if !ok {
@@ -121,8 +151,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.TrimSpace(req.Title) == "" {
-		http.Error(w, "title is required", http.StatusBadRequest)
+	if msg := validateCreateItem(&req, h.uploadService); msg != "" {
+		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
@@ -163,9 +193,58 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Title != nil && strings.TrimSpace(*req.Title) == "" {
-		http.Error(w, "title is required", http.StatusBadRequest)
-		return
+	if req.Title != nil {
+		trimmed := strings.TrimSpace(*req.Title)
+		if trimmed == "" {
+			http.Error(w, "title is required", http.StatusBadRequest)
+			return
+		}
+		if len(trimmed) > maxItemTitleBytes {
+			http.Error(w, "title is too long", http.StatusBadRequest)
+			return
+		}
+		req.Title = &trimmed
+	}
+	if req.Category != nil {
+		trimmed := strings.TrimSpace(*req.Category)
+		if len(trimmed) > maxItemCategoryBytes {
+			http.Error(w, "category is too long", http.StatusBadRequest)
+			return
+		}
+		req.Category = &trimmed
+	}
+	if req.Status != nil {
+		trimmed := strings.TrimSpace(*req.Status)
+		if len(trimmed) > maxItemStatusBytes {
+			http.Error(w, "status is too long", http.StatusBadRequest)
+			return
+		}
+		req.Status = &trimmed
+	}
+	if req.ImageURL != nil {
+		trimmed := strings.TrimSpace(*req.ImageURL)
+		if trimmed != "" {
+			existing, err := h.service.GetByID(r.Context(), uint(id))
+			if err != nil {
+				if errors.Is(err, ErrItemNotFound) {
+					http.Error(w, err.Error(), http.StatusNotFound)
+					return
+				}
+				http.Error(w, "failed to update item", http.StatusInternalServerError)
+				return
+			}
+			if trimmed != existing.ImageURL {
+				if h.uploadService != nil && h.uploadService.IsOwnUpload(trimmed) {
+					http.Error(w, "use POST /api/items/{id}/image to set an uploaded image", http.StatusBadRequest)
+					return
+				}
+				if !h.uploadService.IsValidExternalImageURL(trimmed) {
+					http.Error(w, "invalid image_url", http.StatusBadRequest)
+					return
+				}
+			}
+		}
+		req.ImageURL = &trimmed
 	}
 
 	updated, oldImage, err := h.service.Update(r.Context(), uint(id), userID, &req)

@@ -44,7 +44,7 @@ func (s *UserService) CreateUser(user *User) error {
 func (s *UserService) createUserWithHashedPassword(user *User) error {
 	user.Role = "client"
 
-	res := s.DB.Where("email = ?", user.Email).FirstOrCreate(user)
+	res := s.DB.Where("LOWER(email) = LOWER(?)", user.Email).FirstOrCreate(user)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -251,17 +251,77 @@ func (s *UserService) DeleteAccount(userID uint) (*User, []string, error) {
 	}
 
 	var uploadedURLs []string
-	if user.Photo != "" {
-		uploadedURLs = append(uploadedURLs, user.Photo)
-	}
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if user.Photo != "" {
+			uploadedURLs = append(uploadedURLs, user.Photo)
+		}
 
-	var itemImages []string
-	_ = s.DB.Table("items").
-		Where("user_id = ? AND image_url <> ''", userID).
-		Pluck("image_url", &itemImages).Error
-	uploadedURLs = append(uploadedURLs, itemImages...)
+		var itemImages []string
+		if err := tx.Table("items").
+			Where("user_id = ? AND image_url <> ''", userID).
+			Pluck("image_url", &itemImages).Error; err != nil {
+			return err
+		}
+		uploadedURLs = append(uploadedURLs, itemImages...)
 
-	if err := s.DB.Delete(&User{}, userID).Error; err != nil {
+		var arenas []struct {
+			ID       uint
+			ImageURL string
+			LogoURL  string
+		}
+		if err := tx.Table("arenas").
+			Select("id, image_url, logo_url").
+			Where("owner_id = ?", userID).
+			Find(&arenas).Error; err != nil {
+			return err
+		}
+		if len(arenas) > 0 {
+			arenaIDs := make([]uint, 0, len(arenas))
+			for _, a := range arenas {
+				arenaIDs = append(arenaIDs, a.ID)
+				if a.ImageURL != "" {
+					uploadedURLs = append(uploadedURLs, a.ImageURL)
+				}
+				if a.LogoURL != "" {
+					uploadedURLs = append(uploadedURLs, a.LogoURL)
+				}
+			}
+
+			var hallImageURLs []string
+			if err := tx.Table("halls").
+				Where("arena_id IN ? AND image_url <> ''", arenaIDs).
+				Pluck("image_url", &hallImageURLs).Error; err != nil {
+				return err
+			}
+			uploadedURLs = append(uploadedURLs, hallImageURLs...)
+
+			var hallPhotoArrays []string
+			if err := tx.Raw("SELECT UNNEST(photos) FROM halls WHERE arena_id IN ?", arenaIDs).
+				Scan(&hallPhotoArrays).Error; err == nil {
+				uploadedURLs = append(uploadedURLs, hallPhotoArrays...)
+			}
+
+			if err := tx.Table("halls").
+				Where("arena_id IN ?", arenaIDs).
+				Updates(map[string]any{"image_url": "", "photos": "{}"}).Error; err != nil {
+				return err
+			}
+
+			if err := tx.Table("arenas").
+				Where("id IN ?", arenaIDs).
+				Updates(map[string]any{
+					"hidden":     true,
+					"owner_id":   nil,
+					"image_url":  "",
+					"logo_url":   "",
+				}).Error; err != nil {
+				return err
+			}
+		}
+
+		return tx.Delete(&User{}, userID).Error
+	})
+	if err != nil {
 		return nil, nil, err
 	}
 

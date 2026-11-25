@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"strconv"
@@ -74,57 +73,89 @@ func IssueRefreshToken(ctx context.Context, rdb *redis.Client, userID uint) (str
 	return token, nil
 }
 
+var rotateRefreshScript = redis.NewScript(`
+local oldKey = KEYS[1]
+local newKey = KEYS[2]
+local oldHash = ARGV[1]
+local newHash = ARGV[2]
+local ttlMs = tonumber(ARGV[3])
+local famPrefix = ARGV[4]
+local userPrefix = ARGV[5]
+local tokPrefix = ARGV[6]
+
+local familyID = redis.call('GET', oldKey)
+if not familyID then
+	return {'missing', '0'}
+end
+
+local famKey = famPrefix .. familyID
+local famVal = redis.call('GET', famKey)
+if not famVal then
+	return {'missing', '0'}
+end
+
+local sep = string.find(famVal, ':', 1, true)
+if not sep then
+	return {'missing', '0'}
+end
+local uidStr = string.sub(famVal, 1, sep - 1)
+local currentHash = string.sub(famVal, sep + 1)
+
+if currentHash ~= oldHash then
+	redis.call('DEL', famKey, oldKey, tokPrefix .. currentHash)
+	redis.call('SREM', userPrefix .. uidStr, familyID)
+	return {'reuse', uidStr}
+end
+
+local newFamVal = uidStr .. ':' .. newHash
+redis.call('SET', famKey, newFamVal, 'PX', ttlMs)
+redis.call('SET', newKey, familyID, 'PX', ttlMs)
+redis.call('EXPIRE', userPrefix .. uidStr, math.ceil(ttlMs / 1000))
+return {'ok', uidStr}
+`)
+
 func RotateRefreshToken(ctx context.Context, rdb *redis.Client, token string) (uint, string, error) {
 	if token == "" {
 		return 0, "", ErrInvalidRefreshToken
 	}
 
 	hash := hashRefreshToken(token)
-	familyID, err := rdb.Get(ctx, refreshTokenPrefix+hash).Result()
-	if errors.Is(err, redis.Nil) {
-		return 0, "", ErrInvalidRefreshToken
-	}
-	if err != nil {
-		return 0, "", err
-	}
-
-	famKey := refreshFamilyPrefix + familyID
-	famVal, err := rdb.Get(ctx, famKey).Result()
-	if errors.Is(err, redis.Nil) {
-		return 0, "", ErrInvalidRefreshToken
-	}
-	if err != nil {
-		return 0, "", err
-	}
-
-	userID, currentHash, ok := parseFamilyValue(famVal)
-	if !ok {
-		return 0, "", ErrInvalidRefreshToken
-	}
-
-	if subtle.ConstantTimeCompare([]byte(hash), []byte(currentHash)) != 1 {
-		_ = rdb.Del(ctx, famKey, refreshTokenPrefix+hash, refreshTokenPrefix+currentHash).Err()
-		_ = rdb.SRem(ctx, refreshUserPrefix+strconv.FormatUint(uint64(userID), 10), familyID).Err()
-		return 0, "", &ReuseDetectedError{UserID: userID}
-	}
-
 	newToken, err := generateRandomHex(32)
 	if err != nil {
 		return 0, "", err
 	}
 	newHash := hashRefreshToken(newToken)
-	newFamVal := strconv.FormatUint(uint64(userID), 10) + ":" + newHash
-	userKey := refreshUserPrefix + strconv.FormatUint(uint64(userID), 10)
 
-	pipe := rdb.Pipeline()
-	pipe.Set(ctx, famKey, newFamVal, RefreshTokenTTL)
-	pipe.Set(ctx, refreshTokenPrefix+newHash, familyID, RefreshTokenTTL)
-	pipe.Expire(ctx, userKey, RefreshTokenTTL)
-	if _, err := pipe.Exec(ctx); err != nil {
+	res, err := rotateRefreshScript.Run(
+		ctx,
+		rdb,
+		[]string{refreshTokenPrefix + hash, refreshTokenPrefix + newHash},
+		hash,
+		newHash,
+		RefreshTokenTTL.Milliseconds(),
+		refreshFamilyPrefix,
+		refreshUserPrefix,
+		refreshTokenPrefix,
+	).StringSlice()
+	if err != nil {
 		return 0, "", err
 	}
+	if len(res) != 2 {
+		return 0, "", ErrInvalidRefreshToken
+	}
 
-	return userID, newToken, nil
+	uid, parseErr := strconv.ParseUint(res[1], 10, 64)
+	switch res[0] {
+	case "ok":
+		if parseErr != nil || uid == 0 {
+			return 0, "", ErrInvalidRefreshToken
+		}
+		return uint(uid), newToken, nil
+	case "reuse":
+		return 0, "", &ReuseDetectedError{UserID: uint(uid)}
+	default:
+		return 0, "", ErrInvalidRefreshToken
+	}
 }
 
 func RevokeRefreshToken(ctx context.Context, rdb *redis.Client, token string) error {

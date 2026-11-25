@@ -138,26 +138,26 @@ func (s *Service) hallSchedule(db *gorm.DB, hallID uint) ([]HallScheduleDay, err
 	return week, nil
 }
 
-func validateScheduleDay(d *HallScheduleDay) error {
-	if d.DayOfWeek < 0 || d.DayOfWeek > 6 {
-		return fmt.Errorf("day_of_week must be 0..6")
+func validateDayFields(dayOfWeek int, isClosed bool, startTime, endTime string, slotDurations pq.Int64Array) (pq.Int64Array, error) {
+	if dayOfWeek < 0 || dayOfWeek > 6 {
+		return nil, fmt.Errorf("day_of_week must be 0..6")
 	}
-	if d.IsClosed {
-		return nil
+	if isClosed {
+		return slotDurations, nil
 	}
-	start, err := parseClock(d.StartTime)
+	start, err := parseClock(startTime)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	end, err := parseClock(d.EndTime)
+	end, err := parseClock(endTime)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if end <= start {
-		return fmt.Errorf("%s: время окончания должно быть позже начала", dayNames[d.DayOfWeek])
+		return nil, fmt.Errorf("%s: время окончания должно быть позже начала", dayNames[dayOfWeek])
 	}
 	durations := pq.Int64Array{}
-	for _, m := range d.SlotDurations {
+	for _, m := range slotDurations {
 		if m >= 30 && m <= 360 && m%30 == 0 {
 			durations = append(durations, m)
 		}
@@ -166,6 +166,14 @@ func validateScheduleDay(d *HallScheduleDay) error {
 		durations = pq.Int64Array{60}
 	}
 	sort.Slice(durations, func(i, j int) bool { return durations[i] < durations[j] })
+	return durations, nil
+}
+
+func validateScheduleDay(d *HallScheduleDay) error {
+	durations, err := validateDayFields(d.DayOfWeek, d.IsClosed, d.StartTime, d.EndTime, d.SlotDurations)
+	if err != nil {
+		return err
+	}
 	d.SlotDurations = durations
 	return nil
 }
@@ -283,7 +291,7 @@ func durationAllowed(day HallScheduleDay, minutes int) bool {
 // HallAvailability lists the day's slots for the given duration with their status.
 func (s *Service) HallAvailability(ctx context.Context, hallID uint, date string, duration int) (*Availability, error) {
 	db := s.db.WithContext(ctx)
-	hall, err := s.GetHallByID(ctx, hallID)
+	hall, err := s.GetPublicHallByID(ctx, hallID)
 	if err != nil {
 		return nil, err
 	}
@@ -357,6 +365,17 @@ var digitsRe = regexp.MustCompile(`\d`)
 
 const codeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
+func isBookingCodeConflict(err error) bool {
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
+		return true
+	}
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) && pqErr.Code == "23505" && strings.Contains(pqErr.Constraint, "booking_code") {
+		return true
+	}
+	return strings.Contains(err.Error(), "booking_code") && strings.Contains(err.Error(), "unique")
+}
+
 func newBookingCode() string {
 	b := make([]byte, 6)
 	for i := range b {
@@ -425,57 +444,63 @@ func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, u
 
 	var createdID uint
 	var ownerID *uint
-	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var hall Hall
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", req.HallID).Take(&hall).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return errors.New("зал не найден")
+	const maxCodeRetries = 3
+	for attempt := 0; attempt < maxCodeRetries; attempt++ {
+		err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			var hall Hall
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", req.HallID).Take(&hall).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return errors.New("зал не найден")
+				}
+				return err
 			}
-			return err
-		}
-		var arena Arena
-		if err := tx.Select("id, hidden, owner_id").Where("id = ?", hall.ArenaID).Take(&arena).Error; err != nil {
-			return err
-		}
-		if hall.Status != "active" || arena.Hidden {
-			return ErrHallNotBookable
-		}
-		if err := s.validateSlot(tx, hall, day, start, end, 0); err != nil {
-			return err
-		}
-		// The owner's own (manual / phone) bookings need no confirmation;
-		// a client's booking is a request until the owner answers.
-		status := "pending"
-		if userID != nil && arena.OwnerID != nil && *arena.OwnerID == *userID {
-			status = "confirmed"
-		}
-		ownerID = arena.OwnerID
+			var arena Arena
+			if err := tx.Select("id, hidden, owner_id").Where("id = ?", hall.ArenaID).Take(&arena).Error; err != nil {
+				return err
+			}
+			if hall.Status != "active" || arena.Hidden {
+				return ErrHallNotBookable
+			}
+			if err := s.validateSlot(tx, hall, day, start, end, 0); err != nil {
+				return err
+			}
+			// The owner's own (manual / phone) bookings need no confirmation;
+			// a client's booking is a request until the owner answers.
+			status := "pending"
+			if userID != nil && arena.OwnerID != nil && *arena.OwnerID == *userID {
+				status = "confirmed"
+			}
+			ownerID = arena.OwnerID
 
-		booking := Booking{
-			BookingCode:     newBookingCode(),
-			HallID:          hall.ID,
-			ArenaID:         hall.ArenaID,
-			UserID:          userID,
-			ClientName:      req.ClientName,
-			ClientPhone:     req.ClientPhone,
-			BookingDate:     date,
-			StartTime:       formatClock(start),
-			EndTime:         formatClock(end),
-			TimeSlot:        formatClock(start) + " - " + formatClock(end),
-			DurationMinutes: end - start,
-			TotalPrice:      hall.PricePerHour * (end - start) / 60,
-			Status:          status,
-			PaymentStatus:   "not_paid",
-			Notes:           strings.TrimSpace(req.Notes),
+			booking := Booking{
+				BookingCode:     newBookingCode(),
+				HallID:          hall.ID,
+				ArenaID:         hall.ArenaID,
+				UserID:          userID,
+				ClientName:      req.ClientName,
+				ClientPhone:     req.ClientPhone,
+				BookingDate:     date,
+				StartTime:       formatClock(start),
+				EndTime:         formatClock(end),
+				TimeSlot:        formatClock(start) + " - " + formatClock(end),
+				DurationMinutes: end - start,
+				TotalPrice:      hall.PricePerHour * (end - start) / 60,
+				Status:          status,
+				PaymentStatus:   "not_paid",
+				Notes:           strings.TrimSpace(req.Notes),
+			}
+			if err := tx.Create(&booking).Error; err != nil {
+				return err
+			}
+			createdID = booking.ID
+			return nil
+		})
+		if err == nil {
+			break
 		}
-		if err := tx.Create(&booking).Error; err != nil {
-			return err
+		if !isBookingCodeConflict(err) || attempt == maxCodeRetries-1 {
+			return nil, err
 		}
-		createdID = booking.ID
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
 	b, err := s.GetBookingByID(ctx, createdID)
 	if err != nil {

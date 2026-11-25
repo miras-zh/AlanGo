@@ -6,14 +6,25 @@ import (
 	"strings"
 
 	"alango/internal/auth"
+	"alango/internal/netutil"
 )
 
 type Handler struct {
-	service *Service
+	service      *Service
+	proxyChecker *netutil.TrustedProxyChecker
 }
 
 func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+	return &Handler{
+		service:      service,
+		proxyChecker: netutil.NewTrustedProxyChecker("127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"),
+	}
+}
+
+func (h *Handler) SetTrustedProxies(raw string) {
+	if h != nil {
+		h.proxyChecker = netutil.NewTrustedProxyChecker(raw)
+	}
 }
 
 type TrackRequest struct {
@@ -43,13 +54,7 @@ func (h *Handler) Track(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ip := r.Header.Get("X-Forwarded-For")
-	if ip == "" {
-		ip = r.RemoteAddr
-	} else {
-		parts := strings.Split(ip, ",")
-		ip = strings.TrimSpace(parts[0])
-	}
+	ip := h.proxyChecker.ClientIP(r)
 	userAgent := r.UserAgent()
 
 	_ = h.service.TrackEvent(req.EventType, req.TargetType, req.TargetID, req.Platform, req.Source, req.DeviceID, ip, userAgent)

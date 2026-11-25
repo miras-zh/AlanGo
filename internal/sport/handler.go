@@ -5,10 +5,11 @@ import (
 
 	"encoding/json"
 	"errors"
-	"github.com/lib/pq"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/lib/pq"
 
 	"alango/internal/auth"
 
@@ -56,7 +57,7 @@ func (h *Handler) GetArena(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	arena, err := h.service.GetArenaByID(r.Context(), uint(id))
+	arena, err := h.service.GetPublicArenaByID(r.Context(), uint(id))
 	if err != nil {
 		http.Error(w, `{"error":"arena not found"}`, http.StatusNotFound)
 		return
@@ -99,6 +100,22 @@ func (h *Handler) UpdateArena(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
 		return
 	}
+	req.Title = strings.TrimSpace(req.Title)
+	req.Address = strings.TrimSpace(req.Address)
+	req.City = strings.TrimSpace(req.City)
+	req.District = strings.TrimSpace(req.District)
+	req.Category = strings.TrimSpace(req.Category)
+	req.Phone = strings.TrimSpace(req.Phone)
+	req.WorkingHours = strings.TrimSpace(req.WorkingHours)
+	if req.Title == "" || len(req.Title) > 255 {
+		http.Error(w, `{"error":"title must be between 1 and 255 characters"}`, http.StatusBadRequest)
+		return
+	}
+	if len(req.Address) > 255 || len(req.City) > 100 || len(req.District) > 100 ||
+		len(req.Category) > 100 || len(req.Phone) > 50 || len(req.WorkingHours) > 100 {
+		http.Error(w, `{"error":"one or more arena fields exceed maximum length"}`, http.StatusBadRequest)
+		return
+	}
 	if msg := validateLocation(req.Latitude, req.Longitude); msg != "" {
 		http.Error(w, `{"error":"`+msg+`"}`, http.StatusBadRequest)
 		return
@@ -118,8 +135,11 @@ func (h *Handler) UpdateArena(w http.ResponseWriter, r *http.Request) {
 	req.VenueType = protected.VenueType
 	req.Rating = protected.Rating
 	req.ReviewsCount = protected.ReviewsCount
+	req.HallsCount = protected.HallsCount
+	req.MinPricePerHour = protected.MinPricePerHour
 	req.CreatedAt = protected.CreatedAt
-	req.LogoURL = protected.LogoURL // changed only via /arenas/{id}/logo
+	req.LogoURL = protected.LogoURL   // changed only via /arenas/{id}/logo
+	req.ImageURL = protected.ImageURL // changed only via /arenas/{id}/cover
 	req.Halls = nil
 	if err := h.service.SaveArena(r.Context(), &req); err != nil {
 		http.Error(w, `{"error":"failed to update arena"}`, http.StatusInternalServerError)
@@ -161,7 +181,7 @@ func (h *Handler) GetHall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hall, err := h.service.GetHallByID(r.Context(), uint(id))
+	hall, err := h.service.GetPublicHallByID(r.Context(), uint(id))
 	if err != nil {
 		http.Error(w, `{"error":"hall not found"}`, http.StatusNotFound)
 		return
@@ -178,8 +198,29 @@ func (h *Handler) CreateHall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Title = strings.TrimSpace(req.Title)
+	req.SportType = strings.TrimSpace(req.SportType)
+	req.SurfaceType = strings.TrimSpace(req.SurfaceType)
+	req.Capacity = strings.TrimSpace(req.Capacity)
+	req.Status = strings.TrimSpace(req.Status)
+	if req.Status == "" {
+		req.Status = "active"
+	}
+
 	if req.Title == "" || req.ArenaID == 0 {
 		http.Error(w, `{"error":"title and arena_id are required"}`, http.StatusBadRequest)
+		return
+	}
+	if len(req.Title) > 255 || len(req.SportType) > 100 || len(req.SurfaceType) > 255 || len(req.Capacity) > 100 {
+		http.Error(w, `{"error":"one or more hall fields exceed maximum length"}`, http.StatusBadRequest)
+		return
+	}
+	if req.PricePerHour < 0 {
+		http.Error(w, `{"error":"price_per_hour must be non-negative"}`, http.StatusBadRequest)
+		return
+	}
+	if req.Status != "active" && req.Status != "inactive" && req.Status != "maintenance" {
+		http.Error(w, `{"error":"invalid hall status"}`, http.StatusBadRequest)
 		return
 	}
 	if !h.requireArenaOwner(w, r, req.ArenaID) {
@@ -199,6 +240,15 @@ func (h *Handler) CreateHall(w http.ResponseWriter, r *http.Request) {
 		req.Photos = existing.Photos
 		req.ImageURL = existing.ImageURL
 	} else {
+		userID, _ := auth.GetUserID(r)
+		if err := h.service.CheckHallLimit(r.Context(), userID, req.ArenaID); err != nil {
+			if errors.Is(err, ErrHallLimitReached) {
+				http.Error(w, `{"error":"hall limit reached for your subscription plan"}`, http.StatusForbidden)
+				return
+			}
+			http.Error(w, `{"error":"failed to check hall limit"}`, http.StatusInternalServerError)
+			return
+		}
 		// New hall: no stock image, the cover comes from the first uploaded photo.
 		req.Photos = pq.StringArray{}
 		req.ImageURL = ""
@@ -238,6 +288,11 @@ func (h *Handler) GetSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, err := h.service.GetPublicArenaByID(r.Context(), uint(arenaID)); err != nil {
+		http.Error(w, `{"error":"arena not found"}`, http.StatusNotFound)
+		return
+	}
+
 	schedule, err := h.service.GetArenaSchedule(r.Context(), uint(arenaID))
 	if err != nil {
 		http.Error(w, `{"error":"failed to get schedule"}`, http.StatusInternalServerError)
@@ -269,7 +324,7 @@ func (h *Handler) SaveSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.SaveArenaSchedule(r.Context(), uint(arenaID), req.Schedule); err != nil {
-		http.Error(w, `{"error":"failed to save schedule"}`, http.StatusInternalServerError)
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -317,14 +372,19 @@ func (h *Handler) ListBookings(w http.ResponseWriter, r *http.Request) {
 	status := strings.TrimSpace(q.Get("status"))
 
 	var filterUserID *uint
+	limit := 200
 	if q.Get("my") == "true" {
-		if uid, ok := auth.GetUserID(r); ok {
-			u := uint(uid)
-			filterUserID = &u
+		uid, ok := auth.GetUserID(r)
+		if !ok {
+			http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+			return
 		}
+		u := uint(uid)
+		filterUserID = &u
+		limit = 500
 	}
 
-	bookings, err := h.service.ListBookings(r.Context(), uint(arenaID), uint(hallID), date, status, filterUserID)
+	bookings, err := h.service.ListBookings(r.Context(), uint(arenaID), uint(hallID), date, status, filterUserID, limit)
 	if err != nil {
 		http.Error(w, `{"error":"failed to list bookings"}`, http.StatusInternalServerError)
 		return
@@ -398,7 +458,7 @@ func (h *Handler) ListOwnBookings(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	hallID, _ := strconv.ParseUint(q.Get("hall_id"), 10, 64)
 	bookings, err := h.service.ListBookings(r.Context(), arenaID, uint(hallID),
-		strings.TrimSpace(q.Get("date")), strings.TrimSpace(q.Get("status")), nil)
+		strings.TrimSpace(q.Get("date")), strings.TrimSpace(q.Get("status")), nil, 500)
 	if err != nil {
 		http.Error(w, `{"error":"failed to list bookings"}`, http.StatusInternalServerError)
 		return

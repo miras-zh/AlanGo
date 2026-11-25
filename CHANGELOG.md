@@ -9,6 +9,35 @@
 
 ## [Unreleased]
 
+### 🔒 Аудит и исправления безопасности, надёжности и бизнес-логики бэкенда (2026-11-24)
+- **Авторизация и маршрутизация (`internal/router/`, `internal/auth/`, `internal/subscription/`)**:
+  - Подключён `auth.RequireAdminType` на `/api/admin/*`; эндпоинты `/api/admin/analytics/funnel|online|traffic` перенесены под админ-авторизацию, `/api/analytics/heartbeat` обёрнут в `optionalAuth`.
+  - Эндпоинты `/api/business/telegram/notify` и `/api/business/telegram/status` защищены `AuthMiddleware` + `auth.RequireRole("business", ...)`.
+  - `ApproveRequest` и `RejectRequest` в `internal/subscription/service.go` переведены в транзакцию с `SELECT ... FOR UPDATE`; убран лишний `AutoMigrate` из `NewService`.
+  - В `AuthMiddleware` проверка blacklist при ошибке Redis переведена в режим fail-closed (`503`), добавлено кеширование `IsActive` в Redis с инвалидацией при удалении аккаунта; в `withCORS` добавлен `Vary: Origin`.
+- **Rate limiting, Trusted Proxy и Redis-атомарность (`internal/netutil/`, `internal/router/ratelimit.go`, `config/config.go`, `internal/auth/refresh.go`, `internal/user/signup.go`)**:
+  - Настройки rate limit (`RATE_LIMIT_MAX` и др.) и `TRUSTED_PROXIES` перенесены в `config.Config`, чтобы загружаться после `godotenv.Load()`.
+  - Добавлен `netutil.TrustedProxyChecker`: `X-Forwarded-For` учитывается только от доверенных прокси-подсетей (защита от спуфинга IP), применён в `ratelimit`, `audit` и `analytics`.
+  - Добавлен rate limit на `POST /api/register/verify`; счётчик попыток ввода кода переведён на атомарный `INCR` в Redis, а удаление pending-регистрации выполняется только после успешного создания пользователя.
+  - `RotateRefreshToken` переведён на атомарный Redis Lua-скрипт; в `AppleVerifier.keyForKid` добавлен `singleflight` и ограничение срока fallback-кеша (24 часа).
+- **Домен `sport`, пользователи и удаление аккаунта (`internal/sport/`, `internal/user/`, `internal/item/`)**:
+  - В `PATCH /api/bookings/{id}/status` клиенту-создателю брони разрешена её отмена (`status = "cancelled"`) с уведомлением владельца арены.
+  - Устранены гонки: `AddHallPhoto`/`RemoveHallPhoto` используют `SELECT ... FOR UPDATE` на `halls`, `RescheduleBooking` блокирует строку `bookings`, `CreateBooking` повторяет генерацию `booking_code` при конфликте уникальности.
+  - Публичные `GET /api/arenas/{id}`, `GET /api/arenas/{id}/schedule`, `GET /api/halls/{id}`, `GET /api/halls/{id}/schedule`, `GET /api/halls/{id}/availability` скрывают `hidden = true` арены и неактивные залы; владелец может редактировать арену/залы только при активном бизнес-режиме (`role == 'business'`).
+  - В `UpdateArena` защищены `ImageURL`, `HallsCount`, `MinPricePerHour` и провалидированы длины полей; в `CreateHall` запрещены отрицательные цены, невалидные статусы, проверяется лимит залов по тарифу (`standard` — 2, `pro` — 10, `vip` — безлимит) и синхронизируются `halls_count` и `min_price_per_hour`; в `SaveArenaSchedule` добавлена валидация расписания; в `GetBusinessDashboard` `today_revenue` рассчитывается строго за текущую дату по `venueTZ`; в `ListBookings` при `?my=true` без токена возвращается `401` и добавлен лимит выборки.
+  - При `DELETE /api/profile` арена пользователя скрывается (`hidden = true`, `owner_id = NULL`), а её загруженные файлы (`logo_url`, `image_url`, `halls.photos`) удаляются с диска; добавлена валидация длин полей и URL изображений в `Register`, `UpdateProfile` и `item.Create`/`Update`.
+- **Воркер, почта, аналитика, загрузки и Docker (`internal/worker/`, `internal/mail/`, `internal/analytics/`, `internal/upload/`, `docker/`)**:
+  - В `CheckExpiredSubscriptions` исправлен SQL-запрос (`plan_expires_at` вместо несуществующих `valid_until`/`updated_at`).
+  - В `mail.Sender` адрес `MAIL FROM` извлекается через `net/mail.ParseAddress`, добавлен заголовок `To`, запрещена отправка `AUTH` без `STARTTLS` на нелокальных хостах.
+  - В `analytics.Service` реализован отчёт `GetTrafficReport` для `24h`/`7d`/`30d` по данным Redis и `traffic_hourly_stats`, добавлено ограничение длин в `TrackEvent`.
+  - В `upload.SaveImage` добавлена очистка неполного файла при ошибке копирования и жёсткое ограничение чтения `MaxUploadSize`; удалён неиспользуемый `internal/upload/s3.go`.
+  - В `docker/docker-compose.server.yaml` и `docker/app/Dockerfile` пароли БД/Redis вынесены в `.env`, добавлен непривилегированный пользователь `app`, синхронизирован дефолт `APPLE_BUNDLE_IDS=kz.alango.app`.
+- **Проверено**: `go vet ./...`, `go test -race -v ./...` и кросс-компиляция `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /tmp/alango-server ./cmd/app`.
+
+### 📅 Отображение работающих залов в «Графике работы по дням» на экране арены (2026-11-20)
+- **`ui/mobile/app/arena/[id].tsx`**: для каждого зала арены параллельно загружается индивидуальный график (`getHallSchedule`, с fallback на общий график арены). В блоке «График работы по дням» (Понедельник–Воскресенье) для каждого дня построчно на всю ширину (название зала слева, время работы справа, без рамок — только нижний разделитель между днями) отображаются только **работающие** в этот день залы; закрытые в этот день залы не выводятся, а если не работает ни один зал — отображается «Выходной».
+- **Проверено**: `npx tsc --noEmit` (0 ошибок), `git diff --check` (0 замечаний); в iOS Simulator (`Expo Go`) проверено на экране `Miras Arena` с разными графиками и выходными днями по залам.
+
 ### 📌 Фиксированная кнопка «Назад» на экране зала (2026-11-20)
 - **`ui/mobile/app/hall/[id].tsx`**: верхняя панель с кнопками «Назад», «Поделиться» и «Избранное» (`floatingTopBar`) вынесена из `PhotoGallery` / `ScrollView` на уровень `SafeAreaView` с `zIndex: 10`, `pointerEvents="box-none"` и `top: insets.top + 12` (`useSafeAreaInsets`), чтобы кнопки всегда оставались закреплены сверху при прокрутке страницы вниз.
 - **Проверено**: `npx tsc --noEmit` (0 ошибок), `git diff --check` (0 замечаний); в iOS Simulator (`Expo Go`) проверена прокрутка экрана зала вниз — кнопка «Назад» остаётся сверху слева и возвращает на предыдущий экран.

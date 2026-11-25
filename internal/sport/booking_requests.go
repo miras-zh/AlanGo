@@ -145,10 +145,15 @@ func (s *Service) UpdateBookingStatus(ctx context.Context, id uint, status, reas
 		reason = string([]rune(reason)[:maxRejectReasonLen])
 	}
 
+	var arenaOwnerID *uint
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var b Booking
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", id).Take(&b).Error; err != nil {
 			return err
+		}
+		var arena Arena
+		if err := tx.Select("owner_id").Where("id = ?", b.ArenaID).Take(&arena).Error; err == nil {
+			arenaOwnerID = arena.OwnerID
 		}
 		if b.Status == status {
 			return nil
@@ -180,6 +185,10 @@ func (s *Service) UpdateBookingStatus(ctx context.Context, id uint, status, reas
 	case "cancelled":
 		s.notify(b.UserID, actorID, "booking_cancelled", "Бронь отменена",
 			fmt.Sprintf("%s — %s", b.ArenaTitle, bookingSummary(b)), b.ID)
+		if actorID != nil && b.UserID != nil && *actorID == *b.UserID {
+			s.notify(arenaOwnerID, actorID, "booking_cancelled", "Клиент отменил бронь",
+				fmt.Sprintf("%s — %s (%s)", b.ClientName, bookingSummary(b), b.ClientPhone), b.ID)
+		}
 	}
 	return b, nil
 }
@@ -200,7 +209,7 @@ func (s *Service) RescheduleBooking(ctx context.Context, id uint, req Reschedule
 	var oldSummary string
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var b Booking
-		if err := tx.Where("id = ?", id).Take(&b).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", id).Take(&b).Error; err != nil {
 			return err
 		}
 		if isClosedStatus(b.Status) || b.Status == "completed" {

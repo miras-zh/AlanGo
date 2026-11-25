@@ -75,3 +75,36 @@ func TestRuDate(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+func TestHallLimitForPlan(t *testing.T) {
+	past := time.Now().Add(-time.Hour)
+	future := time.Now().Add(time.Hour)
+	if got := hallLimitForPlan("standard", nil); got != 2 {
+		t.Errorf("standard limit: got %d, want 2", got)
+	}
+	if got := hallLimitForPlan("pro", &future); got != 10 {
+		t.Errorf("active pro limit: got %d, want 10", got)
+	}
+	if got := hallLimitForPlan("pro", &past); got != 2 {
+		t.Errorf("expired pro limit: got %d, want 2", got)
+	}
+	if got := hallLimitForPlan("vip", &future); got != 0 {
+		t.Errorf("vip limit: got %d, want 0 (unlimited)", got)
+	}
+}
+
+func TestValidateDayFields(t *testing.T) {
+	if _, err := validateDayFields(7, false, "08:00", "22:00", nil); err == nil {
+		t.Errorf("expected error for day_of_week=7")
+	}
+	if _, err := validateDayFields(1, false, "22:00", "08:00", nil); err == nil {
+		t.Errorf("expected error when end <= start")
+	}
+	durs, err := validateDayFields(1, false, "08:00", "22:00", []int64{90, 45, 60})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(durs) != 2 || durs[0] != 60 || durs[1] != 90 {
+		t.Errorf("unexpected filtered durations: %v", durs)
+	}
+}

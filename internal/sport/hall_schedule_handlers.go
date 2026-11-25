@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"gorm.io/gorm"
 )
 
 func hallIDFromPath(w http.ResponseWriter, r *http.Request) (uint, bool) {
@@ -30,7 +31,7 @@ func (h *Handler) GetHallSchedule(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if _, err := h.service.GetHallByID(r.Context(), id); err != nil {
+	if _, err := h.service.GetPublicHallByID(r.Context(), id); err != nil {
 		http.Error(w, `{"error":"hall not found"}`, http.StatusNotFound)
 		return
 	}
@@ -79,7 +80,11 @@ func (h *Handler) HallAvailability(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
-		http.Error(w, `{"error":"hall not found"}`, http.StatusNotFound)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			http.Error(w, `{"error":"hall not found"}`, http.StatusNotFound)
+			return
+		}
+		http.Error(w, `{"error":"failed to check availability"}`, http.StatusInternalServerError)
 		return
 	}
 	writeJSON(w, http.StatusOK, res)

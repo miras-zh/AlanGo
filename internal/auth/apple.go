@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/sync/singleflight"
 )
 
 var (
@@ -24,10 +25,11 @@ var (
 )
 
 const (
-	appleIssuer    = "https://appleid.apple.com"
-	appleKeysURL   = "https://appleid.apple.com/auth/keys"
-	appleKeyMaxAge = time.Hour
-	maxAppleTokLen = 8192
+	appleIssuer         = "https://appleid.apple.com"
+	appleKeysURL        = "https://appleid.apple.com/auth/keys"
+	appleKeyMaxAge      = time.Hour
+	appleStaleKeyMaxAge = 24 * time.Hour
+	maxAppleTokLen      = 8192
 )
 
 type AppleClaims struct {
@@ -44,6 +46,7 @@ type AppleVerifier struct {
 	mu        sync.Mutex
 	keys      map[string]*rsa.PublicKey
 	fetchedAt time.Time
+	sf        singleflight.Group
 
 	teamID   string
 	keyID    string
@@ -158,10 +161,20 @@ func (v *AppleVerifier) keyForKid(ctx context.Context, kid string) (*rsa.PublicK
 	}
 	v.mu.Unlock()
 
-	fetched, err := v.fetchKeys(ctx)
+	val, err, _ := v.sf.Do("jwks", func() (any, error) {
+		fetched, err := v.fetchKeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+		v.mu.Lock()
+		v.keys = fetched
+		v.fetchedAt = time.Now()
+		v.mu.Unlock()
+		return fetched, nil
+	})
 	if err != nil {
 		v.mu.Lock()
-		if k, ok := v.keys[kid]; ok {
+		if k, ok := v.keys[kid]; ok && time.Since(v.fetchedAt) < appleStaleKeyMaxAge {
 			v.mu.Unlock()
 			return k, nil
 		}
@@ -169,11 +182,8 @@ func (v *AppleVerifier) keyForKid(ctx context.Context, kid string) (*rsa.PublicK
 		return nil, err
 	}
 
-	v.mu.Lock()
-	v.keys = fetched
-	v.fetchedAt = time.Now()
-	k, ok := v.keys[kid]
-	v.mu.Unlock()
+	fetched := val.(map[string]*rsa.PublicKey)
+	k, ok := fetched[kid]
 	if !ok {
 		return nil, fmt.Errorf("apple jwks has no key %q", kid)
 	}

@@ -3,11 +3,13 @@ package mail
 import (
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
 	"mime/multipart"
 	"mime/quotedprintable"
 	"net"
+	"net/mail"
 	"net/smtp"
 	"net/textproto"
 	"strings"
@@ -59,7 +61,7 @@ func (s *Sender) Send(recipients []string, subject, body string) error {
 			subject, len(recipients), strings.Join(recipients, ", "), body)
 		return nil
 	}
-	return s.deliver(recipients, buildMessage(s.cfg.From, subject, body))
+	return s.deliver(recipients, buildMessage(s.cfg.From, recipients, subject, body))
 }
 
 func (s *Sender) SendTemplate(recipients []string, subject string, data TemplateData) error {
@@ -82,17 +84,34 @@ func (s *Sender) SendTemplate(recipients []string, subject string, data Template
 	if err != nil {
 		return fmt.Errorf("mail: render template: %w", err)
 	}
-	return s.deliver(recipients, buildMultipartMessage(s.cfg.From, subject, plain, html))
+	return s.deliver(recipients, buildMultipartMessage(s.cfg.From, recipients, subject, plain, html))
+}
+
+func extractEnvelopeAddress(from string) string {
+	from = strings.TrimSpace(from)
+	if addr, err := mail.ParseAddress(from); err == nil && addr.Address != "" {
+		return addr.Address
+	}
+	return from
+}
+
+func isLocalSMTPHost(host string) bool {
+	h := strings.ToLower(strings.TrimSpace(host))
+	return h == "localhost" || h == "127.0.0.1" || h == "::1" || h == "mailpit"
 }
 
 func (s *Sender) deliver(recipients []string, msg []byte) error {
 	addr := s.cfg.Host + ":" + s.cfg.Port
-	auth := smtp.PlainAuth("", s.cfg.Username, s.cfg.Password, s.cfg.Host)
+	var auth smtp.Auth
+	if s.cfg.Username != "" || s.cfg.Password != "" {
+		auth = smtp.PlainAuth("", s.cfg.Username, s.cfg.Password, s.cfg.Host)
+	}
+	envelopeFrom := extractEnvelopeAddress(s.cfg.From)
 
 	if s.cfg.Port == "465" {
-		return sendMailTLS(addr, s.cfg.Host, auth, s.cfg.From, recipients, msg)
+		return sendMailTLS(addr, s.cfg.Host, auth, envelopeFrom, recipients, msg)
 	}
-	return sendMailPlain(addr, s.cfg.Host, auth, s.cfg.From, recipients, msg)
+	return sendMailPlain(addr, s.cfg.Host, auth, envelopeFrom, recipients, msg)
 }
 
 func sendMailPlain(addr, host string, auth smtp.Auth, from string, recipients []string, msg []byte) error {
@@ -112,12 +131,17 @@ func sendMailPlain(addr, host string, auth smtp.Auth, from string, recipients []
 	}
 	defer c.Close()
 
+	encrypted := false
 	if ok, _ := c.Extension("STARTTLS"); ok {
 		if err := c.StartTLS(&tls.Config{ServerName: host}); err != nil {
 			return fmt.Errorf("mail: starttls: %w", err)
 		}
+		encrypted = true
 	}
 	if auth != nil {
+		if !encrypted && !isLocalSMTPHost(host) {
+			return errors.New("mail: refusing to send SMTP credentials without STARTTLS on non-local host")
+		}
 		if ok, _ := c.Extension("AUTH"); ok {
 			if err := c.Auth(auth); err != nil {
 				return fmt.Errorf("mail: auth: %w", err)
@@ -162,8 +186,10 @@ func sendMailTLS(addr, host string, auth smtp.Auth, from string, recipients []st
 	}
 	defer c.Close()
 
-	if err := c.Auth(auth); err != nil {
-		return fmt.Errorf("mail: auth: %w", err)
+	if auth != nil {
+		if err := c.Auth(auth); err != nil {
+			return fmt.Errorf("mail: auth: %w", err)
+		}
 	}
 	if err := c.Mail(from); err != nil {
 		return fmt.Errorf("mail: mail from: %w", err)
@@ -186,9 +212,10 @@ func sendMailTLS(addr, host string, auth smtp.Auth, from string, recipients []st
 	return c.Quit()
 }
 
-func buildMessage(from, subject, body string) []byte {
+func buildMessage(from string, recipients []string, subject, body string) []byte {
 	var b strings.Builder
 	fmt.Fprintf(&b, "From: %s\r\n", sanitizeHeaderValue(from))
+	fmt.Fprintf(&b, "To: %s\r\n", sanitizeHeaderValue(strings.Join(recipients, ", ")))
 	fmt.Fprintf(&b, "Subject: %s\r\n", sanitizeHeaderValue(subject))
 	b.WriteString("MIME-Version: 1.0\r\n")
 	b.WriteString("Content-Type: text/plain; charset=\"utf-8\"\r\n")
@@ -197,7 +224,7 @@ func buildMessage(from, subject, body string) []byte {
 	return []byte(b.String())
 }
 
-func buildMultipartMessage(from, subject, plainBody, htmlBody string) []byte {
+func buildMultipartMessage(from string, recipients []string, subject, plainBody, htmlBody string) []byte {
 	var parts bytes.Buffer
 	mw := multipart.NewWriter(&parts)
 
@@ -225,6 +252,7 @@ func buildMultipartMessage(from, subject, plainBody, htmlBody string) []byte {
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "From: %s\r\n", sanitizeHeaderValue(from))
+	fmt.Fprintf(&b, "To: %s\r\n", sanitizeHeaderValue(strings.Join(recipients, ", ")))
 	fmt.Fprintf(&b, "Subject: %s\r\n", sanitizeHeaderValue(subject))
 	b.WriteString("MIME-Version: 1.0\r\n")
 	fmt.Fprintf(&b, "Content-Type: multipart/alternative; boundary=%q\r\n", mw.Boundary())

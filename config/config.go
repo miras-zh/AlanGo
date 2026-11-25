@@ -42,6 +42,11 @@ type Config struct {
 	AppleTeamID                string
 	AppleKeyID                 string
 	ApplePrivateKey            string
+	RateLimitMax               int
+	LoginRateLimitMax          int
+	PasswordResetRateLimitMax  int
+	PublicFormRateLimitMax     int
+	TrustedProxies             string
 }
 
 func NewConfig() (*Config, error) {
@@ -88,11 +93,25 @@ func NewConfig() (*Config, error) {
 		MetricsPassword:            getEnv("METRICS_PASSWORD", "dev-metrics-password"),
 		CookieSecure:               getEnv("COOKIE_SECURE", "false") == "true",
 		GoogleClientIDs:            getEnv("GOOGLE_CLIENT_IDS", ""),
-		AppleBundleIDs:             getEnv("APPLE_BUNDLE_IDS", "com.studio.alango"),
+		AppleBundleIDs:             getEnv("APPLE_BUNDLE_IDS", "kz.alango.app"),
 		AppleTeamID:                getEnv("APPLE_TEAM_ID", ""),
 		AppleKeyID:                 getEnv("APPLE_KEY_ID", ""),
 		ApplePrivateKey:            getEnv("APPLE_PRIVATE_KEY", ""),
+		RateLimitMax:               getEnvInt("RATE_LIMIT_MAX", 120),
+		LoginRateLimitMax:          getEnvInt("LOGIN_RATE_LIMIT_MAX", 20),
+		PasswordResetRateLimitMax:  getEnvInt("PASSWORD_RESET_RATE_LIMIT_MAX", 5),
+		PublicFormRateLimitMax:     getEnvInt("PUBLIC_FORM_RATE_LIMIT_MAX", 10),
+		TrustedProxies:             getEnv("TRUSTED_PROXIES", "127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"),
 	}, nil
+}
+
+func getEnvInt(key string, fallback int) int {
+	if value := os.Getenv(key); value != "" {
+		if n, err := strconv.Atoi(value); err == nil && n > 0 {
+			return n
+		}
+	}
+	return fallback
 }
 
 func getEnv(key, fallback string) string {

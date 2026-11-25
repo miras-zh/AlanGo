@@ -2,32 +2,54 @@ package router
 
 import (
 	"context"
-	"net"
+	"log"
 	"net/http"
-	"os"
-	"strconv"
-	"strings"
 	"time"
+
+	"alango/config"
+	"alango/internal/netutil"
 
 	"github.com/redis/go-redis/v9"
 )
 
 const rateLimitWindow = time.Minute
 
-var (
-	rateLimitMax              = envInt("RATE_LIMIT_MAX", 120)
-	loginRateLimitMax         = envInt("LOGIN_RATE_LIMIT_MAX", 20)
-	passwordResetRateLimitMax = envInt("PASSWORD_RESET_RATE_LIMIT_MAX", 5)
-	publicFormRateLimitMax    = envInt("PUBLIC_FORM_RATE_LIMIT_MAX", 10)
-)
+type RateLimiter struct {
+	rdb              *redis.Client
+	proxyChecker     *netutil.TrustedProxyChecker
+	globalMax        int
+	loginMax         int
+	passwordResetMax int
+	publicFormMax    int
+}
 
-func envInt(key string, def int) int {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			return n
+func NewRateLimiter(rdb *redis.Client, cfg *config.Config) *RateLimiter {
+	rl := &RateLimiter{
+		rdb:              rdb,
+		proxyChecker:     netutil.NewTrustedProxyChecker("127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"),
+		globalMax:        120,
+		loginMax:         20,
+		passwordResetMax: 5,
+		publicFormMax:    10,
+	}
+	if cfg != nil {
+		if cfg.TrustedProxies != "" {
+			rl.proxyChecker = netutil.NewTrustedProxyChecker(cfg.TrustedProxies)
+		}
+		if cfg.RateLimitMax > 0 {
+			rl.globalMax = cfg.RateLimitMax
+		}
+		if cfg.LoginRateLimitMax > 0 {
+			rl.loginMax = cfg.LoginRateLimitMax
+		}
+		if cfg.PasswordResetRateLimitMax > 0 {
+			rl.passwordResetMax = cfg.PasswordResetRateLimitMax
+		}
+		if cfg.PublicFormRateLimitMax > 0 {
+			rl.publicFormMax = cfg.PublicFormRateLimitMax
 		}
 	}
-	return def
+	return rl
 }
 
 var fixedWindowScript = redis.NewScript(`
@@ -44,82 +66,40 @@ func allowFixedWindow(ctx context.Context, rdb *redis.Client, key string, window
 	}
 	n, err := fixedWindowScript.Run(ctx, rdb, []string{key}, window.Milliseconds()).Int64()
 	if err != nil {
+		log.Printf("ratelimit: redis error for %s: %v", key, err)
 		return 0, false
 	}
 	return n, true
 }
 
-func clientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.Split(xff, ",")
-		return strings.TrimSpace(parts[len(parts)-1])
-	}
-	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		return host
-	}
-	return r.RemoteAddr
-}
-
-func withRateLimit(next http.Handler, rdb *redis.Client) http.Handler {
+func (rl *RateLimiter) limit(prefix string, max int, msg string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key := "ratelimit:" + clientIP(r)
-		count, ok := allowFixedWindow(r.Context(), rdb, key, rateLimitWindow)
+		key := prefix + rl.proxyChecker.ClientIP(r)
+		count, ok := allowFixedWindow(r.Context(), rl.rdb, key, rateLimitWindow)
 		if !ok {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if count > int64(rateLimitMax) {
-			http.Error(w, "too many requests, slow down", http.StatusTooManyRequests)
+		if count > int64(max) {
+			http.Error(w, msg, http.StatusTooManyRequests)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
 }
 
-func withLoginRateLimit(next http.Handler, rdb *redis.Client) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key := "ratelimit:login:" + clientIP(r)
-		count, ok := allowFixedWindow(r.Context(), rdb, key, time.Minute)
-		if !ok {
-			next.ServeHTTP(w, r)
-			return
-		}
-		if count > int64(loginRateLimitMax) {
-			http.Error(w, "too many login attempts from this address, slow down", http.StatusTooManyRequests)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+func (rl *RateLimiter) Global(next http.Handler) http.Handler {
+	return rl.limit("ratelimit:", rl.globalMax, "too many requests, slow down", next)
 }
 
-func withPasswordResetRateLimit(next http.Handler, rdb *redis.Client) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key := "ratelimit:pwreset:" + clientIP(r)
-		count, ok := allowFixedWindow(r.Context(), rdb, key, time.Minute)
-		if !ok {
-			next.ServeHTTP(w, r)
-			return
-		}
-		if count > int64(passwordResetRateLimitMax) {
-			http.Error(w, "too many password reset requests from this address, slow down", http.StatusTooManyRequests)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+func (rl *RateLimiter) Login(next http.Handler) http.Handler {
+	return rl.limit("ratelimit:login:", rl.loginMax, "too many login attempts from this address, slow down", next)
 }
 
-func withPublicFormRateLimit(scope string, next http.Handler, rdb *redis.Client) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key := "ratelimit:form:" + scope + ":" + clientIP(r)
-		count, ok := allowFixedWindow(r.Context(), rdb, key, time.Minute)
-		if !ok {
-			next.ServeHTTP(w, r)
-			return
-		}
-		if count > int64(publicFormRateLimitMax) {
-			http.Error(w, "too many requests from this address, slow down", http.StatusTooManyRequests)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+func (rl *RateLimiter) PasswordReset(next http.Handler) http.Handler {
+	return rl.limit("ratelimit:pwreset:", rl.passwordResetMax, "too many password reset requests from this address, slow down", next)
+}
+
+func (rl *RateLimiter) PublicForm(scope string, next http.Handler) http.Handler {
+	return rl.limit("ratelimit:form:"+scope+":", rl.publicFormMax, "too many requests from this address, slow down", next)
 }

@@ -52,6 +52,7 @@ type pendingRegistration struct {
 }
 
 func pendingRegKey(token string) string   { return "reg:pending:" + token }
+func pendingAttemptKey(token string) string { return "reg:attempts:" + token }
 func resendCooldownKey(email string) string { return "reg:cooldown:" + strings.ToLower(email) }
 func emailSendCountKey(email string) string { return "reg:sends:" + strings.ToLower(email) }
 
@@ -196,6 +197,7 @@ func (h *UserHandler) StartRegistration(ctx context.Context, req *RegisterReques
 
 func (h *UserHandler) VerifyRegistration(ctx context.Context, token, code string) (*User, error) {
 	key := pendingRegKey(token)
+	attKey := pendingAttemptKey(token)
 	raw, err := h.Redis.Get(ctx, key).Bytes()
 	if errors.Is(err, redis.Nil) {
 		return nil, ErrPendingNotFound
@@ -211,22 +213,23 @@ func (h *UserHandler) VerifyRegistration(ctx context.Context, token, code string
 
 	givenHash := hashCode(strings.TrimSpace(code))
 	if subtle.ConstantTimeCompare([]byte(givenHash), []byte(pending.CodeHash)) != 1 {
-		pending.Attempts++
-		if pending.Attempts >= maxCodeVerifyTries {
-			_ = h.Redis.Del(ctx, key).Err()
+		attempts, err := h.Redis.Incr(ctx, attKey).Result()
+		if err != nil {
+			return nil, err
+		}
+		if attempts == 1 {
+			ttl, ttlErr := h.Redis.TTL(ctx, key).Result()
+			if ttlErr != nil || ttl <= 0 {
+				ttl = pendingRegTTL
+			}
+			_ = h.Redis.Expire(ctx, attKey, ttl).Err()
+		}
+		if attempts >= maxCodeVerifyTries {
+			_ = h.Redis.Del(ctx, key, attKey).Err()
 			return nil, ErrTooManyCodeTries
-		}
-		ttl, err := h.Redis.TTL(ctx, key).Result()
-		if err != nil || ttl <= 0 {
-			ttl = pendingRegTTL
-		}
-		if updated, err := json.Marshal(pending); err == nil {
-			_ = h.Redis.Set(ctx, key, updated, ttl).Err()
 		}
 		return nil, ErrInvalidVerifyCode
 	}
-
-	_ = h.Redis.Del(ctx, key).Err()
 
 	user := &User{
 		FullName: pending.FullName,
@@ -237,11 +240,13 @@ func (h *UserHandler) VerifyRegistration(ctx context.Context, token, code string
 		Password: pending.PasswordHash,
 	}
 	if err := h.Service.createUserWithHashedPassword(user); err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
+		if errors.Is(err, gorm.ErrDuplicatedKey) || err.Error() == "email already registered" {
+			_ = h.Redis.Del(ctx, key, attKey).Err()
 			return nil, errors.New("email already registered")
 		}
 		return nil, err
 	}
+	_ = h.Redis.Del(ctx, key, attKey).Err()
 	return user, nil
 }
 
@@ -279,6 +284,7 @@ func (h *UserHandler) ResendRegistrationCode(ctx context.Context, token string) 
 	if err := h.Redis.Set(ctx, key, updated, pendingRegTTL).Err(); err != nil {
 		return err
 	}
+	_ = h.Redis.Del(ctx, pendingAttemptKey(token)).Err()
 
 	if err := sendVerificationCode(h.MailSender, pending.Email, pending.FullName, code); err != nil {
 		return err

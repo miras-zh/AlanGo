@@ -25,6 +25,8 @@ import (
 const minPasswordLen = 8
 const maxPasswordBytes = 72
 const maxFullNameBytes = 100
+const maxPhoneBytes = 50
+const maxCityBytes = 100
 
 var dummyPasswordHash = func() []byte {
 	h, err := bcrypt.GenerateFromPassword([]byte("dummy-constant-time-pad"), bcrypt.DefaultCost)
@@ -86,6 +88,8 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	req.FullName = strings.TrimSpace(req.FullName)
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 	req.Phone = strings.TrimSpace(req.Phone)
+	req.City = strings.TrimSpace(req.City)
+	req.Photo = strings.TrimSpace(req.Photo)
 
 	if req.FullName == "" {
 		http.Error(w, "full_name is required", http.StatusBadRequest)
@@ -93,6 +97,18 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(req.FullName) > maxFullNameBytes {
 		http.Error(w, "full_name is too long", http.StatusBadRequest)
+		return
+	}
+	if len(req.Phone) > maxPhoneBytes {
+		http.Error(w, "phone is too long", http.StatusBadRequest)
+		return
+	}
+	if len(req.City) > maxCityBytes {
+		http.Error(w, "city is too long", http.StatusBadRequest)
+		return
+	}
+	if req.Photo != "" && !h.UploadService.IsValidExternalImageURL(req.Photo) {
+		http.Error(w, "invalid photo url", http.StatusBadRequest)
 		return
 	}
 	if req.Email == "" {
@@ -727,16 +743,41 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		req.FullName = &trimmed
 	}
 
+	if req.Phone != nil {
+		trimmed := strings.TrimSpace(*req.Phone)
+		if len(trimmed) > maxPhoneBytes {
+			http.Error(w, "phone is too long", http.StatusBadRequest)
+			return
+		}
+		req.Phone = &trimmed
+	}
+	if req.City != nil {
+		trimmed := strings.TrimSpace(*req.City)
+		if len(trimmed) > maxCityBytes {
+			http.Error(w, "city is too long", http.StatusBadRequest)
+			return
+		}
+		req.City = &trimmed
+	}
+
 	before, _ := h.Service.GetUserByID(userID)
 
-	if req.Photo != nil && h.UploadService != nil {
+	if req.Photo != nil {
+		trimmed := strings.TrimSpace(*req.Photo)
+		req.Photo = &trimmed
 		currentPhoto := ""
 		if before != nil {
 			currentPhoto = before.Photo
 		}
-		if h.UploadService.IsOwnUpload(*req.Photo) && *req.Photo != currentPhoto {
-			http.Error(w, "use POST /api/profile/avatar to set an uploaded photo", http.StatusBadRequest)
-			return
+		if trimmed != currentPhoto {
+			if h.UploadService != nil && h.UploadService.IsOwnUpload(trimmed) {
+				http.Error(w, "use POST /api/profile/avatar to set an uploaded photo", http.StatusBadRequest)
+				return
+			}
+			if !h.UploadService.IsValidExternalImageURL(trimmed) {
+				http.Error(w, "invalid photo url", http.StatusBadRequest)
+				return
+			}
 		}
 	}
 
@@ -773,6 +814,7 @@ func (h *UserHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		ttl := time.Until(claims.ExpiresAt.Time)
 		_ = auth.Blacklist(r.Context(), h.Redis, claims.ID, ttl)
 	}
+	auth.InvalidateActiveCache(r.Context(), h.Redis, userID)
 	_ = auth.RevokeAllRefreshFamilies(r.Context(), h.Redis, userID)
 	h.clearRefreshCookie(w)
 

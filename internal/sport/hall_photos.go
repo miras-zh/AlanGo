@@ -10,7 +10,6 @@ import (
 	"alango/internal/upload"
 
 	"github.com/gorilla/mux"
-	"github.com/lib/pq"
 )
 
 // MaxHallPhotos is the gallery size limit per hall.
@@ -78,9 +77,7 @@ func (h *Handler) UploadHallPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	photos := append(pq.StringArray{}, hall.Photos...)
-	photos = append(photos, url)
-	updated, err := h.service.SetHallPhotos(r.Context(), hall.ID, photos)
+	updated, err := h.service.AddHallPhoto(r.Context(), hall.ID, url)
 	if err != nil {
 		_ = h.uploads.DeleteImage(url)
 		if errors.Is(err, ErrTooManyPhotos) {
@@ -101,22 +98,12 @@ func (h *Handler) DeleteHallPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	target := strings.TrimSpace(r.URL.Query().Get("url"))
-	photos := pq.StringArray{}
-	found := false
-	for _, p := range hall.Photos {
-		if p == target && !found {
-			found = true
-			continue
-		}
-		photos = append(photos, p)
-	}
-	if !found {
-		http.Error(w, `{"error":"photo not found in this hall"}`, http.StatusNotFound)
-		return
-	}
-
-	updated, err := h.service.SetHallPhotos(r.Context(), hall.ID, photos)
+	updated, err := h.service.RemoveHallPhoto(r.Context(), hall.ID, target)
 	if err != nil {
+		if errors.Is(err, ErrPhotoNotFound) {
+			http.Error(w, `{"error":"photo not found in this hall"}`, http.StatusNotFound)
+			return
+		}
 		http.Error(w, `{"error":"failed to delete photo"}`, http.StatusInternalServerError)
 		return
 	}

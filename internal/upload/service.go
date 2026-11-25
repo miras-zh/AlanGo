@@ -64,14 +64,25 @@ func (s *Service) SaveImage(file multipart.File, header *multipart.FileHeader) (
 		return "", err
 	}
 
-	dst, err := os.Create(filepath.Join(s.Dir, name))
+	dstPath := filepath.Join(s.Dir, name)
+	dst, err := os.Create(dstPath)
 	if err != nil {
 		return "", err
 	}
-	defer dst.Close()
 
-	if _, err := io.Copy(dst, file); err != nil {
-		return "", err
+	written, copyErr := io.Copy(dst, io.LimitReader(file, MaxUploadSize+1))
+	closeErr := dst.Close()
+	if copyErr != nil {
+		_ = os.Remove(dstPath)
+		return "", copyErr
+	}
+	if closeErr != nil {
+		_ = os.Remove(dstPath)
+		return "", closeErr
+	}
+	if written > MaxUploadSize {
+		_ = os.Remove(dstPath)
+		return "", ErrFileTooLarge
 	}
 
 	return s.PublicURL + "/" + name, nil

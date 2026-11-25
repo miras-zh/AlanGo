@@ -52,7 +52,18 @@ func (s *Service) OwnArenaID(ctx context.Context, userID uint) (uint, error) {
 	return arena.ID, nil
 }
 
-// requireArenaOwner writes 401/403/404 and returns false unless the caller owns arenaID.
+// IsOwnerBusinessActive reports whether userID currently has role='business'.
+func (s *Service) IsOwnerBusinessActive(ctx context.Context, userID uint) (bool, error) {
+	var role string
+	err := s.db.WithContext(ctx).Table("users").Select("role").Where("id = ?", userID).Take(&role).Error
+	if err != nil {
+		return false, err
+	}
+	return role == "business", nil
+}
+
+// requireArenaOwner writes 401/403/404 and returns false unless the caller owns
+// arenaID and currently has an active business account.
 func (h *Handler) requireArenaOwner(w http.ResponseWriter, r *http.Request, arenaID uint) bool {
 	userID, ok := auth.GetUserID(r)
 	if !ok {
@@ -70,6 +81,15 @@ func (h *Handler) requireArenaOwner(w http.ResponseWriter, r *http.Request, aren
 	}
 	if owner == nil || *owner != userID {
 		http.Error(w, `{"error":"you are not the owner of this arena"}`, http.StatusForbidden)
+		return false
+	}
+	activeBiz, err := h.service.IsOwnerBusinessActive(r.Context(), userID)
+	if err != nil {
+		http.Error(w, `{"error":"failed to check business account"}`, http.StatusInternalServerError)
+		return false
+	}
+	if !activeBiz {
+		http.Error(w, `{"error":"business mode is disabled"}`, http.StatusForbidden)
 		return false
 	}
 	return true

@@ -51,18 +51,48 @@ func writeBookingResult(w http.ResponseWriter, b *Booking, err error) {
 	writeJSON(w, http.StatusOK, b)
 }
 
-// UpdateBookingStatus — PATCH /api/bookings/{id}/status (arena owner).
-// Body: {"status": "confirmed"|"rejected"|"cancelled"|"completed", "reason": "..."}.
+// UpdateBookingStatus — PATCH /api/bookings/{id}/status.
+// Arena owner can set confirmed|rejected|cancelled|completed; the booking's
+// client can cancel their own booking (status = "cancelled").
 func (h *Handler) UpdateBookingStatus(w http.ResponseWriter, r *http.Request) {
-	current, ok := h.loadOwnBooking(w, r)
+	userID, ok := auth.GetUserID(r)
 	if !ok {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		return
 	}
+	id, err := strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
+	if err != nil || id == 0 {
+		http.Error(w, `{"error":"invalid booking id"}`, http.StatusBadRequest)
+		return
+	}
+	current, err := h.service.GetBookingByID(r.Context(), uint(id))
+	if err != nil {
+		http.Error(w, `{"error":"booking not found"}`, http.StatusNotFound)
+		return
+	}
+
 	var req UpdateBookingStatusRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
 		return
 	}
+
+	isOwner, ownerErr := h.service.IsArenaOwner(r.Context(), userID, current.ArenaID)
+	if ownerErr != nil {
+		http.Error(w, `{"error":"failed to check arena owner"}`, http.StatusInternalServerError)
+		return
+	}
+	isClient := current.UserID != nil && *current.UserID == userID
+
+	if !isOwner && !isClient {
+		http.Error(w, `{"error":"forbidden"}`, http.StatusForbidden)
+		return
+	}
+	if !isOwner && req.Status != "cancelled" {
+		http.Error(w, `{"error":"only the arena owner can set this status"}`, http.StatusForbidden)
+		return
+	}
+
 	b, err := h.service.UpdateBookingStatus(r.Context(), current.ID, req.Status, req.Reason, actorFrom(r))
 	writeBookingResult(w, b, err)
 }

@@ -2,12 +2,31 @@ package upload
 
 import (
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
 
-func (s *Service) IsOwnUpload(url string) bool {
-	return strings.HasPrefix(url, s.PublicURL+"/")
+func (s *Service) IsOwnUpload(u string) bool {
+	return s != nil && s.PublicURL != "" && strings.HasPrefix(u, s.PublicURL+"/")
+}
+
+// IsValidExternalImageURL accepts empty strings or http(s) URLs with a valid host,
+// rejecting dangerous schemes (javascript:, data:, file:) and local upload paths.
+func (s *Service) IsValidExternalImageURL(raw string) bool {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return true
+	}
+	if s != nil && (s.IsOwnUpload(raw) || strings.HasPrefix(raw, "/uploads/")) {
+		return false
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	scheme := strings.ToLower(parsed.Scheme)
+	return (scheme == "http" || scheme == "https") && parsed.Host != ""
 }
 
 // NoListingFS serves files from dir but reports every directory as missing,

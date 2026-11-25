@@ -2,8 +2,11 @@ package auth
 
 import (
 	"context"
+	"log"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -14,9 +17,44 @@ const (
 	UserIDKey contextKey = "user_id"
 	RoleKey   contextKey = "role"
 	ClaimsKey contextKey = "claims"
+
+	activeCachePrefix = "auth:active:"
+	activeCacheTTL    = 60 * time.Second
 )
 
 type AccountActiveChecker func(userID uint) (bool, error)
+
+// InvalidateActiveCache clears the cached active status for userID.
+func InvalidateActiveCache(ctx context.Context, rdb *redis.Client, userID uint) {
+	if rdb == nil || userID == 0 {
+		return
+	}
+	_ = rdb.Del(ctx, activeCachePrefix+strconv.FormatUint(uint64(userID), 10)).Err()
+}
+
+func checkAccountActive(ctx context.Context, rdb *redis.Client, userID uint, isActive AccountActiveChecker) (bool, error) {
+	if isActive == nil {
+		return true, nil
+	}
+	key := activeCachePrefix + strconv.FormatUint(uint64(userID), 10)
+	if rdb != nil {
+		if val, err := rdb.Get(ctx, key).Result(); err == nil {
+			return val == "1", nil
+		}
+	}
+	active, err := isActive(userID)
+	if err != nil {
+		return false, err
+	}
+	if rdb != nil {
+		v := "0"
+		if active {
+			v = "1"
+		}
+		_ = rdb.Set(ctx, key, v, activeCacheTTL).Err()
+	}
+	return active, nil
+}
 
 func AuthMiddleware(secret, previousSecret string, rdb *redis.Client, isActive AccountActiveChecker) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -40,18 +78,22 @@ func AuthMiddleware(secret, previousSecret string, rdb *redis.Client, isActive A
 			}
 
 			if claims.ID != "" && rdb != nil {
-				if revoked, err := IsBlacklisted(r.Context(), rdb, claims.ID); err == nil && revoked {
+				revoked, err := IsBlacklisted(r.Context(), rdb, claims.ID)
+				if err != nil {
+					log.Printf("auth: blacklist check failed: %v", err)
+					http.Error(w, "authentication service unavailable", http.StatusServiceUnavailable)
+					return
+				}
+				if revoked {
 					http.Error(w, "token has been revoked", http.StatusUnauthorized)
 					return
 				}
 			}
 
-			if isActive != nil {
-				active, err := isActive(claims.UserID)
-				if err != nil || !active {
-					http.Error(w, "account disabled", http.StatusForbidden)
-					return
-				}
+			active, err := checkAccountActive(r.Context(), rdb, claims.UserID, isActive)
+			if err != nil || !active {
+				http.Error(w, "account disabled", http.StatusForbidden)
+				return
 			}
 
 			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
@@ -80,16 +122,20 @@ func OptionalAuthMiddleware(secret, previousSecret string, rdb *redis.Client, is
 				return
 			}
 			if claims.ID != "" && rdb != nil {
-				if revoked, err := IsBlacklisted(r.Context(), rdb, claims.ID); err == nil && revoked {
+				revoked, err := IsBlacklisted(r.Context(), rdb, claims.ID)
+				if err != nil {
+					log.Printf("auth: optional blacklist check failed: %v", err)
+					next.ServeHTTP(w, r)
+					return
+				}
+				if revoked {
 					next.ServeHTTP(w, r)
 					return
 				}
 			}
-			if isActive != nil {
-				if active, err := isActive(claims.UserID); err != nil || !active {
-					next.ServeHTTP(w, r)
-					return
-				}
+			if active, err := checkAccountActive(r.Context(), rdb, claims.UserID, isActive); err != nil || !active {
+				next.ServeHTTP(w, r)
+				return
 			}
 			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
 			ctx = context.WithValue(ctx, RoleKey, claims.Role)

@@ -100,8 +100,8 @@ func (s *Scheduler) CheckExpiredSubscriptions(ctx context.Context) error {
 	}
 	return s.db.WithContext(ctx).Exec(`
 		UPDATE users
-		SET plan = 'standard', updated_at = NOW()
-		WHERE plan != 'standard' AND valid_until IS NOT NULL AND valid_until < NOW()
+		SET plan = 'standard', plan_expires_at = NULL
+		WHERE plan <> 'standard' AND plan_expires_at IS NOT NULL AND plan_expires_at < NOW()
 	`).Error
 }
 

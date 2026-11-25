@@ -27,6 +27,7 @@ import (
 
 func withCORS(next http.Handler, origin string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Client-Type")
@@ -54,6 +55,7 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	).Methods("GET")
 
 	auditService := audit.NewService(db)
+	auditService.SetTrustedProxies(cfg.TrustedProxies)
 	hub := realtime.NewHub()
 	realtimeHandler := realtime.NewHandler(hub, rdb, cfg.CORSAllowedOrigin)
 	pushService := push.NewService(db, cfg.ExpoProjectID, cfg.FirebaseServiceAccountPath)
@@ -94,6 +96,7 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 
 	analyticsService := analytics.NewService(db, rdb)
 	analyticsHandler := analytics.NewHandler(analyticsService)
+	analyticsHandler.SetTrustedProxies(cfg.TrustedProxies)
 
 	itemService := item.NewService(db, rdb)
 	itemHandler := item.NewHandler(itemService, uploadService, auditService, hub)
@@ -105,23 +108,23 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	telegramBot := telegram.NewBotService()
 	telegramHandler := telegram.NewHandler(telegramBot)
 
+	rl := NewRateLimiter(rdb, cfg)
+	optionalAuth := auth.OptionalAuthMiddleware(cfg.JWTSecret, cfg.JWTSecretPrevious, rdb, userService.IsActive)
+
 	// --- Public API endpoints ---
-	r.Handle("/api/register", withPublicFormRateLimit("register", http.HandlerFunc(userHandler.Register), rdb)).Methods("POST")
-	r.HandleFunc("/api/register/verify", userHandler.VerifyRegister).Methods("POST")
-	r.Handle("/api/register/resend", withPublicFormRateLimit("register", http.HandlerFunc(userHandler.ResendRegisterCode), rdb)).Methods("POST")
-	r.Handle("/api/login", withLoginRateLimit(http.HandlerFunc(userHandler.Login), rdb)).Methods("POST")
-	r.Handle("/api/auth/google", withLoginRateLimit(http.HandlerFunc(userHandler.GoogleLogin), rdb)).Methods("POST")
-	r.Handle("/api/auth/apple", withLoginRateLimit(http.HandlerFunc(userHandler.AppleLogin), rdb)).Methods("POST")
-	r.Handle("/api/auth/refresh", withLoginRateLimit(http.HandlerFunc(userHandler.Refresh), rdb)).Methods("POST")
-	r.Handle("/api/password-reset/request", withPasswordResetRateLimit(http.HandlerFunc(userHandler.RequestPasswordReset), rdb)).Methods("POST")
-	r.Handle("/api/password-reset/confirm", withPasswordResetRateLimit(http.HandlerFunc(userHandler.ConfirmPasswordResetHandler), rdb)).Methods("POST")
+	r.Handle("/api/register", rl.PublicForm("register", http.HandlerFunc(userHandler.Register))).Methods("POST")
+	r.Handle("/api/register/verify", rl.PublicForm("register-verify", http.HandlerFunc(userHandler.VerifyRegister))).Methods("POST")
+	r.Handle("/api/register/resend", rl.PublicForm("register", http.HandlerFunc(userHandler.ResendRegisterCode))).Methods("POST")
+	r.Handle("/api/login", rl.Login(http.HandlerFunc(userHandler.Login))).Methods("POST")
+	r.Handle("/api/auth/google", rl.Login(http.HandlerFunc(userHandler.GoogleLogin))).Methods("POST")
+	r.Handle("/api/auth/apple", rl.Login(http.HandlerFunc(userHandler.AppleLogin))).Methods("POST")
+	r.Handle("/api/auth/refresh", rl.Login(http.HandlerFunc(userHandler.Refresh))).Methods("POST")
+	r.Handle("/api/password-reset/request", rl.PasswordReset(http.HandlerFunc(userHandler.RequestPasswordReset))).Methods("POST")
+	r.Handle("/api/password-reset/confirm", rl.PasswordReset(http.HandlerFunc(userHandler.ConfirmPasswordResetHandler))).Methods("POST")
 
 	r.HandleFunc("/api/app/version", appversion.Handler()).Methods("GET")
 	r.HandleFunc("/api/analytics/events", analyticsHandler.Track).Methods("POST")
-	r.HandleFunc("/api/analytics/heartbeat", analyticsHandler.Heartbeat).Methods("POST")
-	r.HandleFunc("/api/analytics/funnel", analyticsHandler.GetFunnel).Methods("GET")
-	r.HandleFunc("/api/analytics/online", analyticsHandler.GetOnline).Methods("GET")
-	r.HandleFunc("/api/analytics/traffic", analyticsHandler.GetTraffic).Methods("GET")
+	r.Handle("/api/analytics/heartbeat", optionalAuth(http.HandlerFunc(analyticsHandler.Heartbeat))).Methods("POST")
 
 	r.HandleFunc("/api/realtime/ws", realtimeHandler.ServeWS).Methods("GET")
 
@@ -137,11 +140,8 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	r.HandleFunc("/api/halls/{id:[0-9]+}", sportHandler.GetHall).Methods("GET")
 	r.HandleFunc("/api/halls/{id:[0-9]+}/schedule", sportHandler.GetHallSchedule).Methods("GET")
 	r.HandleFunc("/api/halls/{id:[0-9]+}/availability", sportHandler.HallAvailability).Methods("GET")
-	optionalAuth := auth.OptionalAuthMiddleware(cfg.JWTSecret, cfg.JWTSecretPrevious, rdb, userService.IsActive)
-	r.Handle("/api/bookings", withPublicFormRateLimit("booking", optionalAuth(http.HandlerFunc(sportHandler.CreateBooking)), rdb)).Methods("POST")
+	r.Handle("/api/bookings", rl.PublicForm("booking", optionalAuth(http.HandlerFunc(sportHandler.CreateBooking)))).Methods("POST")
 	r.Handle("/api/bookings", optionalAuth(http.HandlerFunc(sportHandler.ListBookings))).Methods("GET")
-	r.HandleFunc("/api/business/telegram/notify", telegramHandler.NotifyBooking).Methods("POST")
-	r.HandleFunc("/api/business/telegram/status", telegramHandler.GetStatus).Methods("GET")
 
 	// --- Authenticated API endpoints ---
 	authRouter := r.PathPrefix("/api").Subrouter()
@@ -161,6 +161,10 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/business/bookings", sportHandler.ListOwnBookings).Methods("GET")
 	authRouter.HandleFunc("/business/bookings/pending-count", sportHandler.PendingBookingsCount).Methods("GET")
 
+	requireBusiness := auth.RequireRole("business", userService.GetRoleByID)
+	authRouter.Handle("/business/telegram/notify", requireBusiness(http.HandlerFunc(telegramHandler.NotifyBooking))).Methods("POST")
+	authRouter.Handle("/business/telegram/status", requireBusiness(http.HandlerFunc(telegramHandler.GetStatus))).Methods("GET")
+
 	authRouter.HandleFunc("/realtime/ticket", realtimeHandler.MintTicket).Methods("POST")
 	authRouter.HandleFunc("/notifications", notificationHandler.List).Methods("GET")
 	authRouter.HandleFunc("/notifications/read", notificationHandler.MarkRead).Methods("POST")
@@ -170,11 +174,15 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/subscription/cancel-request", subscriptionHandler.CancelRequest).Methods("POST")
 	authRouter.HandleFunc("/subscription/change", subscriptionHandler.Change).Methods("POST")
 
-	// Admin API for future Admin Panel
+	// Admin API
 	adminRouter := authRouter.PathPrefix("/admin").Subrouter()
+	adminRouter.Use(auth.RequireAdminType(userService.GetTypeByID))
 	adminRouter.HandleFunc("/subscription-requests", subscriptionHandler.AdminListRequests).Methods("GET")
 	adminRouter.HandleFunc("/subscription-requests/{id:[0-9]+}/approve", subscriptionHandler.AdminApproveRequest).Methods("POST")
 	adminRouter.HandleFunc("/subscription-requests/{id:[0-9]+}/reject", subscriptionHandler.AdminRejectRequest).Methods("POST")
+	adminRouter.HandleFunc("/analytics/funnel", analyticsHandler.GetFunnel).Methods("GET")
+	adminRouter.HandleFunc("/analytics/online", analyticsHandler.GetOnline).Methods("GET")
+	adminRouter.HandleFunc("/analytics/traffic", analyticsHandler.GetTraffic).Methods("GET")
 
 	// Authenticated items CRUD
 	authRouter.HandleFunc("/items/me", itemHandler.ListMine).Methods("GET")
@@ -201,5 +209,5 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/bookings/{id:[0-9]+}/client-rating", sportHandler.RateBookingClient).Methods("PUT")
 	authRouter.HandleFunc("/me/stats", sportHandler.GetMyStats).Methods("GET")
 
-	return withSecurityHeaders(withCORS(withRateLimit(withMaxBodySize(r), rdb), cfg.CORSAllowedOrigin))
+	return withSecurityHeaders(withCORS(rl.Global(withMaxBodySize(r)), cfg.CORSAllowedOrigin))
 }

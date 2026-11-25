@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const (
@@ -73,9 +74,6 @@ func (s *Service) IsBusiness(userID uint) (bool, error) {
 }
 
 func NewService(db *gorm.DB) *Service {
-	if db != nil {
-		_ = db.AutoMigrate(&SubscriptionRequest{})
-	}
 	return &Service{DB: db}
 }
 
@@ -160,21 +158,24 @@ func (s *Service) CancelRequest(userID uint) error {
 
 func (s *Service) ApproveRequest(requestID uint, adminNotes string) (*SubscriptionRequest, error) {
 	var req SubscriptionRequest
-	if err := s.DB.Where("id = ?", requestID).Take(&req).Error; err != nil {
-		return nil, err
-	}
-	if req.Status != "pending" {
-		return nil, errors.New("request is not pending")
-	}
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", requestID).Take(&req).Error; err != nil {
+			return err
+		}
+		if req.Status != "pending" {
+			return errors.New("request is not pending")
+		}
 
-	if _, err := s.Set(req.UserID, req.RequestedPlan); err != nil {
-		return nil, err
-	}
+		if _, err := s.setWithDB(tx, req.UserID, req.RequestedPlan); err != nil {
+			return err
+		}
 
-	req.Status = "approved"
-	req.AdminNotes = adminNotes
-	req.UpdatedAt = time.Now()
-	if err := s.DB.Save(&req).Error; err != nil {
+		req.Status = "approved"
+		req.AdminNotes = adminNotes
+		req.UpdatedAt = time.Now()
+		return tx.Save(&req).Error
+	})
+	if err != nil {
 		return nil, err
 	}
 	return &req, nil
@@ -182,17 +183,20 @@ func (s *Service) ApproveRequest(requestID uint, adminNotes string) (*Subscripti
 
 func (s *Service) RejectRequest(requestID uint, adminNotes string) (*SubscriptionRequest, error) {
 	var req SubscriptionRequest
-	if err := s.DB.Where("id = ?", requestID).Take(&req).Error; err != nil {
-		return nil, err
-	}
-	if req.Status != "pending" {
-		return nil, errors.New("request is not pending")
-	}
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", requestID).Take(&req).Error; err != nil {
+			return err
+		}
+		if req.Status != "pending" {
+			return errors.New("request is not pending")
+		}
 
-	req.Status = "rejected"
-	req.AdminNotes = adminNotes
-	req.UpdatedAt = time.Now()
-	if err := s.DB.Save(&req).Error; err != nil {
+		req.Status = "rejected"
+		req.AdminNotes = adminNotes
+		req.UpdatedAt = time.Now()
+		return tx.Save(&req).Error
+	})
+	if err != nil {
 		return nil, err
 	}
 	return &req, nil
@@ -249,6 +253,10 @@ func (s *Service) Get(userID uint) (plan string, expiresAt *time.Time, err error
 }
 
 func (s *Service) Set(userID uint, plan string) (*time.Time, error) {
+	return s.setWithDB(s.DB, userID, plan)
+}
+
+func (s *Service) setWithDB(db *gorm.DB, userID uint, plan string) (*time.Time, error) {
 	catalog := s.ListCatalog()
 	var matched *PlanInfo
 	for i := range catalog {
@@ -271,7 +279,7 @@ func (s *Service) Set(userID uint, plan string) (*time.Time, error) {
 		expiresAt = &exp
 	}
 
-	res := s.DB.Table("users").Where("id = ?", userID).Updates(updates)
+	res := db.Table("users").Where("id = ?", userID).Updates(updates)
 	if res.Error != nil {
 		return nil, res.Error
 	}

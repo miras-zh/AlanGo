@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/lib/pq"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Service struct {
@@ -80,6 +82,18 @@ func (s *Service) GetArenaByID(ctx context.Context, id uint) (*Arena, error) {
 	return &arena, nil
 }
 
+func (s *Service) GetPublicArenaByID(ctx context.Context, id uint) (*Arena, error) {
+	var arena Arena
+	if err := s.db.WithContext(ctx).
+		Where("hidden = ?", false).
+		Preload("Halls", "status = ?", "active").
+		First(&arena, id).Error; err != nil {
+		return nil, err
+	}
+	arena.HallsCount = len(arena.Halls)
+	return &arena, nil
+}
+
 func (s *Service) SaveArena(ctx context.Context, arena *Arena) error {
 	if arena.ID == 0 {
 		return s.db.WithContext(ctx).Create(arena).Error
@@ -130,24 +144,109 @@ func (s *Service) GetHallByID(ctx context.Context, id uint) (*Hall, error) {
 	return &hall, nil
 }
 
-func (s *Service) SaveHall(ctx context.Context, hall *Hall) error {
-	if hall.ID == 0 {
-		// GORM skips zero values that have a column default (rating 4.8) and
-		// then reads the default back via RETURNING, so remember the intent
-		// first: a new hall starts unrated.
-		unrated := hall.Rating == 0
-		if err := s.db.WithContext(ctx).Create(hall).Error; err != nil {
-			return err
-		}
-		if unrated {
-			hall.Rating = 0
-			hall.ReviewsCount = 0
-			return s.db.WithContext(ctx).Model(&Hall{}).Where("id = ?", hall.ID).
-				Updates(map[string]interface{}{"rating": 0, "reviews_count": 0}).Error
-		}
+func (s *Service) GetPublicHallByID(ctx context.Context, id uint) (*Hall, error) {
+	var hall Hall
+	err := s.db.WithContext(ctx).
+		Table("halls").
+		Select("halls.*, arenas.title as arena_title, arenas.address as arena_address, "+scheduleConfiguredSQL).
+		Joins("JOIN arenas ON arenas.id = halls.arena_id").
+		Where("halls.id = ? AND halls.status = 'active' AND arenas.hidden = false", id).
+		First(&hall).Error
+	if err != nil {
+		return nil, err
+	}
+	return &hall, nil
+}
+
+var ErrHallLimitReached = errors.New("hall limit reached for your subscription plan")
+
+func hallLimitForPlan(plan string, expiresAt *time.Time) int {
+	effective := plan
+	if effective == "" || (expiresAt != nil && time.Now().After(*expiresAt)) {
+		effective = "standard"
+	}
+	switch effective {
+	case "vip":
+		return 0 // unlimited
+	case "pro":
+		return 10
+	default:
+		return 2
+	}
+}
+
+func (s *Service) CheckHallLimit(ctx context.Context, ownerID uint, arenaID uint) error {
+	var userRow struct {
+		Plan          string
+		PlanExpiresAt *time.Time
+	}
+	if err := s.db.WithContext(ctx).Table("users").
+		Select("plan, plan_expires_at").
+		Where("id = ?", ownerID).
+		Take(&userRow).Error; err != nil {
+		return err
+	}
+	limit := hallLimitForPlan(userRow.Plan, userRow.PlanExpiresAt)
+	if limit <= 0 {
 		return nil
 	}
-	return s.db.WithContext(ctx).Save(hall).Error
+	var count int64
+	if err := s.db.WithContext(ctx).Model(&Hall{}).
+		Where("arena_id = ?", arenaID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if int(count) >= limit {
+		return ErrHallLimitReached
+	}
+	return nil
+}
+
+func (s *Service) syncArenaStats(tx *gorm.DB, arenaID uint) error {
+	var stats struct {
+		Count    int
+		MinPrice int
+	}
+	if err := tx.Table("halls").
+		Select("COUNT(*) AS count, COALESCE(MIN(price_per_hour), 0) AS min_price").
+		Where("arena_id = ? AND status = 'active'", arenaID).
+		Scan(&stats).Error; err != nil {
+		return err
+	}
+	return tx.Table("arenas").
+		Where("id = ?", arenaID).
+		Updates(map[string]interface{}{
+			"halls_count":        stats.Count,
+			"min_price_per_hour": stats.MinPrice,
+			"updated_at":         time.Now(),
+		}).Error
+}
+
+func (s *Service) SaveHall(ctx context.Context, hall *Hall) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if hall.ID == 0 {
+			// GORM skips zero values that have a column default (rating 4.8) and
+			// then reads the default back via RETURNING, so remember the intent
+			// first: a new hall starts unrated.
+			unrated := hall.Rating == 0
+			if err := tx.Create(hall).Error; err != nil {
+				return err
+			}
+			if unrated {
+				hall.Rating = 0
+				hall.ReviewsCount = 0
+				if err := tx.Model(&Hall{}).Where("id = ?", hall.ID).
+					Updates(map[string]interface{}{"rating": 0, "reviews_count": 0}).Error; err != nil {
+					return err
+				}
+			}
+		} else {
+			if err := tx.Save(hall).Error; err != nil {
+				return err
+			}
+		}
+		return s.syncArenaStats(tx, hall.ArenaID)
+	})
 }
 
 // ============================================================================
@@ -167,6 +266,16 @@ func (s *Service) GetArenaSchedule(ctx context.Context, arenaID uint) ([]Schedul
 }
 
 func (s *Service) SaveArenaSchedule(ctx context.Context, arenaID uint, days []ScheduleDay) error {
+	for i := range days {
+		durations, err := validateDayFields(days[i].DayOfWeek, days[i].IsClosed, days[i].StartTime, days[i].EndTime, days[i].SlotDurations)
+		if err != nil {
+			return err
+		}
+		days[i].SlotDurations = durations
+		if days[i].DayName == "" {
+			days[i].DayName = dayNames[days[i].DayOfWeek]
+		}
+	}
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, day := range days {
 			day.ArenaID = arenaID
@@ -214,7 +323,7 @@ func (s *Service) GetBookingByID(ctx context.Context, id uint) (*Booking, error)
 	return &booking, nil
 }
 
-func (s *Service) ListBookings(ctx context.Context, arenaID, hallID uint, date, status string, userID *uint) ([]Booking, error) {
+func (s *Service) ListBookings(ctx context.Context, arenaID, hallID uint, date, status string, userID *uint, limit int) ([]Booking, error) {
 	tx := s.db.WithContext(ctx).
 		Table("bookings").
 		Select("bookings.*, halls.title as hall_title, halls.sport_type as sport_type, arenas.title as arena_title, client_ratings.score as client_rating").
@@ -236,6 +345,10 @@ func (s *Service) ListBookings(ctx context.Context, arenaID, hallID uint, date, 
 	}
 	if userID != nil {
 		tx = tx.Where("bookings.user_id = ?", *userID)
+	}
+
+	if limit > 0 {
+		tx = tx.Limit(limit)
 	}
 
 	var bookings []Booking
@@ -262,12 +375,13 @@ func (s *Service) GetBusinessDashboard(ctx context.Context, arenaID uint) (*Busi
 		Limit(10).
 		Find(&bookings).Error
 
-	var totalRevenue int64
+	today := time.Now().In(venueTZ).Format("2006-01-02")
+	var todayRevenue int64
 	_ = s.db.WithContext(ctx).
 		Model(&Booking{}).
-		Where("arena_id = ? AND status = 'confirmed'", arenaID).
+		Where("arena_id = ? AND booking_date = ? AND status IN ('confirmed', 'completed')", arenaID, today).
 		Select("COALESCE(SUM(total_price), 0)").
-		Scan(&totalRevenue).Error
+		Scan(&todayRevenue).Error
 
 	var totalBookings int64
 	_ = s.db.WithContext(ctx).
@@ -277,7 +391,7 @@ func (s *Service) GetBusinessDashboard(ctx context.Context, arenaID uint) (*Busi
 
 	return &BusinessDashboard{
 		Arena:          arena,
-		TodayRevenue:   int(totalRevenue),
+		TodayRevenue:   int(todayRevenue),
 		TotalBookings:  int(totalBookings),
 		HallsCount:     arena.HallsCount,
 		RecentBookings: bookings,
@@ -285,22 +399,57 @@ func (s *Service) GetBusinessDashboard(ctx context.Context, arenaID uint) (*Busi
 }
 
 var ErrTooManyPhotos = errors.New("a hall can have at most 5 photos")
+var ErrPhotoNotFound = errors.New("photo not found in this hall")
 
-// SetHallPhotos replaces the gallery and keeps the cover (image_url) in sync
-// with the first photo. The length check guards concurrent uploads.
-func (s *Service) SetHallPhotos(ctx context.Context, hallID uint, photos pq.StringArray) (*Hall, error) {
-	if len(photos) > 5 {
-		return nil, ErrTooManyPhotos
+// AddHallPhoto atomically appends a photo URL to a hall's gallery under a row lock.
+func (s *Service) AddHallPhoto(ctx context.Context, hallID uint, url string) (*Hall, error) {
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var hall Hall
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", hallID).Take(&hall).Error; err != nil {
+			return err
+		}
+		if len(hall.Photos) >= 5 {
+			return ErrTooManyPhotos
+		}
+		photos := append(pq.StringArray{}, hall.Photos...)
+		photos = append(photos, url)
+		return tx.Model(&Hall{}).Where("id = ?", hallID).
+			Updates(map[string]interface{}{"photos": photos, "image_url": photos[0]}).Error
+	})
+	if err != nil {
+		return nil, err
 	}
-	cover := ""
-	if len(photos) > 0 {
-		cover = photos[0]
-	}
-	res := s.db.WithContext(ctx).Model(&Hall{}).
-		Where("id = ? AND cardinality(photos) <= ?", hallID, 5).
-		Updates(map[string]interface{}{"photos": photos, "image_url": cover})
-	if res.Error != nil {
-		return nil, res.Error
+	return s.GetHallByID(ctx, hallID)
+}
+
+// RemoveHallPhoto atomically removes targetURL from the hall gallery under a row lock.
+func (s *Service) RemoveHallPhoto(ctx context.Context, hallID uint, targetURL string) (*Hall, error) {
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var hall Hall
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", hallID).Take(&hall).Error; err != nil {
+			return err
+		}
+		photos := pq.StringArray{}
+		found := false
+		for _, p := range hall.Photos {
+			if p == targetURL && !found {
+				found = true
+				continue
+			}
+			photos = append(photos, p)
+		}
+		if !found {
+			return ErrPhotoNotFound
+		}
+		cover := ""
+		if len(photos) > 0 {
+			cover = photos[0]
+		}
+		return tx.Model(&Hall{}).Where("id = ?", hallID).
+			Updates(map[string]interface{}{"photos": photos, "image_url": cover}).Error
+	})
+	if err != nil {
+		return nil, err
 	}
 	return s.GetHallByID(ctx, hallID)
 }

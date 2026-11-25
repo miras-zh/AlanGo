@@ -2,10 +2,9 @@ package audit
 
 import (
 	"log"
-	"net"
 	"net/http"
-	"strings"
 
+	"alango/internal/netutil"
 	"alango/internal/safego"
 
 	"gorm.io/gorm"
@@ -14,18 +13,28 @@ import (
 var MaxEntriesPerUser = 1000
 
 type Service struct {
-	DB *gorm.DB
+	DB           *gorm.DB
+	ProxyChecker *netutil.TrustedProxyChecker
 }
 
 func NewService(db *gorm.DB) *Service {
-	return &Service{DB: db}
+	return &Service{
+		DB:           db,
+		ProxyChecker: netutil.NewTrustedProxyChecker("127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"),
+	}
+}
+
+func (s *Service) SetTrustedProxies(raw string) {
+	if s != nil {
+		s.ProxyChecker = netutil.NewTrustedProxyChecker(raw)
+	}
 }
 
 func (s *Service) Log(userID uint, action Action, detail string, req *http.Request) {
 	if s == nil || s.DB == nil {
 		return
 	}
-	ip := clientIP(req)
+	ip := s.ProxyChecker.ClientIP(req)
 	safego.Go(func() {
 		entry := Entry{UserID: userID, Action: string(action), Detail: detail, IP: ip}
 		if err := s.DB.Create(&entry).Error; err != nil {
@@ -34,20 +43,6 @@ func (s *Service) Log(userID uint, action Action, detail string, req *http.Reque
 		}
 		s.trim(userID)
 	})
-}
-
-func clientIP(r *http.Request) string {
-	if r == nil {
-		return ""
-	}
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.Split(xff, ",")
-		return strings.TrimSpace(parts[len(parts)-1])
-	}
-	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		return host
-	}
-	return r.RemoteAddr
 }
 
 func (s *Service) trim(userID uint) {

@@ -8,13 +8,15 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /out/server ./cmd/app
 
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata && \
+    addgroup -S app && adduser -S app -G app
 WORKDIR /app
 
 COPY --from=builder /out/server /app/server
 COPY --from=builder /src/migrations /app/migrations
 
-RUN mkdir -p /app/uploads
+RUN mkdir -p /app/uploads && chown -R app:app /app
+USER app
 EXPOSE 8092
 
 ENTRYPOINT ["/app/server"]
