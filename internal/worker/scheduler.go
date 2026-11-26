@@ -66,6 +66,11 @@ func (s *Scheduler) Start(ctx context.Context) {
 			s.runTicker(ctx, 24*time.Hour, "daily_funnel_snapshot", s.LogDailyFunnelSnapshot)
 		})
 	}
+	if isJobEnabled("cleanup_old_records") {
+		safego.Go(func() {
+			s.runTicker(ctx, 24*time.Hour, "cleanup_old_records", s.CleanupOldRecords)
+		})
+	}
 }
 
 func (s *Scheduler) runTicker(ctx context.Context, interval time.Duration, name string, job func(context.Context) error) {
@@ -125,4 +130,21 @@ func (s *Scheduler) LogDailyFunnelSnapshot(ctx context.Context) error {
 	}
 	slog.Info("daily funnel events snapshot (last 24h)", "events_count", count)
 	return nil
+}
+
+// 5. Периодическая очистка устаревших аналитических событий и прочитанных уведомлений
+func (s *Scheduler) CleanupOldRecords(ctx context.Context) error {
+	if s.db == nil {
+		return nil
+	}
+	if err := s.db.WithContext(ctx).Exec(`
+		DELETE FROM app_analytics_events
+		WHERE created_at < NOW() - INTERVAL '90 days'
+	`).Error; err != nil {
+		return err
+	}
+	return s.db.WithContext(ctx).Exec(`
+		DELETE FROM notifications
+		WHERE read = true AND created_at < NOW() - INTERVAL '180 days'
+	`).Error
 }

@@ -9,6 +9,22 @@
 
 ## [Unreleased]
 
+### 🗄️ Исправления по аудиту базы данных PostgreSQL (2026-11-26)
+- **Миграция `000012_db_hardening` ([000012_db_hardening.up.sql](file:///Users/miko/MyProduction/AlanGo/migrations/000012_db_hardening.up.sql), [.down.sql](file:///Users/miko/MyProduction/AlanGo/migrations/000012_db_hardening.down.sql))**:
+  - В `bookings` нормализованы legacy-даты (`'Сегодня'` / `'Завтра'` → `YYYY-MM-DD`), добавлены `CHECK`-ограничения (`chk_bookings_date_iso`, `chk_bookings_time_format`, `chk_bookings_status`, `chk_bookings_duration_pos`, `chk_bookings_paid_nonneg`) и составной индекс `idx_bookings_user_status (user_id, status, created_at DESC)`.
+  - В `subscription_requests` типы `id` и `user_id` выровнены до `BIGINT`, очищены «осиротевшие» строки и дубли `pending`-заявок, добавлен `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`, удалён дублирующий индекс `idx_subscription_requests_user_id` и добавлен частичный `UNIQUE INDEX uq_subscription_requests_user_pending`.
+  - В `client_ratings` добавлен `FOREIGN KEY (arena_id) REFERENCES arenas(id) ON DELETE CASCADE`.
+  - В `users` регистрозависимый индекс `idx_users_email_lower` заменён на `UNIQUE INDEX uq_users_email_lower (LOWER(email))`.
+  - В `arenas` добавлен функциональный частичный индекс `idx_arenas_city_district_lower (LOWER(city), LOWER(district)) WHERE hidden = false`, в `hall_schedules` и `arena_schedules` удалены дублирующие одиночные индексы (`idx_hall_schedules_hall`, `idx_schedules_arena`).
+- **Бэкенд и пул подключений (`internal/database/`, `internal/subscription/`, `internal/sport/`, `internal/audit/`, `internal/worker/`)**:
+  - `database.BuildDSN`: добавлены таймауты PostgreSQL (`connect_timeout=5`, `statement_timeout=15000`, `lock_timeout=5000`, `idle_in_transaction_session_timeout=30000`).
+  - `subscription.Service.CreateRequest`: обёрнут в транзакцию с `SELECT ... FOR UPDATE`; из `Get()` убран скрытый write-on-read `UPDATE`; из `SubscriptionRequest` убран лишний тег `index`.
+  - `sport.Service`: добавлено экранирование `escapeLike` в `ListArenas` / `ListHalls` и безопасный потолок `defaultBookingsLimit = 200` в `ListBookings`.
+  - `audit.Service.trim`: заменён `NOT IN` на быстрый keyset-DELETE по `(created_at, id)` с таймаутом контекста 5s.
+  - `worker.Scheduler`: добавлена суточная задача `cleanup_old_records` (очистка `app_analytics_events` старше 90 дней и прочитанных `notifications` старше 180 дней).
+- **Инфраструктура (`docker/docker-compose.server.yaml`)**:
+  - Добавлен сервис автоматических ежедневных бэкапов `db-backup` (`prodrigestivill/postgres-backup-local:15`) с ротацией (14 дней / 4 недели / 3 месяца) в `/root/backups/alango/`.
+
 ### 🛡️ Комплексный аудит и усиление безопасности (2026-11-25)
 - **Go-бэкенд (`internal/sport/`, `internal/router/`, `internal/user/`, `internal/telegram/`, `internal/item/`, `config/`)**:
   - `CreateBooking` и `UpdateBookingDetails`: добавлены ограничения длины полей (`ClientName <= 120`, `ClientPhone <= 50`, `Notes <= 1000` рун) и лимит активных `pending`-броней (`<= 5` на пользователя или нормализованный номер телефона гостя) с возвратом `429 Too Many Requests`.

@@ -13,4 +13,7 @@ func TestSchedulerNilDBNoOp(t *testing.T) {
 	if err := s.CleanupExpiredTokens(context.Background()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if err := s.CleanupOldRecords(context.Background()); err != nil {
+		t.Fatalf("expected nil error on nil DB for CleanupOldRecords, got %v", err)
+	}
 }

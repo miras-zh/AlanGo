@@ -11,12 +11,15 @@ import (
 	"gorm.io/gorm"
 )
 
-func Connect(cfg *config.Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+func BuildDSN(cfg *config.Config) string {
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s connect_timeout=5 statement_timeout=15000 lock_timeout=5000 idle_in_transaction_session_timeout=30000",
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBSSLMode,
 	)
+}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+func Connect(cfg *config.Config) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(BuildDSN(cfg)), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}

@@ -1,8 +1,10 @@
 package audit
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"alango/internal/netutil"
 	"alango/internal/safego"
@@ -46,12 +48,19 @@ func (s *Service) Log(userID uint, action Action, detail string, req *http.Reque
 }
 
 func (s *Service) trim(userID uint) {
-	err := s.DB.Exec(`
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err := s.DB.WithContext(ctx).Exec(`
 		DELETE FROM audit_log
 		WHERE user_id = ?
-		AND id NOT IN (
-			SELECT id FROM audit_log WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ?
-		)
+		  AND (created_at, id) <= (
+			SELECT created_at, id
+			FROM audit_log
+			WHERE user_id = ?
+			ORDER BY created_at DESC, id DESC
+			OFFSET ? LIMIT 1
+		  )
 	`, userID, userID, MaxEntriesPerUser).Error
 	if err != nil {
 		log.Println("audit: failed to trim entries:", err)

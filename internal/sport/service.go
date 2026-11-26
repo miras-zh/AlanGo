@@ -11,6 +11,13 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+const defaultBookingsLimit = 200
+
+func escapeLike(s string) string {
+	r := strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`)
+	return r.Replace(s)
+}
+
 type Service struct {
 	db       *gorm.DB
 	notifier Notifier
@@ -38,7 +45,7 @@ func (s *Service) ListArenas(ctx context.Context, q, city, district, sport strin
 		tx = tx.Where("? = ANY(sports)", sport)
 	}
 	if q != "" {
-		like := "%" + strings.ToLower(q) + "%"
+		like := "%" + escapeLike(strings.ToLower(q)) + "%"
 		tx = tx.Where("LOWER(title) LIKE ? OR LOWER(address) LIKE ? OR LOWER(description) LIKE ?", like, like, like)
 	}
 
@@ -119,7 +126,7 @@ func (s *Service) ListHalls(ctx context.Context, sport string, arenaID uint, q s
 		tx = tx.Where("LOWER(halls.sport_type) = ?", strings.ToLower(sport))
 	}
 	if q != "" {
-		like := "%" + strings.ToLower(q) + "%"
+		like := "%" + escapeLike(strings.ToLower(q)) + "%"
 		tx = tx.Where("LOWER(halls.title) LIKE ? OR LOWER(arenas.title) LIKE ? OR LOWER(halls.surface_type) LIKE ?", like, like, like)
 	}
 
@@ -347,9 +354,10 @@ func (s *Service) ListBookings(ctx context.Context, arenaID, hallID uint, date, 
 		tx = tx.Where("bookings.user_id = ?", *userID)
 	}
 
-	if limit > 0 {
-		tx = tx.Limit(limit)
+	if limit <= 0 {
+		limit = defaultBookingsLimit
 	}
+	tx = tx.Limit(limit)
 
 	var bookings []Booking
 	if err := tx.Order("bookings.created_at DESC").Find(&bookings).Error; err != nil {

@@ -90,41 +90,59 @@ func (s *Service) CreateRequest(userID uint, plan string) (*SubscriptionRequest,
 		return nil, ErrInvalidPlan
 	}
 
-	var user struct {
-		Email string
-		Name  string
-		Plan  string
-	}
-	if err := s.DB.Table("users").Select("email, full_name AS name, plan").Where("id = ?", userID).Take(&user).Error; err != nil {
-		return nil, ErrUserNotFound
-	}
-
-	// If user already has a pending request, update it
-	var existing SubscriptionRequest
-	if err := s.DB.Where("user_id = ? AND status = 'pending'", userID).Take(&existing).Error; err == nil {
-		existing.RequestedPlan = plan
-		existing.CurrentPlan = user.Plan
-		existing.UpdatedAt = time.Now()
-		if err := s.DB.Save(&existing).Error; err != nil {
-			return nil, err
+	var created *SubscriptionRequest
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		var user struct {
+			Email string
+			Name  string
+			Plan  string
 		}
-		return &existing, nil
-	}
+		if err := tx.Table("users").
+			Clauses(clause.Locking{Strength: "UPDATE"}).
+			Select("email, full_name AS name, plan").
+			Where("id = ?", userID).
+			Take(&user).Error; err != nil {
+			return ErrUserNotFound
+		}
 
-	req := SubscriptionRequest{
-		UserID:        userID,
-		UserEmail:     user.Email,
-		UserName:      user.Name,
-		CurrentPlan:   user.Plan,
-		RequestedPlan: plan,
-		Status:        "pending",
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
-	}
-	if err := s.DB.Create(&req).Error; err != nil {
+		// If user already has a pending request, update it atomically under row lock.
+		var existing SubscriptionRequest
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("user_id = ? AND status = 'pending'", userID).
+			Take(&existing).Error; err == nil {
+			existing.RequestedPlan = plan
+			existing.CurrentPlan = user.Plan
+			existing.UpdatedAt = time.Now()
+			if err := tx.Save(&existing).Error; err != nil {
+				return err
+			}
+			created = &existing
+			return nil
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		now := time.Now()
+		req := SubscriptionRequest{
+			UserID:        userID,
+			UserEmail:     user.Email,
+			UserName:      user.Name,
+			CurrentPlan:   user.Plan,
+			RequestedPlan: plan,
+			Status:        "pending",
+			CreatedAt:     now,
+			UpdatedAt:     now,
+		}
+		if err := tx.Create(&req).Error; err != nil {
+			return err
+		}
+		created = &req
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
-	return &req, nil
+	return created, nil
 }
 
 func (s *Service) GetPendingRequest(userID uint) (*SubscriptionRequest, error) {
@@ -245,8 +263,6 @@ func (s *Service) Get(userID uint) (plan string, expiresAt *time.Time, err error
 
 	eff := EffectivePlan(row.Plan, row.PlanExpiresAt)
 	if eff != row.Plan {
-		_ = s.DB.Table("users").Where("id = ?", userID).
-			Updates(map[string]any{"plan": eff, "plan_expires_at": nil}).Error
 		return eff, nil, nil
 	}
 	return eff, row.PlanExpiresAt, nil

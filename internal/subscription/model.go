@@ -51,12 +51,12 @@ type AdminReviewRequestDTO struct {
 
 type SubscriptionRequest struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
-	UserID        uint      `gorm:"column:user_id;index" json:"user_id"`
+	UserID        uint      `gorm:"column:user_id" json:"user_id"`
 	UserEmail     string    `gorm:"column:user_email" json:"user_email"`
 	UserName      string    `gorm:"column:user_name" json:"user_name"`
 	CurrentPlan   string    `gorm:"column:current_plan" json:"current_plan"`
 	RequestedPlan string    `gorm:"column:requested_plan" json:"requested_plan"`
-	Status        string    `gorm:"column:status;default:'pending';index" json:"status"` // pending, approved, rejected
+	Status        string    `gorm:"column:status;default:'pending'" json:"status"` // pending, approved, rejected
 	AdminNotes    string    `gorm:"column:admin_notes" json:"admin_notes"`
 	CreatedAt     time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updated_at"`

@@ -77,6 +77,28 @@ services:
       - alango_internal
       - vison_network
 
+  db-backup:
+    image: prodrigestivill/postgres-backup-local:15
+    container_name: alango-db-backup
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${DB_NAME:-alango}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 14
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 3
+      HEALTHCHECK_PORT: 8080
+    volumes:
+      - ${ALANGO_BACKUP_DIR:-/root/backups/alango}:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - alango_internal
+
 volumes:
   alango_pgdata:
   alango_redisdata:

@@ -128,4 +128,7 @@ func TestValidateBookingFields(t *testing.T) {
 	if err != nil || phone == "" || tail != "7771234567" {
 		t.Errorf("unexpected client phone result: %q, %q, %v", phone, tail, err)
 	}
+	if got := escapeLike(`100%_test\arena`); got != `100\%\_test\\arena` {
+		t.Errorf("unexpected escapeLike output: %q", got)
+	}
 }
