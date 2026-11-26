@@ -9,6 +9,15 @@
 
 ## [Unreleased]
 
+### ⌨️ Адаптация форм и модальных окон `ui/mobile/` под экранную клавиатуру (2026-11-26)
+- **Экраны авторизации и графика (`app/login.tsx`, `app/register.tsx`, `app/forgot-password.tsx`, `app/apple-name.tsx`, `app/business/(cabinet)/schedule.tsx`)**:
+  - Добавлены обёртки `KeyboardAvoidingView (behavior="padding" на iOS)` и `ScrollView` с `keyboardShouldPersistTaps="handled"` и `keyboardDismissMode="on-drag"`, а также увеличен нижний отступ скролла (`spacing.bottomScrollPadding`) на экране графика работы, чтобы нижние поля (пароль, время работы, границы каскада) и кнопки отправки не перекрывались клавиатурой.
+- **Модальные окна (`components/CityPickerModal.tsx`, `components/PaymentModal.tsx`, `components/EditBookingModal.tsx`, `components/RejectBookingModal.tsx`)**:
+  - В `CityPickerModal` подключён `KeyboardSheetView` со сжатием списка городов по высоте над клавиатурой (`minHeight: "40%"`).
+  - В `PaymentModal`, `EditBookingModal` и `RejectBookingModal` добавлены внутренние `ScrollView (keyboardShouldPersistTaps="handled")` и ограничение `maxHeight: "90%"` (или `"85%"`) для защиты от обрезания шапки на компактных экранах.
+- **Списки с верхним поиском (`app/(tabs)/index.tsx`, `app/(tabs)/items.tsx`, `app/(tabs)/events.tsx`, `app/arenas.tsx`, `app/business/clients.tsx`)**:
+  - Добавлены `keyboardShouldPersistTaps="handled"` и `keyboardDismissMode="on-drag"`, чтобы карточки открывались с первого нажатия при активной клавиатуре.
+
 ### 🗄️ Исправления по аудиту базы данных PostgreSQL (2026-11-26)
 - **Миграция `000012_db_hardening` ([000012_db_hardening.up.sql](file:///Users/miko/MyProduction/AlanGo/migrations/000012_db_hardening.up.sql), [.down.sql](file:///Users/miko/MyProduction/AlanGo/migrations/000012_db_hardening.down.sql))**:
   - В `bookings` нормализованы legacy-даты (`'Сегодня'` / `'Завтра'` → `YYYY-MM-DD`), добавлены `CHECK`-ограничения (`chk_bookings_date_iso`, `chk_bookings_time_format`, `chk_bookings_status`, `chk_bookings_duration_pos`, `chk_bookings_paid_nonneg`) и составной индекс `idx_bookings_user_status (user_id, status, created_at DESC)`.

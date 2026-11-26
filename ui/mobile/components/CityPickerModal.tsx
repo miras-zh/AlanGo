@@ -11,6 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { KeyboardSheetView } from "@/components/KeyboardSheetView";
 import { KZ_CITIES, TOP_CITIES, setSelectedCity } from "@/lib/cities";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { useT } from "@/lib/i18n";
@@ -57,7 +58,7 @@ export function CityPickerModal({
       transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <KeyboardSheetView style={styles.overlay}>
         <SafeAreaView style={styles.sheetContainer}>
           {/* Header */}
           <View style={styles.header}>
@@ -163,7 +164,7 @@ export function CityPickerModal({
             }
           />
         </SafeAreaView>
-      </View>
+      </KeyboardSheetView>
     </Modal>
   );
 }
@@ -180,7 +181,7 @@ const createStyles = (c: Palette) =>
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "85%",
-    minHeight: "60%",
+    minHeight: "40%",
     paddingBottom: Platform.OS === "ios" ? 16 : 24,
   },
   header: {

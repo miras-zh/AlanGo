@@ -7,6 +7,7 @@ import {
   Pressable,
   TextInput,
   SafeAreaView,
+  ScrollView,
   Platform,
   Keyboard,
 } from "react-native";
@@ -83,6 +84,13 @@ export function RejectBookingModal({
             </Pressable>
           </View>
 
+          <ScrollView
+            style={{ flexShrink: 1 }}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
           <View style={styles.body}>
             {/* Booking summary box */}
             <View style={styles.summaryCard}>
@@ -129,6 +137,7 @@ export function RejectBookingModal({
               />
             )}
           </View>
+          </ScrollView>
 
           <View style={styles.footer}>
             <Pressable style={styles.rejectBtn} onPress={handleConfirm}>

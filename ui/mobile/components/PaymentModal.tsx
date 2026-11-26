@@ -3,6 +3,7 @@ import {
   Keyboard,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -98,6 +99,12 @@ export function PaymentModal({
           </Pressable>
         </View>
 
+        <ScrollView
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           {/* Price Overview Banner */}
           <View style={styles.overviewBox}>
             <View style={styles.overviewCol}>
@@ -249,6 +256,7 @@ export function PaymentModal({
               {saving ? t("common.saving") : t("payment.save")}
             </Text>
           </Pressable>
+        </ScrollView>
         </Pressable>
       </Pressable>
     </KeyboardSheetView>
@@ -282,6 +290,7 @@ const createStyles = (c: Palette) =>
   modalCard: {
     width: "100%",
     maxWidth: 420,
+    maxHeight: "90%",
     backgroundColor: c.surface,
     borderRadius: 24,
     borderWidth: 1,

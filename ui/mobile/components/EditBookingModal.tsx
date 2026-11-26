@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { KeyboardSheetView } from "@/components/KeyboardSheetView";
 import { appAlert } from "@/lib/alert";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -73,27 +73,35 @@ export function EditBookingModal({ booking, onClose, onSave, useModal = true }: 
             </Pressable>
           </View>
 
-          <View style={styles.body}>
-            <Text style={styles.label}>{t("edit.clientName")}</Text>
-            <TextInput style={styles.input} value={clientName} onChangeText={setClientName} placeholderTextColor={c.textMuted} />
-            <Text style={styles.label}>{t("account.phone")}</Text>
-            <TextInput
-              style={styles.input}
-              value={clientPhone}
-              onChangeText={setClientPhone}
-              keyboardType="phone-pad"
-              placeholderTextColor={c.textMuted}
-            />
-            <Text style={styles.label}>{t("request.note")}</Text>
-            <TextInput
-              style={[styles.input, styles.notes]}
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              placeholder={t("request.notePlaceholder")}
-              placeholderTextColor={c.textMuted}
-            />
-          </View>
+          <ScrollView
+            style={{ flexShrink: 1 }}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
+            <View style={styles.body}>
+              <Text style={styles.label}>{t("edit.clientName")}</Text>
+              <TextInput style={styles.input} value={clientName} onChangeText={setClientName} placeholderTextColor={c.textMuted} />
+              <Text style={styles.label}>{t("account.phone")}</Text>
+              <TextInput
+                style={styles.input}
+                value={clientPhone}
+                onChangeText={setClientPhone}
+                keyboardType="phone-pad"
+                placeholderTextColor={c.textMuted}
+              />
+              <Text style={styles.label}>{t("request.note")}</Text>
+              <TextInput
+                style={[styles.input, styles.notes]}
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                placeholder={t("request.notePlaceholder")}
+                placeholderTextColor={c.textMuted}
+              />
+            </View>
+          </ScrollView>
 
           <View style={styles.footer}>
             <Pressable style={styles.saveBtn} onPress={save} disabled={saving} accessibilityRole="button">
@@ -129,6 +137,7 @@ function createStyles(c: Palette) {
       borderTopRightRadius: radii.modal,
       borderWidth: 1,
       borderColor: c.glassBorder,
+      maxHeight: "90%",
     },
     header: {
       flexDirection: "row",

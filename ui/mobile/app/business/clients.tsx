@@ -184,6 +184,8 @@ export default function BusinessClientsScreen() {
           data={filteredClients}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

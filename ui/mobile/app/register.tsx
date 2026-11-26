@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import {
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -135,6 +137,10 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.background }]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
@@ -285,6 +291,7 @@ export default function RegisterScreen() {
         )}
         </Pressable>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

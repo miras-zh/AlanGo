@@ -379,6 +379,8 @@ export default function ItemsScreen() {
           keyExtractor={(item) => `h-${item.id}`}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           refreshControl={refreshControl}
           ListEmptyComponent={emptyState}
           renderItem={({ item }) => {
@@ -421,6 +423,8 @@ export default function ItemsScreen() {
           keyExtractor={(item) => `a-${item.id}`}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           refreshControl={refreshControl}
           ListEmptyComponent={emptyState}
           renderItem={({ item }) => (

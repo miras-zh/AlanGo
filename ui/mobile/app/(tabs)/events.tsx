@@ -261,6 +261,8 @@ export default function EventsScreen() {
           keyExtractor={(e) => e.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

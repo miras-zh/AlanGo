@@ -1,7 +1,10 @@
 import { useState } from "react";
 import {
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -47,7 +50,16 @@ export default function ForgotPasswordScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: c.background }]}>
-      <Pressable style={styles.content} onPress={Keyboard.dismiss} accessible={false}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+      <Pressable onPress={Keyboard.dismiss} accessible={false}>
         <Pressable
           testID="forgot-close-btn"
           onPress={() => router.back()}
@@ -86,6 +98,8 @@ export default function ForgotPasswordScreen() {
           </Text>
         </Pressable>
       </Pressable>
+      </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

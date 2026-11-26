@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -276,7 +278,15 @@ export default function BusinessScheduleScreen() {
           </Text>
         </View>
       ) : (
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         {/* Hall picker */}
         <Text style={styles.sectionHeader}>{t("sched.hall")}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hallChips}>
@@ -576,8 +586,9 @@ export default function BusinessScheduleScreen() {
           </Text>
         </Pressable>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: spacing.bottomScrollPadding }} />
       </ScrollView>
+      </KeyboardAvoidingView>
       )}
     </SafeAreaView>
   );

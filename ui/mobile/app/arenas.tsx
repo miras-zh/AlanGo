@@ -110,6 +110,8 @@ export default function ArenasScreen() {
         data={visible}
         keyExtractor={(a) => String(a.id)}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
