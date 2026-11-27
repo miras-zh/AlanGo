@@ -3,7 +3,10 @@ package config
 import (
 	"errors"
 	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -29,6 +32,7 @@ type Config struct {
 	UploadDir                  string
 	UploadPublicURL            string
 	ExpoProjectID              string
+	ExpoAccessToken            string
 	FirebaseServiceAccountPath string
 	SMTPHost                   string
 	SMTPPort                   string
@@ -95,7 +99,8 @@ func NewConfig() (*Config, error) {
 		UploadDir:                  getEnv("UPLOAD_DIR", "./uploads"),
 		UploadPublicURL:            getEnv("UPLOAD_PUBLIC_URL", "http://localhost:"+serverPort+"/uploads"),
 		ExpoProjectID:              getEnv("EXPO_PROJECT_ID", ""),
-		FirebaseServiceAccountPath: getEnv("FIREBASE_SERVICE_ACCOUNT_PATH", ""),
+		ExpoAccessToken:            getEnv("EXPO_ACCESS_TOKEN", ""),
+		FirebaseServiceAccountPath: resolveFirebaseServiceAccountPath(os.Getenv("FIREBASE_SERVICE_ACCOUNT_PATH"), "config", "."),
 		SMTPHost:                   getEnv("SMTP_HOST", ""),
 		SMTPPort:                   getEnv("SMTP_PORT", "587"),
 		SMTPUsername:               getEnv("SMTP_USERNAME", ""),
@@ -130,4 +135,33 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func resolveFirebaseServiceAccountPath(explicit string, searchDirs ...string) string {
+	if trimmed := strings.TrimSpace(explicit); trimmed != "" {
+		return trimmed
+	}
+	patterns := []string{
+		"*-firebase-adminsdk-*.json",
+		"firebase-service-account.json",
+		"firebase-credentials.json",
+	}
+	for _, dir := range searchDirs {
+		if strings.TrimSpace(dir) == "" {
+			continue
+		}
+		for _, pattern := range patterns {
+			matches, err := filepath.Glob(filepath.Join(dir, pattern))
+			if err != nil || len(matches) == 0 {
+				continue
+			}
+			sort.Strings(matches)
+			for _, candidate := range matches {
+				if info, statErr := os.Stat(candidate); statErr == nil && !info.IsDir() {
+					return candidate
+				}
+			}
+		}
+	}
+	return ""
 }

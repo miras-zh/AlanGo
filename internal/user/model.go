@@ -9,8 +9,9 @@ type User struct {
 	Phone              string     `gorm:"column:phone;type:varchar(50)" json:"phone"`
 	PhoneVerified      bool       `gorm:"column:phone_verified;not null;default:false" json:"phone_verified"`
 	City               string     `gorm:"column:city;type:varchar(100)" json:"city"`
-	Photo              string     `gorm:"column:photo;type:text" json:"photo"`
-	PushToken          string     `gorm:"column:push_token;type:varchar(255)" json:"-"`
+	Photo                string     `gorm:"column:photo;type:text" json:"photo"`
+	PushToken            string     `gorm:"column:push_token;type:varchar(255)" json:"-"`
+	MarketingPushEnabled bool       `gorm:"column:marketing_push_enabled;not null;default:true" json:"marketing_push_enabled"`
 	Password           string     `gorm:"type:text;not null" json:"-"`
 	GoogleSub          *string    `gorm:"column:google_sub" json:"-"`
 	AppleSub           *string    `gorm:"column:apple_sub" json:"-"`

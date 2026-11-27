@@ -36,11 +36,41 @@ func (s *Service) Create(userID uint, actorID *uint, notifType, title, body stri
 		s.hub.Publish(userID, realtime.NewNotificationEvent(notifType, title, body))
 	}
 	if s.pushService != nil {
+		data := map[string]any{"type": notifType}
+		if entityID != nil {
+			data["entity_id"] = *entityID
+		}
 		safego.Go(func() {
-			_ = s.pushService.Send(userID, title, body)
+			_ = s.pushService.SendWithData(userID, title, body, data)
 		})
 	}
 	return nil
+}
+
+func (s *Service) PushStatus(userID uint) (push.Status, error) {
+	if s.pushService == nil {
+		return push.Status{}, nil
+	}
+	return s.pushService.GetUserStatus(userID)
+}
+
+func (s *Service) SendTestPush(userID uint) (push.Status, error) {
+	st, err := s.PushStatus(userID)
+	if err != nil {
+		return st, err
+	}
+	if !st.HasToken {
+		return st, nil
+	}
+	if s.pushService != nil {
+		err = s.pushService.SendWithData(
+			userID,
+			"AlanGo — проверка уведомлений",
+			"Системные push-уведомления подключены и работают!",
+			map[string]any{"type": "push_test"},
+		)
+	}
+	return st, err
 }
 
 func (s *Service) List(userID uint) ([]Notification, int64, error) {

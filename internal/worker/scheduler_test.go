@@ -16,4 +16,13 @@ func TestSchedulerNilDBNoOp(t *testing.T) {
 	if err := s.CleanupOldRecords(context.Background()); err != nil {
 		t.Fatalf("expected nil error on nil DB for CleanupOldRecords, got %v", err)
 	}
+	if err := s.SendUpcomingBookingReminders(context.Background()); err != nil {
+		t.Fatalf("expected nil error on nil DB for SendUpcomingBookingReminders, got %v", err)
+	}
+	if err := s.SendDueBusinessReminders(context.Background()); err != nil {
+		t.Fatalf("expected nil error on nil DB for SendDueBusinessReminders, got %v", err)
+	}
+	if err := s.SendRetentionReminders(context.Background()); err != nil {
+		t.Fatalf("expected nil error on nil DB for SendRetentionReminders, got %v", err)
+	}
 }

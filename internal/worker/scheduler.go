@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -12,19 +13,27 @@ import (
 	"alango/internal/safego"
 )
 
+var kzLocation = time.FixedZone("KZ", 5*60*60)
+
+// Notifier creates persisted in-app + realtime + push notifications.
+type Notifier interface {
+	Create(userID uint, actorID *uint, notifType, title, body string, entityID *uint, broadcast bool) error
+}
+
 // Scheduler управляет фоновыми периодическими задачами (Cron-воркерами) приложения.
-//
-// Примеры задач, которые уже встроены и могут быть расширены:
-// 1. cleanup_expired_tokens   — Очистка просроченных refresh-токенов и токенов сброса пароля (каждый час).
-// 2. subscription_trial_check — Проверка истёкших подписок/триалов и перевод их в базовый тариф (каждый час).
-// 3. retention_push_reminders — Отправка умных Push-напоминаний пользователям, которые давно не заходили (каждые 6 часов).
-// 4. daily_funnel_snapshot    — Ежедневная агрегация статистики продуктовой воронки в лог/аналитику (раз в 24 часа).
 type Scheduler struct {
-	db *gorm.DB
+	db       *gorm.DB
+	notifier Notifier
 }
 
 func NewScheduler(db *gorm.DB) *Scheduler {
 	return &Scheduler{db: db}
+}
+
+func (s *Scheduler) SetNotifier(n Notifier) {
+	if s != nil {
+		s.notifier = n
+	}
 }
 
 func (s *Scheduler) Start(ctx context.Context) {
@@ -33,7 +42,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 		return
 	}
 
-	enabledJobs := os.Getenv("CRON_JOBS") // если пусто — включены все 4 задачи по умолчанию
+	enabledJobs := os.Getenv("CRON_JOBS")
 	isJobEnabled := func(key string) bool {
 		if enabledJobs == "" {
 			return true
@@ -54,6 +63,16 @@ func (s *Scheduler) Start(ctx context.Context) {
 	if isJobEnabled("subscription_trial_check") {
 		safego.Go(func() {
 			s.runTicker(ctx, 1*time.Hour, "subscription_trial_check", s.CheckExpiredSubscriptions)
+		})
+	}
+	if isJobEnabled("upcoming_booking_reminders") {
+		safego.Go(func() {
+			s.runTicker(ctx, 10*time.Minute, "upcoming_booking_reminders", s.SendUpcomingBookingReminders)
+		})
+	}
+	if isJobEnabled("due_business_reminders") {
+		safego.Go(func() {
+			s.runTicker(ctx, 5*time.Minute, "due_business_reminders", s.SendDueBusinessReminders)
 		})
 	}
 	if isJobEnabled("retention_push_reminders") {
@@ -93,8 +112,6 @@ func (s *Scheduler) runTicker(ctx context.Context, interval time.Duration, name 
 
 // 1. Очистка истёкших refresh_tokens и password_reset_tokens
 func (s *Scheduler) CleanupExpiredTokens(_ context.Context) error {
-	// В AlanGo refresh-токены и временные коды хранятся в Redis с автоматическим TTL,
-	// поэтому очистка на уровне PostgreSQL не требуется.
 	return nil
 }
 
@@ -110,14 +127,180 @@ func (s *Scheduler) CheckExpiredSubscriptions(ctx context.Context) error {
 	`).Error
 }
 
-// 3. Умные Push-напоминания для удержания пользователей (Retention D1/D7)
-func (s *Scheduler) SendRetentionReminders(_ context.Context) error {
-	// Заготовка: здесь можно выбрать пользователей, которые зарегистрировались >24ч назад,
-	// но ещё не совершили ключевое действие (first_value), и отправить им мягкое push-напоминание.
+// 3. Автоматические Push + In-App напоминания клиентам за <= 2 часа до игры
+func (s *Scheduler) SendUpcomingBookingReminders(ctx context.Context) error {
+	if s.db == nil || s.notifier == nil {
+		return nil
+	}
+	now := time.Now().In(kzLocation)
+	today := now.Format("2006-01-02")
+	tomorrow := now.AddDate(0, 0, 1).Format("2006-01-02")
+
+	type upcomingRow struct {
+		ID          uint   `gorm:"column:id"`
+		UserID      uint   `gorm:"column:user_id"`
+		BookingDate string `gorm:"column:booking_date"`
+		StartTime   string `gorm:"column:start_time"`
+		TimeSlot    string `gorm:"column:time_slot"`
+		ArenaTitle  string `gorm:"column:arena_title"`
+		HallTitle   string `gorm:"column:hall_title"`
+	}
+	var rows []upcomingRow
+	if err := s.db.WithContext(ctx).Raw(`
+		SELECT
+			b.id,
+			b.user_id,
+			b.booking_date,
+			b.start_time,
+			b.time_slot,
+			a.title AS arena_title,
+			h.title AS hall_title
+		FROM bookings b
+		JOIN arenas a ON a.id = b.arena_id
+		JOIN halls h ON h.id = b.hall_id
+		WHERE b.status = 'confirmed'
+		  AND b.user_id IS NOT NULL
+		  AND b.reminder_sent_at IS NULL
+		  AND b.booking_date IN (?, ?)
+	`, today, tomorrow).Scan(&rows).Error; err != nil {
+		return err
+	}
+
+	for _, r := range rows {
+		startAt, err := time.ParseInLocation("2006-01-02 15:04", r.BookingDate+" "+r.StartTime, kzLocation)
+		if err != nil {
+			continue
+		}
+		diff := startAt.Sub(now)
+		if diff <= 0 || diff > 2*time.Hour {
+			continue
+		}
+
+		res := s.db.WithContext(ctx).Exec(`
+			UPDATE bookings
+			SET reminder_sent_at = NOW()
+			WHERE id = ? AND reminder_sent_at IS NULL
+		`, r.ID)
+		if res.Error != nil || res.RowsAffected == 0 {
+			continue
+		}
+
+		mins := int(diff.Minutes())
+		when := fmt.Sprintf("через %d мин", mins)
+		if mins >= 60 {
+			when = fmt.Sprintf("через %d ч %d мин", mins/60, mins%60)
+		}
+		bid := r.ID
+		_ = s.notifier.Create(
+			r.UserID,
+			nil,
+			"upcoming_game",
+			"Напоминание об игре ⚽️",
+			fmt.Sprintf("%s (%s) — начало %s, слот %s", r.ArenaTitle, r.HallTitle, when, r.TimeSlot),
+			&bid,
+			true,
+		)
+	}
 	return nil
 }
 
-// 4. Суточная сводка по ключевым событиям продуктовой воронки Case Operation
+// 4. Push-напоминания владельцу бизнеса по наступившим задачам из arena_reminders
+func (s *Scheduler) SendDueBusinessReminders(ctx context.Context) error {
+	if s.db == nil || s.notifier == nil {
+		return nil
+	}
+	now := time.Now().In(kzLocation)
+	today := now.Format("2006-01-02")
+	nowClock := now.Format("15:04")
+
+	type dueRow struct {
+		ID      uint   `gorm:"column:id"`
+		ArenaID uint   `gorm:"column:arena_id"`
+		OwnerID uint   `gorm:"column:owner_id"`
+		Title   string `gorm:"column:title"`
+		Notes   string `gorm:"column:notes"`
+		DueTime string `gorm:"column:due_time"`
+	}
+	var rows []dueRow
+	if err := s.db.WithContext(ctx).Raw(`
+		SELECT ar.id, ar.arena_id, a.owner_id, ar.title, ar.notes, ar.due_time
+		FROM arena_reminders ar
+		JOIN arenas a ON a.id = ar.arena_id
+		WHERE ar.status = 'pending'
+		  AND ar.remind_push = true
+		  AND ar.notified_at IS NULL
+		  AND a.owner_id IS NOT NULL
+		  AND (ar.due_date < ? OR (ar.due_date = ? AND ar.due_time <= ?))
+		LIMIT 100
+	`, today, today, nowClock).Scan(&rows).Error; err != nil {
+		return err
+	}
+
+	for _, r := range rows {
+		res := s.db.WithContext(ctx).Exec(`
+			UPDATE arena_reminders
+			SET notified_at = NOW()
+			WHERE id = ? AND notified_at IS NULL
+		`, r.ID)
+		if res.Error != nil || res.RowsAffected == 0 {
+			continue
+		}
+		body := r.Notes
+		if body == "" {
+			body = fmt.Sprintf("Запланировано на %s", r.DueTime)
+		}
+		aid := r.ArenaID
+		_ = s.notifier.Create(
+			r.OwnerID,
+			nil,
+			"business_reminder",
+			"Напоминание: "+r.Title,
+			body,
+			&aid,
+			true,
+		)
+	}
+	return nil
+}
+
+// 5. Умные Push-напоминания для удержания пользователей (Retention D1)
+func (s *Scheduler) SendRetentionReminders(ctx context.Context) error {
+	if s.db == nil || s.notifier == nil {
+		return nil
+	}
+	var userIDs []uint
+	if err := s.db.WithContext(ctx).Raw(`
+		SELECT u.id
+		FROM users u
+		WHERE u.active = true
+		  AND u.role = 'client'
+		  AND u.marketing_push_enabled = true
+		  AND COALESCE(u.push_token, '') <> ''
+		  AND u.created_at < NOW() - INTERVAL '24 hours'
+		  AND u.created_at > NOW() - INTERVAL '14 days'
+		  AND NOT EXISTS (SELECT 1 FROM bookings b WHERE b.user_id = u.id)
+		  AND NOT EXISTS (SELECT 1 FROM notifications n WHERE n.user_id = u.id AND n.type = 'retention_reminder')
+		ORDER BY u.id ASC
+		LIMIT 100
+	`).Scan(&userIDs).Error; err != nil {
+		return err
+	}
+
+	for _, uid := range userIDs {
+		_ = s.notifier.Create(
+			uid,
+			nil,
+			"retention_reminder",
+			"Сыграем на этой неделе? ⚽️",
+			"Выберите ближайший зал и забронируйте удобный слот в пару касаний.",
+			nil,
+			true,
+		)
+	}
+	return nil
+}
+
+// 6. Суточная сводка по ключевым событиям продуктовой воронки Case Operation
 func (s *Scheduler) LogDailyFunnelSnapshot(ctx context.Context) error {
 	if s.db == nil {
 		return nil
@@ -132,7 +315,7 @@ func (s *Scheduler) LogDailyFunnelSnapshot(ctx context.Context) error {
 	return nil
 }
 
-// 5. Периодическая очистка устаревших аналитических событий и прочитанных уведомлений
+// 7. Периодическая очистка устаревших аналитических событий и прочитанных уведомлений
 func (s *Scheduler) CleanupOldRecords(ctx context.Context) error {
 	if s.db == nil {
 		return nil

@@ -86,3 +86,50 @@ export const markAllNotificationsRead = markNotificationsRead;
 export async function markNotificationRead(id?: number): Promise<void> {
   await api.post("/api/notifications/read", id ? { id } : {});
 }
+
+export type BroadcastCampaign = {
+  id: number;
+  scope: "platform" | "arena";
+  arena_id?: number | null;
+  title: string;
+  body: string;
+  target_filter: string;
+  recipients_count: number;
+  push_sent_count: number;
+  created_at: string;
+};
+
+export type ArenaBroadcastResponse = {
+  campaign: BroadcastCampaign;
+  total_arena_clients: number;
+  app_linked_clients: number;
+};
+
+export async function sendArenaBroadcast(payload: {
+  title: string;
+  body: string;
+  segment: "all" | "vip" | "regular";
+}): Promise<ArenaBroadcastResponse> {
+  const res = await api.post<ArenaBroadcastResponse>("/api/business/broadcasts", payload);
+  return res.data;
+}
+
+export async function listArenaBroadcasts(): Promise<BroadcastCampaign[]> {
+  const res = await api.get<{ campaigns: BroadcastCampaign[] }>("/api/business/broadcasts");
+  return Array.isArray(res.data?.campaigns) ? res.data.campaigns : [];
+}
+
+export async function sendAdminBroadcast(payload: {
+  title: string;
+  body: string;
+  role: "all" | "client" | "business";
+  city?: string;
+}): Promise<{ campaign: BroadcastCampaign }> {
+  const res = await api.post<{ campaign: BroadcastCampaign }>("/api/admin/broadcasts", payload);
+  return res.data;
+}
+
+export async function listAdminBroadcasts(): Promise<BroadcastCampaign[]> {
+  const res = await api.get<{ campaigns: BroadcastCampaign[] }>("/api/admin/broadcasts");
+  return Array.isArray(res.data?.campaigns) ? res.data.campaigns : [];
+}

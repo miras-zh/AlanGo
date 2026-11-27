@@ -554,6 +554,7 @@ func (s *Service) CreateBooking(ctx context.Context, req CreateBookingRequest, u
 			if err := tx.Create(&booking).Error; err != nil {
 				return err
 			}
+			upsertArenaClientTx(tx, hall.ArenaID, userID, clientName, clientPhone, phoneTail)
 			createdID = booking.ID
 			return nil
 		})

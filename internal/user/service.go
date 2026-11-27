@@ -234,6 +234,9 @@ func (s *UserService) UpdateProfile(id uint, req *UpdateProfileRequest) (*User, 
 	if req.Photo != nil {
 		updates["photo"] = *req.Photo
 	}
+	if req.MarketingPushEnabled != nil {
+		updates["marketing_push_enabled"] = *req.MarketingPushEnabled
+	}
 
 	if len(updates) > 0 {
 		if err := s.DB.Model(user).Updates(updates).Error; err != nil {

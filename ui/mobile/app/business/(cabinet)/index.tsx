@@ -241,9 +241,28 @@ export default function BusinessDashboardScreen() {
               <Ionicons name="cash" size={24} color={c.primary} />
             </View>
             <View style={styles.actionInfo}>
-              <Text style={styles.actionTitle}>{t("bizHome.finance")}</Text>
+              <Text style={styles.actionTitle}>{t("income.titlePnl")}</Text>
               <Text style={styles.actionSubtitle}>
-                {t("bizHome.financeText")}
+                {t("income.subtitlePnl")}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+          </Pressable>
+
+          <Pressable
+            style={styles.actionCard}
+            onPress={() => {
+              hapticSelection();
+              router.push("/business/reminders" as any);
+            }}
+          >
+            <View style={[styles.actionIconBox, { backgroundColor: c.warningSoft }]}>
+              <Ionicons name="notifications" size={24} color={c.warning} />
+            </View>
+            <View style={styles.actionInfo}>
+              <Text style={styles.actionTitle}>{t("bizHome.reminders")}</Text>
+              <Text style={styles.actionSubtitle}>
+                {t("bizHome.remindersText")}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textMuted} />

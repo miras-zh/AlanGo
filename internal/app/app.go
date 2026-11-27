@@ -40,7 +40,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	r := router.NewRouter(db, rdb, cfg)
+	r, notifSvc := router.NewRouterWithServices(db, rdb, cfg)
 
 	server := &http.Server{
 		Addr:              ":" + cfg.ServerPort,
@@ -51,12 +51,15 @@ func NewApp(cfg *config.Config) (*App, error) {
 		IdleTimeout:       60 * time.Second,
 	}
 
+	scheduler := worker.NewScheduler(db)
+	scheduler.SetNotifier(notifSvc)
+
 	return &App{
 		Config:    cfg,
 		DB:        db,
 		Redis:     rdb,
 		Server:    server,
-		Scheduler: worker.NewScheduler(db),
+		Scheduler: scheduler,
 	}, nil
 }
 

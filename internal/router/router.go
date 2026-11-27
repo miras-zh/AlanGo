@@ -43,6 +43,11 @@ func withCORS(next http.Handler, origin string) http.Handler {
 }
 
 func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler {
+	h, _ := NewRouterWithServices(db, rdb, cfg)
+	return h
+}
+
+func NewRouterWithServices(db *gorm.DB, rdb *redis.Client, cfg *config.Config) (http.Handler, *notification.Service) {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/healthz", healthzHandler).Methods("GET")
@@ -61,6 +66,7 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	hub := realtime.NewHub()
 	realtimeHandler := realtime.NewHandler(hub, rdb, cfg.CORSAllowedOrigin)
 	pushService := push.NewService(db, cfg.ExpoProjectID, cfg.FirebaseServiceAccountPath)
+	pushService.SetAccessToken(cfg.ExpoAccessToken)
 	notificationService := notification.NewService(db, hub, pushService)
 	notificationHandler := notification.NewHandler(notificationService)
 
@@ -155,6 +161,8 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/profile", userHandler.DeleteAccount).Methods("DELETE")
 	authRouter.HandleFunc("/profile/avatar", userHandler.UploadAvatar).Methods("POST")
 	authRouter.HandleFunc("/profile/push-token", userHandler.UpdatePushToken).Methods("PUT")
+	authRouter.HandleFunc("/profile/push-status", notificationHandler.GetPushStatus).Methods("GET")
+	authRouter.HandleFunc("/profile/push-test", notificationHandler.TestPush).Methods("POST")
 	authRouter.HandleFunc("/profile/business/disable", userHandler.DisableBusiness).Methods("POST")
 	authRouter.HandleFunc("/profile/business/enable", userHandler.EnableBusiness).Methods("POST")
 	authRouter.HandleFunc("/business/onboard", userHandler.OnboardBusiness).Methods("POST")
@@ -166,6 +174,19 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	requireBusiness := auth.RequireRole("business", userService.GetRoleByID)
 	authRouter.Handle("/business/telegram/notify", requireBusiness(http.HandlerFunc(telegramHandler.NotifyBooking))).Methods("POST")
 	authRouter.Handle("/business/telegram/status", requireBusiness(http.HandlerFunc(telegramHandler.GetStatus))).Methods("GET")
+	authRouter.Handle("/business/clients", requireBusiness(http.HandlerFunc(sportHandler.ListOwnClients))).Methods("GET")
+	authRouter.Handle("/business/clients", requireBusiness(http.HandlerFunc(sportHandler.CreateOwnClient))).Methods("POST")
+	authRouter.Handle("/business/clients/{id:[0-9]+}", requireBusiness(http.HandlerFunc(sportHandler.UpdateOwnClient))).Methods("PATCH")
+	authRouter.Handle("/business/clients/{id:[0-9]+}/bookings", requireBusiness(http.HandlerFunc(sportHandler.ListOwnClientBookings))).Methods("GET")
+	authRouter.Handle("/business/finance", requireBusiness(http.HandlerFunc(sportHandler.GetOwnFinance))).Methods("GET")
+	authRouter.Handle("/business/expenses", requireBusiness(http.HandlerFunc(sportHandler.CreateOwnExpense))).Methods("POST")
+	authRouter.Handle("/business/expenses/{id:[0-9]+}", requireBusiness(http.HandlerFunc(sportHandler.DeleteOwnExpense))).Methods("DELETE")
+	authRouter.Handle("/business/reminders", requireBusiness(http.HandlerFunc(sportHandler.ListOwnReminders))).Methods("GET")
+	authRouter.Handle("/business/reminders", requireBusiness(http.HandlerFunc(sportHandler.CreateOwnReminder))).Methods("POST")
+	authRouter.Handle("/business/reminders/{id:[0-9]+}", requireBusiness(http.HandlerFunc(sportHandler.UpdateOwnReminder))).Methods("PATCH")
+	authRouter.Handle("/business/reminders/{id:[0-9]+}", requireBusiness(http.HandlerFunc(sportHandler.DeleteOwnReminder))).Methods("DELETE")
+	authRouter.Handle("/business/broadcasts", requireBusiness(http.HandlerFunc(notificationHandler.BusinessBroadcast))).Methods("POST")
+	authRouter.Handle("/business/broadcasts", requireBusiness(http.HandlerFunc(notificationHandler.BusinessListBroadcasts))).Methods("GET")
 
 	authRouter.HandleFunc("/realtime/ticket", realtimeHandler.MintTicket).Methods("POST")
 	authRouter.HandleFunc("/notifications", notificationHandler.List).Methods("GET")
@@ -185,6 +206,8 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	adminRouter.HandleFunc("/analytics/funnel", analyticsHandler.GetFunnel).Methods("GET")
 	adminRouter.HandleFunc("/analytics/online", analyticsHandler.GetOnline).Methods("GET")
 	adminRouter.HandleFunc("/analytics/traffic", analyticsHandler.GetTraffic).Methods("GET")
+	adminRouter.HandleFunc("/broadcasts", notificationHandler.AdminBroadcast).Methods("POST")
+	adminRouter.HandleFunc("/broadcasts", notificationHandler.AdminListBroadcasts).Methods("GET")
 
 	// Authenticated items CRUD
 	authRouter.HandleFunc("/items/me", itemHandler.ListMine).Methods("GET")
@@ -211,5 +234,5 @@ func NewRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) http.Handler 
 	authRouter.HandleFunc("/bookings/{id:[0-9]+}/client-rating", sportHandler.RateBookingClient).Methods("PUT")
 	authRouter.HandleFunc("/me/stats", sportHandler.GetMyStats).Methods("GET")
 
-	return withSecurityHeaders(withCORS(rl.Global(withMaxBodySize(r)), cfg.CORSAllowedOrigin))
+	return withSecurityHeaders(withCORS(rl.Global(withMaxBodySize(r)), cfg.CORSAllowedOrigin)), notificationService
 }

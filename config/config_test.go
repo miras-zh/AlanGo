@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestNewConfigReadsRateLimitsAndDefaults(t *testing.T) {
 	t.Setenv("JWT_SECRET", "short")
@@ -41,5 +45,26 @@ func TestNewConfigReadsRateLimitsAndDefaults(t *testing.T) {
 	}
 	if prodCustom.MetricsPassword != "custom-prod-secret" {
 		t.Fatalf("expected custom MetricsPassword, got %q", prodCustom.MetricsPassword)
+	}
+}
+
+func TestResolveFirebaseServiceAccountPath(t *testing.T) {
+	if got := resolveFirebaseServiceAccountPath(" /custom/key.json ", t.TempDir()); got != "/custom/key.json" {
+		t.Fatalf("expected explicit path override, got %q", got)
+	}
+
+	root := t.TempDir()
+	cfgDir := filepath.Join(root, "config")
+	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	keyPath := filepath.Join(cfgDir, "alango-27ee7-firebase-adminsdk-fbsvc-test.json")
+	if err := os.WriteFile(keyPath, []byte(`{}`), 0o600); err != nil {
+		t.Fatalf("write key: %v", err)
+	}
+
+	got := resolveFirebaseServiceAccountPath("", cfgDir, root)
+	if got != keyPath {
+		t.Fatalf("expected auto-discovered path %q, got %q", keyPath, got)
 	}
 }

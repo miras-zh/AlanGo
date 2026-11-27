@@ -18,6 +18,7 @@ export default function BusinessLayout() {
       <Stack.Screen name="(cabinet)" />
       <Stack.Screen name="income" />
       <Stack.Screen name="clients" />
+      <Stack.Screen name="reminders" />
       <Stack.Screen name="staff" />
       <Stack.Screen name="promotions" />
       <Stack.Screen name="subscription" />

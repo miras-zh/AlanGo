@@ -23,6 +23,7 @@ import {
   subscribeToChats,
 } from "@/lib/chatData";
 import { hasRealSession } from "@/lib/auth";
+import { subscribeRealtimeEvents } from "@/lib/realtime";
 import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 import { usePalette, useThemedStyles, type Palette } from "@/theme/palette";
@@ -60,10 +61,18 @@ export default function NotificationsScreen() {
 
   useEffect(() => {
     loadData();
-    const unsubscribe = subscribeToChats(() => {
+    const unsubscribeChats = subscribeToChats(() => {
       loadData();
     });
-    return () => unsubscribe();
+    const unsubscribeRealtime = subscribeRealtimeEvents((ev) => {
+      if (ev.type === "notification.new") {
+        loadData();
+      }
+    });
+    return () => {
+      unsubscribeChats();
+      unsubscribeRealtime();
+    };
   }, [loadData]);
 
   const handleMarkAll = async () => {
@@ -80,9 +89,11 @@ export default function NotificationsScreen() {
         prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x))
       );
     }
-    // Booking notifications open the matching list.
     if (n.type === "booking_request") router.push("/business/bookings?mode=requests");
-    else if (n.type.startsWith("booking_")) router.push("/my-bookings");
+    else if (n.type === "business_reminder") router.push("/business/reminders" as any);
+    else if (n.type.startsWith("booking_") || n.type === "upcoming_game") {
+      router.push("/my-bookings");
+    }
   };
 
   const handleOpenChat = (d: ChatDialog) => {

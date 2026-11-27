@@ -6,6 +6,7 @@ export interface SessionUser {
   email: string;
   name: string;
   role?: string;
+  type?: string;
   arenaId?: number;
   business_role?: string;
   avatar_url?: string;
@@ -15,6 +16,7 @@ export interface SessionUser {
   city?: string;
   full_name?: string;
   plan?: string;
+  marketing_push_enabled?: boolean;
   staffRole?: string;
   staffMemberId?: string;
 }

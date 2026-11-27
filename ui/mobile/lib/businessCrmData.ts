@@ -1,17 +1,29 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Booking, Hall, getOwnArenaBookings, getStoredHalls } from "@/lib/sportRentData";
-import { tr } from "@/lib/i18n";
+import { api } from "@/lib/api";
+import type { Booking, SportType } from "@/lib/sportRentData";
 
 export interface ClientProfile {
-  id: string;
+  id: number;
+  arenaId: number;
+  userId?: number | null;
   name: string;
   phone: string;
   avatarUrl?: string;
+  hasApp: boolean;
+  hasPush: boolean;
   totalBookings: number;
+  confirmedBookings: number;
+  cancelledBookings: number;
   totalSpent: number;
+  paidAmount: number;
+  unpaidAmount: number;
   lastBookingDate: string;
   sportPreferred: string;
-  status: "vip" | "regular" | "new" | "unreliable";
+  rating: number;
+  ratingsCount: number;
+  status: "vip" | "regular" | "new" | "blocked";
+  segmentOverride: string;
+  tags: string;
   notes?: string;
 }
 
@@ -26,35 +38,96 @@ export interface StaffMember {
   avatarUrl?: string;
 }
 
+export type ExpenseCategory =
+  | "rent"
+  | "salary"
+  | "utilities"
+  | "equipment"
+  | "marketing"
+  | "other";
+
+export interface ArenaExpense {
+  id: number;
+  arena_id: number;
+  category: ExpenseCategory;
+  title: string;
+  amount: number;
+  expense_date: string;
+  notes: string;
+  created_at: string;
+}
+
 export interface IncomeBreakdown {
   period: "today" | "week" | "month" | "all";
   totalRevenue: number;
+  collectedAmount: number;
+  unpaidAmount: number;
+  totalExpenses: number;
+  netProfit: number;
+  accruedProfit: number;
   confirmedBookingsCount: number;
   hoursPlayed: number;
-  averageCheckPerHour: number | null; // null when nothing was played
-  utilizationRate: number; // percent of open hours booked, 0..100
-  growthPercent: number | null; // vs the previous period; null if no baseline
+  averageCheckPerHour: number | null;
+  utilizationRate: number;
+  growthPercent: number | null;
   hallRevenues: {
     hallId: number;
     hallTitle: string;
     sportType: string;
     revenue: number;
+    collected: number;
     hoursCount: number;
+  }[];
+  expenseCategories: {
+    category: ExpenseCategory;
+    amount: number;
+    count: number;
   }[];
   recentTransactions: {
     id: string;
     clientName: string;
     hallTitle: string;
     amount: number;
+    paidAmount: number;
     date: string;
     timeSlot: string;
   }[];
+  expenses: ArenaExpense[];
+}
+
+export interface SmartReminderItem {
+  kind: "pending_request" | "unpaid_booking" | "dormant_client";
+  title: string;
+  subtitle: string;
+  booking_id?: number;
+  client_id?: number;
+  client_name?: string;
+  phone?: string;
+  amount_due?: number;
+}
+
+export interface ArenaReminder {
+  id: number;
+  arena_id: number;
+  booking_id?: number | null;
+  client_id?: number | null;
+  title: string;
+  notes: string;
+  due_date: string;
+  due_time: string;
+  remind_push: boolean;
+  status: "pending" | "done";
+  created_at: string;
+}
+
+export interface RemindersDashboard {
+  smart: SmartReminderItem[];
+  tasks: ArenaReminder[];
 }
 
 const STAFF_KEY = "alango_business_staff_v1";
+const DEMO_STAFF_IDS = new Set(["staff-1", "staff-2", "staff-3"]);
 
-// Staff is stored on the device per arena (no backend yet). There is no
-// demo seed: a new business starts with an empty team.
 export async function getStoredStaff(arenaId: number): Promise<StaffMember[]> {
   try {
     const raw = await AsyncStorage.getItem(STAFF_KEY);
@@ -65,9 +138,6 @@ export async function getStoredStaff(arenaId: number): Promise<StaffMember[]> {
     return [];
   }
 }
-
-// Ids of the demo team that older builds seeded into storage.
-const DEMO_STAFF_IDS = new Set(["staff-1", "staff-2", "staff-3"]);
 
 export async function addStaffMember(
   arenaId: number,
@@ -93,141 +163,203 @@ export async function removeStaffMember(id: string): Promise<void> {
   await AsyncStorage.setItem(STAFF_KEY, JSON.stringify(filtered));
 }
 
-// Hours a hall is bookable per day, used for the utilization estimate until
-// real working hours are wired into the calculation.
-const OPEN_HOURS_PER_DAY = 15;
-const PERIOD_DAYS: Record<"today" | "week" | "month", number> = { today: 1, week: 7, month: 30 };
-
-function startOfDay(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-// Booking dates come as "YYYY-MM-DD" (older local records may say "Сегодня").
-function bookingDay(date: string): Date | null {
-  if (date === "Сегодня") return startOfDay(new Date());
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(date);
-  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
-}
-
-function inRange(b: Booking, from: Date, to: Date): boolean {
-  const d = bookingDay(b.date);
-  return d !== null && d >= from && d < to;
-}
-
-// Revenue analytics from the arena's real confirmed bookings only — no
-// placeholders: a new business sees zeros.
-export async function calculateIncomeStats(
-  arenaId: number,
-  period: "today" | "week" | "month" | "all" = "month"
-): Promise<IncomeBreakdown> {
-  const [allBookings, allHalls] = await Promise.all([
-    getOwnArenaBookings().catch(() => [] as Booking[]),
-    getStoredHalls(),
-  ]);
-
-  const arenaHalls = allHalls.filter((h) => h.arenaId === arenaId);
-  const confirmedAll = allBookings.filter(
-    (b) =>
-      b.arenaId === arenaId && (b.status === "confirmed" || b.status === "completed")
-  );
-
-  const tomorrow = new Date(startOfDay(new Date()).getTime() + 86400000);
-  let confirmed = confirmedAll;
-  let previous: Booking[] | null = null;
-  let days = 0;
-  if (period !== "all") {
-    days = PERIOD_DAYS[period];
-    const from = new Date(tomorrow.getTime() - days * 86400000);
-    const prevFrom = new Date(from.getTime() - days * 86400000);
-    confirmed = confirmedAll.filter((b) => inRange(b, from, tomorrow));
-    previous = confirmedAll.filter((b) => inRange(b, prevFrom, from));
-  }
-
-  const sum = (list: Booking[]) => list.reduce((acc, b) => acc + b.totalPrice, 0);
-  const totalRevenue = sum(confirmed);
-  const hoursPlayed = confirmed.reduce((acc, b) => acc + b.durationMinutes / 60, 0);
-
-  let growthPercent: number | null = null;
-  if (previous) {
-    const prevRevenue = sum(previous);
-    if (prevRevenue > 0) {
-      growthPercent = Math.round(((totalRevenue - prevRevenue) / prevRevenue) * 1000) / 10;
-    }
-  }
-
-  const availableHours = period === "all" ? 0 : arenaHalls.length * OPEN_HOURS_PER_DAY * days;
-  const utilizationRate =
-    availableHours > 0 ? Math.min(100, Math.round((hoursPlayed / availableHours) * 100)) : 0;
-
-  const hallRevenues = arenaHalls.map((h) => {
-    const hallBookings = confirmed.filter((b) => b.hallId === h.id);
-    return {
-      hallId: h.id,
-      hallTitle: h.title,
-      sportType: h.sportType,
-      revenue: sum(hallBookings),
-      hoursCount: Math.round(hallBookings.reduce((acc, b) => acc + b.durationMinutes / 60, 0) * 10) / 10,
-    };
-  });
-
-  const recentTransactions = confirmed.slice(0, 10).map((b) => ({
-    id: `tx-${b.id}`,
-    clientName: b.clientName,
-    hallTitle: b.hallTitle,
-    amount: b.totalPrice,
-    date: b.date,
-    timeSlot: b.timeSlot,
-  }));
-
+function mapClientRow(r: any): ClientProfile {
+  const seg = r.segment;
+  const status: ClientProfile["status"] =
+    seg === "vip" || seg === "regular" || seg === "new" || seg === "blocked"
+      ? seg
+      : "new";
   return {
-    period,
-    totalRevenue,
-    confirmedBookingsCount: confirmed.length,
-    hoursPlayed: Math.round(hoursPlayed * 10) / 10,
-    averageCheckPerHour: hoursPlayed > 0 ? Math.round(totalRevenue / hoursPlayed) : null,
-    utilizationRate,
-    growthPercent,
-    hallRevenues,
-    recentTransactions,
+    id: Number(r.id),
+    arenaId: Number(r.arena_id),
+    userId: r.user_id ?? null,
+    name: String(r.name || ""),
+    phone: String(r.phone || ""),
+    avatarUrl: r.avatar_url || undefined,
+    hasApp: Boolean(r.has_app),
+    hasPush: Boolean(r.has_push),
+    totalBookings: Number(r.total_bookings ?? 0),
+    confirmedBookings: Number(r.confirmed_bookings ?? 0),
+    cancelledBookings: Number(r.cancelled_bookings ?? 0),
+    totalSpent: Number(r.total_spent ?? 0),
+    paidAmount: Number(r.paid_amount ?? 0),
+    unpaidAmount: Number(r.unpaid_amount ?? 0),
+    lastBookingDate: String(r.last_booking_date || ""),
+    sportPreferred: String(r.sport_preferred || "football"),
+    rating: Number(r.rating ?? 5),
+    ratingsCount: Number(r.ratings_count ?? 0),
+    status,
+    segmentOverride: String(r.segment_override || ""),
+    tags: String(r.tags || ""),
+    notes: String(r.notes || ""),
   };
 }
 
-// Clients are derived only from the arena's real bookings.
-export async function getClientProfiles(arenaId: number): Promise<ClientProfile[]> {
-  const bookings = await getOwnArenaBookings().catch(() => [] as Booking[]);
-  const arenaBookings = bookings.filter((b) => b.arenaId === arenaId);
-
-  // Group by client phone
-  const clientMap = new Map<string, ClientProfile>();
-
-  for (const b of arenaBookings) {
-    const rawPhone = b.clientPhone?.trim() || "";
-    const clientKey = rawPhone || `name:${(b.clientName || b.id).trim().toLowerCase()}`;
-    // Only bookings that took place (or will) count as money spent.
-    const spent = b.status === "confirmed" || b.status === "completed" ? b.totalPrice : 0;
-    const existing = clientMap.get(clientKey);
-
-    if (existing) {
-      existing.totalBookings += 1;
-      existing.totalSpent += spent;
-      if (b.date > existing.lastBookingDate) {
-        existing.lastBookingDate = b.date;
-      }
-    } else {
-      clientMap.set(clientKey, {
-        id: rawPhone ? `client-${rawPhone.replace(/[^\d]/g, "")}` : `client-${b.id}`,
-        name: b.clientName || tr("user.client"),
-        phone: rawPhone,
-        totalBookings: 1,
-        totalSpent: spent,
-        lastBookingDate: b.date,
-        sportPreferred: b.sportType || "football",
-        status: b.totalPrice > 40000 ? "vip" : "regular",
-      });
-    }
-  }
-
-  const result = Array.from(clientMap.values());
-  return result.sort((a, b) => b.totalSpent - a.totalSpent);
+export async function getClientProfiles(_arenaId?: number): Promise<ClientProfile[]> {
+  const res = await api.get<{ clients: any[] }>("/api/business/clients");
+  const rows = Array.isArray(res.data?.clients) ? res.data.clients : [];
+  return rows.map(mapClientRow);
 }
 
+export async function createClientProfile(payload: {
+  name: string;
+  phone: string;
+  segment?: string;
+  tags?: string;
+  notes?: string;
+}): Promise<ClientProfile> {
+  const res = await api.post<{ client: any }>("/api/business/clients", payload);
+  return mapClientRow(res.data.client);
+}
+
+export async function updateClientProfile(
+  clientId: number,
+  payload: {
+    name?: string;
+    segment?: string;
+    tags?: string;
+    notes?: string;
+  }
+): Promise<ClientProfile> {
+  const res = await api.patch<{ client: any }>(
+    `/api/business/clients/${clientId}`,
+    payload
+  );
+  return mapClientRow(res.data.client);
+}
+
+export async function getClientBookings(clientId: number): Promise<Booking[]> {
+  const res = await api.get<{ bookings: any[] }>(
+    `/api/business/clients/${clientId}/bookings`
+  );
+  const rows = Array.isArray(res.data?.bookings) ? res.data.bookings : [];
+  return rows.map((b: any) => ({
+    id: b.booking_code || String(b.id),
+    dbId: Number(b.id),
+    hallId: Number(b.hall_id),
+    hallTitle: String(b.hall_title || ""),
+    arenaId: Number(b.arena_id),
+    arenaTitle: String(b.arena_title || ""),
+    sportType: (b.sport_type || "football") as SportType,
+    date: String(b.booking_date || ""),
+    timeSlot: String(b.time_slot || ""),
+    startTime: String(b.start_time || ""),
+    endTime: String(b.end_time || ""),
+    durationMinutes: Number(b.duration_minutes ?? 60),
+    totalPrice: Number(b.total_price ?? 0),
+    paidAmount: Number(b.paid_amount ?? 0),
+    paymentStatus: b.payment_status || "not_paid",
+    status: b.status || "confirmed",
+    clientName: String(b.client_name || ""),
+    clientPhone: String(b.client_phone || ""),
+    notes: b.notes || undefined,
+    createdAt: b.created_at || new Date().toISOString(),
+  }));
+}
+
+export async function calculateIncomeStats(
+  _arenaId: number,
+  period: "today" | "week" | "month" | "all" = "month"
+): Promise<IncomeBreakdown> {
+  const res = await api.get<any>("/api/business/finance", { params: { period } });
+  const d = res.data || {};
+  return {
+    period: d.period || period,
+    totalRevenue: Number(d.total_revenue ?? 0),
+    collectedAmount: Number(d.collected_amount ?? 0),
+    unpaidAmount: Number(d.unpaid_amount ?? 0),
+    totalExpenses: Number(d.total_expenses ?? 0),
+    netProfit: Number(d.net_profit ?? 0),
+    accruedProfit: Number(d.accrued_profit ?? 0),
+    confirmedBookingsCount: Number(d.confirmed_bookings_count ?? 0),
+    hoursPlayed: Number(d.hours_played ?? 0),
+    averageCheckPerHour:
+      d.average_check_per_hour != null ? Number(d.average_check_per_hour) : null,
+    utilizationRate: Number(d.utilization_rate ?? 0),
+    growthPercent: d.growth_percent != null ? Number(d.growth_percent) : null,
+    hallRevenues: Array.isArray(d.hall_revenues)
+      ? d.hall_revenues.map((h: any) => ({
+          hallId: Number(h.hall_id),
+          hallTitle: String(h.hall_title || ""),
+          sportType: String(h.sport_type || ""),
+          revenue: Number(h.revenue ?? 0),
+          collected: Number(h.collected ?? 0),
+          hoursCount: Number(h.hours_count ?? 0),
+        }))
+      : [],
+    expenseCategories: Array.isArray(d.expense_categories)
+      ? d.expense_categories.map((c: any) => ({
+          category: c.category as ExpenseCategory,
+          amount: Number(c.amount ?? 0),
+          count: Number(c.count ?? 0),
+        }))
+      : [],
+    recentTransactions: Array.isArray(d.recent_transactions)
+      ? d.recent_transactions.map((t: any) => ({
+          id: String(t.id),
+          clientName: String(t.client_name || ""),
+          hallTitle: String(t.hall_title || ""),
+          amount: Number(t.amount ?? 0),
+          paidAmount: Number(t.paid_amount ?? 0),
+          date: String(t.date || ""),
+          timeSlot: String(t.time_slot || ""),
+        }))
+      : [],
+    expenses: Array.isArray(d.expenses) ? d.expenses : [],
+  };
+}
+
+export async function createArenaExpense(payload: {
+  category: ExpenseCategory;
+  title: string;
+  amount: number;
+  expense_date: string;
+  notes?: string;
+}): Promise<ArenaExpense> {
+  const res = await api.post<{ expense: ArenaExpense }>(
+    "/api/business/expenses",
+    payload
+  );
+  return res.data.expense;
+}
+
+export async function deleteArenaExpense(id: number): Promise<void> {
+  await api.delete(`/api/business/expenses/${id}`);
+}
+
+export async function getRemindersDashboard(): Promise<RemindersDashboard> {
+  const res = await api.get<RemindersDashboard>("/api/business/reminders");
+  return {
+    smart: Array.isArray(res.data?.smart) ? res.data.smart : [],
+    tasks: Array.isArray(res.data?.tasks) ? res.data.tasks : [],
+  };
+}
+
+export async function createArenaReminder(payload: {
+  title: string;
+  due_date: string;
+  due_time: string;
+  notes?: string;
+  remind_push?: boolean;
+}): Promise<ArenaReminder> {
+  const res = await api.post<{ reminder: ArenaReminder }>(
+    "/api/business/reminders",
+    payload
+  );
+  return res.data.reminder;
+}
+
+export async function updateArenaReminder(
+  id: number,
+  payload: { status?: "pending" | "done" }
+): Promise<ArenaReminder> {
+  const res = await api.patch<{ reminder: ArenaReminder }>(
+    `/api/business/reminders/${id}`,
+    payload
+  );
+  return res.data.reminder;
+}
+
+export async function deleteArenaReminder(id: number): Promise<void> {
+  await api.delete(`/api/business/reminders/${id}`);
+}

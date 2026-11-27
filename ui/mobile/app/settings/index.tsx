@@ -1,11 +1,14 @@
 import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { appAlert } from "@/lib/alert";
@@ -15,10 +18,14 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
-import { isHapticsEnabled, setHapticsEnabled, hapticSelection } from "@/lib/haptics";
+import { isHapticsEnabled, setHapticsEnabled, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import { requestNotificationPermissions } from "@/lib/pushNotificationsService";
+import { getServerPushStatus, registerForPushNotifications, sendServerTestPush } from "@/lib/push";
+import { sendAdminBroadcast, listAdminBroadcasts, type BroadcastCampaign } from "@/lib/notifications";
+import { getMe, updateMyProfile } from "@/lib/user";
 import { PRIVACY_URL, SITE_NAME, SUPPORT_EMAIL, TERMS_URL } from "@/lib/site";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, hasRealSession } from "@/lib/auth";
+import { KeyboardSheetView } from "@/components/KeyboardSheetView";
 import { tr, useT } from "@/lib/i18n";
 import { radii, spacing, typography } from "@/constants/theme";
 
@@ -58,8 +65,19 @@ export default function SettingsScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const [hapticsOn, setHapticsOn] = useState(true);
+  const [marketingPushOn, setMarketingPushOn] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [notifStatus, setNotifStatus] = useState<"granted" | "denied" | "undetermined">("undetermined");
+  const [testingPush, setTestingPush] = useState(false);
   const [cacheSize, setCacheSize] = useState<number | null>(null);
+  const [broadcastModal, setBroadcastModal] = useState(false);
+  const [bTitle, setBTitle] = useState("");
+  const [bBody, setBBody] = useState("");
+  const [bRole, setBRole] = useState<"all" | "client" | "business">("all");
+  const [bCity, setBCity] = useState("");
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
+  const [campaigns, setCampaigns] = useState<BroadcastCampaign[]>([]);
+
   const version = Constants.expoConfig?.version ?? "1.0.0";
   const build = Constants.expoConfig?.ios?.buildNumber;
 
@@ -70,6 +88,19 @@ export default function SettingsScreen() {
       setNotifStatus(perm.status as typeof notifStatus);
     } catch {
       setNotifStatus("undetermined");
+    }
+    if (hasRealSession()) {
+      getMe()
+        .then((me) => {
+          setMarketingPushOn(me.marketing_push_enabled !== false);
+          setIsAdmin(me.type === "admin");
+        })
+        .catch(() => {});
+      getServerPushStatus()
+        .then((st) => setMarketingPushOn(st.marketing_push_enabled))
+        .catch(() => {});
+    } else {
+      setIsAdmin(false);
     }
     try {
       const keys = await cacheKeys();
@@ -92,14 +123,88 @@ export default function SettingsScreen() {
     if (val) hapticSelection();
   };
 
+  const toggleMarketingPush = async (val: boolean) => {
+    hapticSelection();
+    setMarketingPushOn(val);
+    if (!hasRealSession()) return;
+    try {
+      await updateMyProfile({ marketing_push_enabled: val });
+    } catch {
+      setMarketingPushOn(!val);
+    }
+  };
+
+  const handleTestPush = async () => {
+    if (testingPush) return;
+    hapticSelection();
+    if (!hasRealSession()) {
+      appAlert(SITE_NAME, t("settings.pushTestNoToken"));
+      return;
+    }
+    setTestingPush(true);
+    try {
+      await registerForPushNotifications();
+      const res = await sendServerTestPush();
+      if (res.sent) {
+        hapticSuccess();
+        appAlert(SITE_NAME, t("settings.pushTestSent"));
+      } else {
+        appAlert(SITE_NAME, t("settings.pushTestNoToken"));
+      }
+    } catch {
+      appAlert(SITE_NAME, t("settings.pushTestNoToken"));
+    } finally {
+      setTestingPush(false);
+    }
+  };
+
+  const openAdminBroadcast = () => {
+    hapticSelection();
+    setBroadcastModal(true);
+    listAdminBroadcasts().then(setCampaigns).catch(() => {});
+  };
+
+  const handleSendAdminBroadcast = async () => {
+    if (!bTitle.trim() || !bBody.trim()) {
+      appAlert(t("common.error"), t("broadcast.required"));
+      return;
+    }
+    setSendingBroadcast(true);
+    try {
+      const res = await sendAdminBroadcast({
+        title: bTitle.trim(),
+        body: bBody.trim(),
+        role: bRole,
+        city: bCity.trim() || undefined,
+      });
+      hapticSuccess();
+      setBTitle("");
+      setBBody("");
+      setCampaigns((prev) => [res.campaign, ...prev]);
+      appAlert(
+        t("common.success"),
+        t("broadcast.sentSuccess", {
+          recipients: res.campaign.recipients_count,
+          push: res.campaign.push_sent_count,
+        }),
+      );
+    } catch {
+      appAlert(t("common.error"), t("broadcast.required"));
+    } finally {
+      setSendingBroadcast(false);
+    }
+  };
+
   const handleNotifications = async () => {
     hapticSelection();
     if (notifStatus === "undetermined") {
       const ok = await requestNotificationPermissions();
       setNotifStatus(ok ? "granted" : "denied");
+      if (ok && hasRealSession()) {
+        await registerForPushNotifications();
+      }
       return;
     }
-    // Granted or denied: iOS only lets the user change it in system settings.
     Linking.openSettings();
   };
 
@@ -135,7 +240,6 @@ export default function SettingsScreen() {
           hitSlop={10}
           onPress={() => {
             hapticSelection();
-            // After a reload the stack can be empty; fall back to the parent screen.
             if (router.canGoBack()) router.back();
             else router.replace("/(tabs)/profile");
           }}
@@ -155,6 +259,31 @@ export default function SettingsScreen() {
             value={notifLabel}
             onPress={handleNotifications}
           />
+          {hasRealSession() ? (
+            <>
+              <Row
+                icon="megaphone-outline"
+                title={t("settings.broadcastOptIn")}
+                subtitle={t("settings.broadcastOptInDesc")}
+                onPress={() => toggleMarketingPush(!marketingPushOn)}
+                right={
+                  <Switch
+                    value={marketingPushOn}
+                    onValueChange={toggleMarketingPush}
+                    trackColor={{ false: c.border, true: c.primary }}
+                    thumbColor={c.textPrimary}
+                  />
+                }
+              />
+              <Row
+                icon="paper-plane-outline"
+                title={t("settings.pushTest")}
+                subtitle={t("settings.pushTestDesc")}
+                value={testingPush ? "..." : t("settings.pushTestAction")}
+                onPress={handleTestPush}
+              />
+            </>
+          ) : null}
           <Row
             icon="calendar-outline"
             title={t("settings.calendar")}
@@ -166,8 +295,6 @@ export default function SettingsScreen() {
             icon="phone-portrait-outline"
             title={t("settings.haptics")}
             subtitle={t("settings.hapticsDesc")}
-            // The whole row toggles: a Switch inside a disabled Pressable
-            // didn't receive taps reliably.
             onPress={() => toggleHaptics(!hapticsOn)}
             right={
               <Switch
@@ -187,6 +314,21 @@ export default function SettingsScreen() {
             last
           />
         </View>
+
+        {isAdmin ? (
+          <>
+            <Text style={styles.sectionLabel}>{t("settings.adminSection")}</Text>
+            <View style={styles.card}>
+              <Row
+                icon="radio-outline"
+                title={t("settings.adminBroadcast")}
+                subtitle={t("settings.adminBroadcastDesc")}
+                onPress={openAdminBroadcast}
+                last
+              />
+            </View>
+          </>
+        ) : null}
 
         <Text style={styles.sectionLabel}>{t("settings.help")}</Text>
         <View style={styles.card}>
@@ -244,6 +386,97 @@ export default function SettingsScreen() {
           />
         </View>
       </ScrollView>
+
+      <Modal visible={broadcastModal} animationType="slide" transparent onRequestClose={() => setBroadcastModal(false)}>
+        <KeyboardSheetView style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t("broadcast.platformTitle")}</Text>
+              <Pressable onPress={() => setBroadcastModal(false)} hitSlop={10}>
+                <Ionicons name="close" size={22} color={c.textPrimary} />
+              </Pressable>
+            </View>
+
+            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: spacing.md }}>
+              <Text style={styles.inputLabel}>{t("broadcast.segment")}</Text>
+              <View style={styles.chipsRow}>
+                {(["all", "client", "business"] as const).map((r) => {
+                  const active = bRole === r;
+                  const labelKey = r === "all" ? "broadcast.roleAll" : r === "client" ? "broadcast.roleClients" : "broadcast.roleBusiness";
+                  return (
+                    <Pressable
+                      key={r}
+                      onPress={() => setBRole(r)}
+                      style={[styles.chip, active && styles.chipActive]}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{t(labelKey)}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.inputLabel}>{t("broadcast.cityOptional")}</Text>
+              <TextInput
+                style={styles.input}
+                value={bCity}
+                onChangeText={setBCity}
+                placeholder={t("broadcast.cityPlaceholder")}
+                placeholderTextColor={c.textMuted}
+              />
+
+              <Text style={styles.inputLabel}>{t("broadcast.titleLabel")}</Text>
+              <TextInput
+                style={styles.input}
+                value={bTitle}
+                onChangeText={setBTitle}
+                placeholder={t("broadcast.titlePlaceholder")}
+                placeholderTextColor={c.textMuted}
+                maxLength={160}
+              />
+
+              <Text style={styles.inputLabel}>{t("broadcast.bodyLabel")}</Text>
+              <TextInput
+                style={[styles.input, { minHeight: 88, textAlignVertical: "top" }]}
+                value={bBody}
+                onChangeText={setBBody}
+                placeholder={t("broadcast.bodyPlaceholder")}
+                placeholderTextColor={c.textMuted}
+                multiline
+                maxLength={2000}
+              />
+
+              <Pressable
+                style={[styles.submitBtn, sendingBroadcast && { opacity: 0.6 }]}
+                disabled={sendingBroadcast}
+                onPress={handleSendAdminBroadcast}
+              >
+                {sendingBroadcast ? (
+                  <ActivityIndicator color={c.onPrimary} size="small" />
+                ) : (
+                  <Text style={styles.submitBtnText}>{t("broadcast.send")}</Text>
+                )}
+              </Pressable>
+
+              {campaigns.length > 0 ? (
+                <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+                  <Text style={styles.inputLabel}>{t("broadcast.history")}</Text>
+                  {campaigns.slice(0, 5).map((item) => (
+                    <View key={item.id} style={styles.historyItem}>
+                      <Text style={styles.historyTitle}>{item.title}</Text>
+                      <Text style={styles.historyMeta}>
+                        {t("broadcast.recipientsSummary", {
+                          recipients: item.recipients_count,
+                          push: item.push_sent_count,
+                        })}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </ScrollView>
+          </View>
+        </KeyboardSheetView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -373,5 +606,98 @@ const createStyles = (c: Palette) =>
     ...typography.caption,
     fontWeight: "600",
     color: c.primary,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: c.overlay,
+  },
+  modalCard: {
+    backgroundColor: c.surface,
+    borderTopLeftRadius: radii.modal,
+    borderTopRightRadius: radii.modal,
+    padding: spacing.xl,
+    maxHeight: "88%",
+    borderTopWidth: 1,
+    borderColor: c.glassBorder,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: c.textPrimary,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: c.textSecondary,
+  },
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radii.smallChip,
+    backgroundColor: c.background,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  chipActive: {
+    backgroundColor: c.primarySoft,
+    borderColor: c.primary,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: c.textSecondary,
+  },
+  chipTextActive: {
+    color: c.primary,
+  },
+  input: {
+    backgroundColor: c.background,
+    borderRadius: radii.smallChip,
+    borderWidth: 1,
+    borderColor: c.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: c.textPrimary,
+  },
+  submitBtn: {
+    backgroundColor: c.primary,
+    borderRadius: radii.button,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  submitBtnText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: c.onPrimary,
+  },
+  historyItem: {
+    backgroundColor: c.background,
+    borderRadius: radii.smallChip,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: c.hairline,
+  },
+  historyTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: c.textPrimary,
+  },
+  historyMeta: {
+    fontSize: 12,
+    color: c.textSecondary,
+    marginTop: 2,
   },
 });

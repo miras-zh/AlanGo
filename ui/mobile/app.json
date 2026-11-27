@@ -8,7 +8,9 @@
     "scheme": "alango",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "googleServicesFile": "./GoogleService-Info.plist",
       "bundleIdentifier": "kz.alango.app",
+      "appleTeamId": "4CKDU7Z38L",
       "buildNumber": "12",
       "icon": {
         "light": "./assets/light_icon.png",
@@ -36,6 +38,7 @@
     "android": {
       "package": "kz.alango.app",
       "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#080D0B"
@@ -80,6 +83,19 @@
           "faceIDPermission": false
         }
       ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "buildReactNativeFromSource": true,
+            "useFrameworks": "static",
+            "usePrecompiledModules": false
+          }
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      "./plugins/withRNFirebaseDisableSPM",
       [
         "@react-native-google-signin/google-signin",
         {

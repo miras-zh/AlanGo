@@ -45,10 +45,11 @@ type PasswordResetConfirmRequest struct {
 }
 
 type UpdateProfileRequest struct {
-	FullName *string `json:"full_name"`
-	Phone    *string `json:"phone"`
-	City     *string `json:"city"`
-	Photo    *string `json:"photo"`
+	FullName             *string `json:"full_name"`
+	Phone                *string `json:"phone"`
+	City                 *string `json:"city"`
+	Photo                *string `json:"photo"`
+	MarketingPushEnabled *bool   `json:"marketing_push_enabled"`
 }
 
 type UpdatePushTokenRequest struct {
@@ -56,33 +57,35 @@ type UpdatePushTokenRequest struct {
 }
 
 type UserResponse struct {
-	ID            uint      `json:"id"`
-	FullName      string    `json:"full_name"`
-	Email         string    `json:"email"`
-	Phone         string    `json:"phone"`
-	PhoneVerified bool      `json:"phone_verified"`
-	City          string    `json:"city"`
-	Photo         string    `json:"photo"`
-	Role          string    `json:"role"`
-	BusinessRole  string    `json:"business_role"`
-	Type          string    `json:"type"`
-	Plan          string    `json:"plan"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID                   uint      `json:"id"`
+	FullName             string    `json:"full_name"`
+	Email                string    `json:"email"`
+	Phone                string    `json:"phone"`
+	PhoneVerified        bool      `json:"phone_verified"`
+	City                 string    `json:"city"`
+	Photo                string    `json:"photo"`
+	MarketingPushEnabled bool      `json:"marketing_push_enabled"`
+	Role                 string    `json:"role"`
+	BusinessRole         string    `json:"business_role"`
+	Type                 string    `json:"type"`
+	Plan                 string    `json:"plan"`
+	CreatedAt            time.Time `json:"created_at"`
 }
 
 func ToUserResponse(user *User) UserResponse {
 	return UserResponse{
-		ID:            user.ID,
-		FullName:      user.FullName,
-		Email:         user.Email,
-		Phone:         user.Phone,
-		PhoneVerified: user.PhoneVerified,
-		City:          user.City,
-		Photo:         user.Photo,
-		Role:          user.Role,
-		BusinessRole:  user.BusinessRole,
-		Type:          user.Type,
-		Plan:          user.Plan,
-		CreatedAt:     user.CreatedAt,
+		ID:                   user.ID,
+		FullName:             user.FullName,
+		Email:                user.Email,
+		Phone:                user.Phone,
+		PhoneVerified:        user.PhoneVerified,
+		City:                 user.City,
+		Photo:                user.Photo,
+		MarketingPushEnabled: user.MarketingPushEnabled,
+		Role:                 user.Role,
+		BusinessRole:         user.BusinessRole,
+		Type:                 user.Type,
+		Plan:                 user.Plan,
+		CreatedAt:            user.CreatedAt,
 	}
 }

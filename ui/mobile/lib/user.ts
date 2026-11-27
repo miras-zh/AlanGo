@@ -6,12 +6,14 @@ export type Me = {
   full_name: string;
   email: string;
   role: string;
+  type?: string;
   business_role?: string;
   phone?: string;
   phone_verified: boolean;
   city?: string;
   photo?: string;
   plan?: string;
+  marketing_push_enabled?: boolean;
   created_at: string;
 };
 
@@ -62,6 +64,7 @@ export type ProfileUpdate = {
   bio?: string;
   city?: string;
   photo?: string;
+  marketing_push_enabled?: boolean;
 };
 
 export async function updateMyProfile(data: ProfileUpdate): Promise<Me> {
@@ -74,6 +77,8 @@ export async function updateMyProfile(data: ProfileUpdate): Promise<Me> {
     name: res.data.full_name,
     phone: res.data.phone,
     city: res.data.city,
+    marketing_push_enabled: res.data.marketing_push_enabled,
+    type: res.data.type,
   });
   return res.data;
 }
