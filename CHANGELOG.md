@@ -9,6 +9,17 @@
 
 ## [Unreleased]
 
+### 🚀 Деплой бэкенда и Firebase Push на VPS (2026-11-27)
+- **Бэкап базы перед деплоем**: `/root/backups/alango/alango_backup_20261127_131706.sql.gz` (`pg_dump -U postgres alango`, проверен `gzip -t` и маркер `-- PostgreSQL database dump complete`).
+- **Выкатка и конфигурация**:
+  - Локально собран статический бинарник Linux amd64 (`CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -o bin/server ./cmd/app`, предыдущий сохранён в `/root/AlanGo/bin/server.prev`).
+  - В `/root/AlanGo/.env` (бэкап `.env.bak-20261127`) прописан `FIREBASE_SERVICE_ACCOUNT_PATH=/app/config/alango-27ee7-firebase-adminsdk-fbsvc-5f421e1d14.json`, в `CRON_JOBS` добавлены воркеры `upcoming_booking_reminders` и `due_business_reminders`.
+  - Контейнер `alango-api` пересоздан через `docker compose up -d --no-build --no-deps app` (снимок отката `alango-app:pre-20261127`, актуальный образ `alango-app:latest`).
+- **Проверка на проде**:
+  - Применена миграция `000013_crm_finance_reminders_push` (`schema_migrations`: `version = 13`, `dirty = f`), таблица `arena_clients` заполнена бэкфиллом (`10` записей).
+  - В логах `alango-api`: `push: Firebase Cloud Messaging configured (project=alango-27ee7)`.
+  - Проверены эндпоинты `https://alango.78.140.223.90.sslip.io`: `/api/arenas`, `/api/halls` → `200`, неавторизованные `/api/profile/push-status`, `/api/business/{finance,clients,reminders,broadcasts}`, `/api/admin/broadcasts` → `401`, авторизованные GET-запросы → `200` (`fcm_configured: true`).
+
 ### 🔥 Firebase Push (FCM v1 + APNs для `alango-27ee7`) (2026-11-27)
 - **Firebase-конфиги и автообнаружение ключа ([config/config.go](file:///Users/miko/MyProduction/AlanGo/config/config.go))**:
   - В `ui/mobile/` подключены `GoogleService-Info.plist` (`kz.alango.app`) и `google-services.json` (`kz.alango.app`) от проекта `alango-27ee7`; сервисный ключ `alango-27ee7-firebase-adminsdk-*.json` размещён в `config/` и подключён в локальный `.env`, а `config.NewConfig` дополнен автопоиском `*-firebase-adminsdk-*.json` в `config/` и корне проекта.
