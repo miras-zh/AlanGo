@@ -9,6 +9,21 @@
 
 ## [Unreleased]
 
+### 📱 Нативная iOS-сборка `kz.alango.app` (2026-11-27)
+- **CocoaPods ([Podfile.lock](file:///Users/miko/MyProduction/AlanGo/ui/mobile/ios/Podfile.lock))**: выполнен `pod install` в `ui/mobile/ios` (подключён `RNDateTimePicker 9.1.0`, синхронизированы 117 зависимостей / 125 подов, без запуска `expo prebuild`).
+- **Сборка и проверка на симуляторе**: собрана свежая конфигурация `Release` (`iphonesimulator`, `arm64`) `AlanGo.xcworkspace` и установлена на `iPhone 17 Pro`; подтверждены отображение нативных кнопок **«Вход с Apple»** и **«Войти через Google»** на экране входа и работа нативного пикера времени `TimePickerField` в `kz.alango.app`.
+
+### 🕒 Нативный iOS-пикер выбора времени в `ui/mobile/` (2026-11-26)
+- **Зависимости (`ui/mobile/package.json`)**:
+  - Установлен `@react-native-community/datetimepicker` (`9.1.0`) через `npx expo install` с конфигурационным плагином для нативного UIKit-пикера времени.
+- **Компонент `TimePickerField` и `NativeTimePickerPanel` ([TimePickerField.tsx](file:///Users/miko/MyProduction/AlanGo/ui/mobile/components/TimePickerField.tsx))**:
+  - Реализован переиспользуемый компонент выбора времени `HH:MM` с нативным барабаном `DateTimePicker (mode="time", display="spinner")` в 24-часовом формате, поддержкой светлой/тёмной темы и локализации (`Cancel` / `Done` / быстрая кнопка `24:00` для времени закрытия).
+  - Предусмотрен встроенный режим `inline` (`NativeTimePickerPanel`) для использования внутри уже открытых модальных окон iOS без наложения двух `<Modal>`.
+- **График работы залов ([schedule.tsx](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/business/(cabinet)/schedule.tsx))**:
+  - Заменены ручные `TextInput` поля на нативный `TimePickerField`: время открытия (`startTime`), время закрытия (`endTime` с кнопкой `24:00`), верхняя/нижняя границы и отсечка каскадного шага (`cascadeInitialEndTime`, `cascadeSecondBoundaryTime`, `cascadeCutoffTime`).
+- **Режим работы комплекса ([profile.tsx](file:///Users/miko/MyProduction/AlanGo/ui/mobile/app/business/(cabinet)/profile.tsx))**:
+  - Отображаемое время открытия/закрытия внутри модалки «Режим работы» сделано кликабельным для выбора точного времени через встроенный нативный iOS-пикер (`NativeTimePickerPanel`), с сохранением кнопок шага ±30 мин и автоматической синхронизацией `hoursText`.
+
 ### ⌨️ Адаптация форм и модальных окон `ui/mobile/` под экранную клавиатуру (2026-11-26)
 - **Экраны авторизации и графика (`app/login.tsx`, `app/register.tsx`, `app/forgot-password.tsx`, `app/apple-name.tsx`, `app/business/(cabinet)/schedule.tsx`)**:
   - Добавлены обёртки `KeyboardAvoidingView (behavior="padding" на iOS)` и `ScrollView` с `keyboardShouldPersistTaps="handled"` и `keyboardDismissMode="on-drag"`, а также увеличен нижний отступ скролла (`spacing.bottomScrollPadding`) на экране графика работы, чтобы нижние поля (пароль, время работы, границы каскада) и кнопки отправки не перекрывались клавиатурой.

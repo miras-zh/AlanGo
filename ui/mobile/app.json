@@ -91,7 +91,8 @@
         {
           "locationWhenInUsePermission": "AlanGo использует геолокацию для поиска ближайших спортивных комплексов и расчета расстояния до залов."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

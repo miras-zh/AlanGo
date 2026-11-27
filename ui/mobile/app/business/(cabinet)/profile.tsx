@@ -15,6 +15,15 @@ import {
 } from "react-native";
 import { appAlert } from "@/lib/alert";
 import { KeyboardSheetView } from "@/components/KeyboardSheetView";
+import {
+  NativeTimePickerPanel,
+  hhmmToMinutes,
+  minutesToHHMM,
+  parseHHMM,
+} from "@/components/TimePickerField";
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { resolveMyArenaId } from "@/lib/business";
@@ -104,6 +113,7 @@ export default function BusinessProfileScreen() {
   const [hoursModalVisible, setHoursModalVisible] = useState(false);
   const [openMins, setOpenMins] = useState(8 * 60);
   const [closeMins, setCloseMins] = useState(23 * 60);
+  const [activeHoursPicker, setActiveHoursPicker] = useState<"open" | "close" | null>(null);
   const [hoursMode, setHoursMode] = useState<HoursMode>("daily");
   const [hoursText, setHoursText] = useState("08:00 - 23:00 (ежедневно)");
   const [savingHours, setSavingHours] = useState(false);
@@ -326,6 +336,7 @@ export default function BusinessProfileScreen() {
     const parsed = parseWorkingHours(arena.workingHours);
     setOpenMins(parsed.openMins);
     setCloseMins(parsed.closeMins);
+    setActiveHoursPicker(null);
     setHoursMode(parsed.mode);
     setHoursText(arena.workingHours?.trim() || buildWorkingHours(parsed.openMins, parsed.closeMins, parsed.mode));
     setHoursModalVisible(true);
@@ -349,9 +360,32 @@ export default function BusinessProfileScreen() {
     setHoursText(buildWorkingHours(openMins, next, nextMode));
   };
 
+  const applyHoursTime = (target: "open" | "close", hhmm: string) => {
+    const mins = hhmmToMinutes(hhmm);
+    const nextMode = hoursMode === "24_7" ? "daily" : hoursMode;
+    setHoursMode(nextMode);
+    if (target === "open") {
+      const next = Math.max(0, Math.min(closeMins - 30, mins));
+      setOpenMins(next);
+      setHoursText(buildWorkingHours(next, closeMins, nextMode));
+    } else {
+      const next = Math.min(24 * 60, Math.max(openMins + 30, mins));
+      setCloseMins(next);
+      setHoursText(buildWorkingHours(openMins, next, nextMode));
+    }
+    setActiveHoursPicker(null);
+  };
+
+  const openInlineTimePicker = (target: "open" | "close") => {
+    Keyboard.dismiss();
+    hapticSelection();
+    setActiveHoursPicker((prev) => (prev === target ? null : target));
+  };
+
   const selectHoursMode = (mode: HoursMode) => {
     hapticSelection();
     setHoursMode(mode);
+    if (mode === "24_7") setActiveHoursPicker(null);
     setHoursText(buildWorkingHours(openMins, closeMins, mode));
   };
 
@@ -683,7 +717,13 @@ export default function BusinessProfileScreen() {
               <Text style={styles.modalTitle}>
                 {t(isSingleVenue ? "bizProfile.hoursTitleSingle" : "bizProfile.hoursTitle")}
               </Text>
-              <Pressable onPress={() => setHoursModalVisible(false)} hitSlop={10}>
+              <Pressable
+                onPress={() => {
+                  setActiveHoursPicker(null);
+                  setHoursModalVisible(false);
+                }}
+                hitSlop={10}
+              >
                 <Ionicons name="close" size={24} color={c.textPrimary} />
               </Pressable>
             </View>
@@ -712,49 +752,118 @@ export default function BusinessProfileScreen() {
               </View>
 
               {hoursMode !== "24_7" ? (
-                <View style={styles.timeSteppersRow}>
-                  <View style={styles.timeStepperCard}>
-                    <Text style={styles.timeStepperLabel}>{t("sched.opening")}</Text>
-                    <View style={styles.timeStepperControls}>
-                      <Pressable
-                        style={styles.stepBtn}
-                        onPress={() => shiftOpenMins(-30)}
-                        hitSlop={6}
-                      >
-                        <Ionicons name="remove" size={18} color={c.textPrimary} />
-                      </Pressable>
-                      <Text style={styles.timeStepperValue}>{formatMinutes(openMins)}</Text>
-                      <Pressable
-                        style={styles.stepBtn}
-                        onPress={() => shiftOpenMins(30)}
-                        hitSlop={6}
-                      >
-                        <Ionicons name="add" size={18} color={c.textPrimary} />
-                      </Pressable>
+                <>
+                  <View style={styles.timeSteppersRow}>
+                    <View style={styles.timeStepperCard}>
+                      <Text style={styles.timeStepperLabel}>{t("sched.opening")}</Text>
+                      <View style={styles.timeStepperControls}>
+                        <Pressable
+                          style={styles.stepBtn}
+                          onPress={() => shiftOpenMins(-30)}
+                          hitSlop={6}
+                        >
+                          <Ionicons name="remove" size={18} color={c.textPrimary} />
+                        </Pressable>
+                        <Pressable
+                          testID="profile-hours-open-picker"
+                          style={[
+                            styles.timeValueBtn,
+                            activeHoursPicker === "open" && styles.timeValueBtnActive,
+                          ]}
+                          onPress={() => openInlineTimePicker("open")}
+                          hitSlop={4}
+                        >
+                          <Text
+                            style={[
+                              styles.timeStepperValue,
+                              activeHoursPicker === "open" && { color: c.primary },
+                            ]}
+                          >
+                            {formatMinutes(openMins)}
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          style={styles.stepBtn}
+                          onPress={() => shiftOpenMins(30)}
+                          hitSlop={6}
+                        >
+                          <Ionicons name="add" size={18} color={c.textPrimary} />
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    <View style={styles.timeStepperCard}>
+                      <Text style={styles.timeStepperLabel}>{t("sched.closing")}</Text>
+                      <View style={styles.timeStepperControls}>
+                        <Pressable
+                          style={styles.stepBtn}
+                          onPress={() => shiftCloseMins(-30)}
+                          hitSlop={6}
+                        >
+                          <Ionicons name="remove" size={18} color={c.textPrimary} />
+                        </Pressable>
+                        <Pressable
+                          testID="profile-hours-close-picker"
+                          style={[
+                            styles.timeValueBtn,
+                            activeHoursPicker === "close" && styles.timeValueBtnActive,
+                          ]}
+                          onPress={() => openInlineTimePicker("close")}
+                          hitSlop={4}
+                        >
+                          <Text
+                            style={[
+                              styles.timeStepperValue,
+                              activeHoursPicker === "close" && { color: c.primary },
+                            ]}
+                          >
+                            {formatMinutes(closeMins)}
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          style={styles.stepBtn}
+                          onPress={() => shiftCloseMins(30)}
+                          hitSlop={6}
+                        >
+                          <Ionicons name="add" size={18} color={c.textPrimary} />
+                        </Pressable>
+                      </View>
                     </View>
                   </View>
 
-                  <View style={styles.timeStepperCard}>
-                    <Text style={styles.timeStepperLabel}>{t("sched.closing")}</Text>
-                    <View style={styles.timeStepperControls}>
-                      <Pressable
-                        style={styles.stepBtn}
-                        onPress={() => shiftCloseMins(-30)}
-                        hitSlop={6}
-                      >
-                        <Ionicons name="remove" size={18} color={c.textPrimary} />
-                      </Pressable>
-                      <Text style={styles.timeStepperValue}>{formatMinutes(closeMins)}</Text>
-                      <Pressable
-                        style={styles.stepBtn}
-                        onPress={() => shiftCloseMins(30)}
-                        hitSlop={6}
-                      >
-                        <Ionicons name="add" size={18} color={c.textPrimary} />
-                      </Pressable>
-                    </View>
-                  </View>
-                </View>
+                  {activeHoursPicker !== null && Platform.OS !== "android" ? (
+                    <NativeTimePickerPanel
+                      inline
+                      value={minutesToHHMM(activeHoursPicker === "open" ? openMins : closeMins)}
+                      title={t(activeHoursPicker === "open" ? "sched.opening" : "sched.closing")}
+                      allowMidnight24={activeHoursPicker === "close"}
+                      minuteInterval={5}
+                      onCancel={() => setActiveHoursPicker(null)}
+                      onConfirm={(hhmm) => applyHoursTime(activeHoursPicker, hhmm)}
+                    />
+                  ) : null}
+
+                  {activeHoursPicker !== null && Platform.OS === "android" ? (
+                    <DateTimePicker
+                      value={parseHHMM(
+                        minutesToHHMM(activeHoursPicker === "open" ? openMins : closeMins),
+                      )}
+                      mode="time"
+                      display="default"
+                      is24Hour
+                      minuteInterval={5}
+                      onChange={(event: DateTimePickerEvent, selected?: Date) => {
+                        const target = activeHoursPicker;
+                        setActiveHoursPicker(null);
+                        if (event.type === "set" && selected && target) {
+                          const hh = String(selected.getHours()).padStart(2, "0");
+                          const mm = String(selected.getMinutes()).padStart(2, "0");
+                          applyHoursTime(target, `${hh}:${mm}`);
+                        }
+                      }}
+                    />
+                  ) : null}
+                </>
               ) : null}
 
               <Text style={styles.inputLabel}>{t("bizProfile.hoursText")}</Text>
@@ -1043,7 +1152,7 @@ const createStyles = (c: Palette) =>
   timeStepperControls: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   stepBtn: {
     width: 32,
@@ -1055,12 +1164,25 @@ const createStyles = (c: Palette) =>
     alignItems: "center",
     justifyContent: "center",
   },
+  timeValueBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.subtle,
+    backgroundColor: c.surface,
+  },
+  timeValueBtnActive: {
+    borderColor: c.primary,
+    backgroundColor: c.primarySoft,
+  },
   timeStepperValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "800",
     color: c.textPrimary,
-    minWidth: 48,
+    minWidth: 46,
     textAlign: "center",
+    fontVariant: ["tabular-nums"],
   },
   infoTileLabel: {
     fontSize: 11,

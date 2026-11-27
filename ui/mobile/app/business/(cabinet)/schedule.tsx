@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { appAlert } from "@/lib/alert";
+import { TimePickerField } from "@/components/TimePickerField";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -41,14 +40,6 @@ const TIME_PRESETS = [
 ];
 
 const DURATION_OPTIONS = [60, 90, 120, 150, 180, 240, 300];
-
-function formatTime(val: string): string {
-  const cleaned = val.replace(/[^0-9:]/g, "").slice(0, 5);
-  if (!cleaned.includes(":") && cleaned.length >= 3) {
-    return `${cleaned.slice(0, 2)}:${cleaned.slice(2, 4)}`;
-  }
-  return cleaned;
-}
 
 export default function BusinessScheduleScreen() {
   const c = usePalette();
@@ -402,17 +393,15 @@ export default function BusinessScheduleScreen() {
                 <View style={styles.timeInputsRow}>
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <Text style={styles.timeLabel}>{t("sched.opening")}</Text>
-                    <TextInput
-                      style={styles.timeInput}
+                    <TimePickerField
                       value={day.startTime}
                       placeholder="08:00"
-                      placeholderTextColor={c.textMuted}
-                      keyboardType="numbers-and-punctuation"
-                      maxLength={5}
-                      returnKeyType="done"
-                      onChangeText={(val) => {
+                      label={t("sched.opening")}
+                      minuteInterval={5}
+                      testID={`schedule-start-${idx}`}
+                      onChange={(val) => {
                         const copy = [...schedule];
-                        copy[idx].startTime = formatTime(val);
+                        copy[idx].startTime = val;
                         setSchedule(copy);
                       }}
                     />
@@ -420,17 +409,16 @@ export default function BusinessScheduleScreen() {
 
                   <View style={{ flex: 1, marginLeft: 8 }}>
                     <Text style={styles.timeLabel}>{t("sched.closing")}</Text>
-                    <TextInput
-                      style={styles.timeInput}
+                    <TimePickerField
                       value={day.endTime}
                       placeholder="23:00"
-                      placeholderTextColor={c.textMuted}
-                      keyboardType="numbers-and-punctuation"
-                      maxLength={5}
-                      returnKeyType="done"
-                      onChangeText={(val) => {
+                      label={t("sched.closing")}
+                      allowMidnight24
+                      minuteInterval={5}
+                      testID={`schedule-end-${idx}`}
+                      onChange={(val) => {
                         const copy = [...schedule];
-                        copy[idx].endTime = formatTime(val);
+                        copy[idx].endTime = val;
                         setSchedule(copy);
                       }}
                     />
@@ -516,17 +504,16 @@ export default function BusinessScheduleScreen() {
                       <View style={styles.cascadeBoundariesRow}>
                         <View style={{ flex: 1, marginRight: 5 }}>
                           <Text style={styles.cascadeFieldLabel}>{t("sched.upper")}</Text>
-                          <TextInput
-                            style={styles.cascadeInput}
+                          <TimePickerField
+                            compact
                             value={day.cascadeInitialEndTime || "14:00"}
                             placeholder="14:00"
-                            placeholderTextColor={c.textMuted}
-                            keyboardType="numbers-and-punctuation"
-                            maxLength={5}
-                            returnKeyType="done"
-                            onChangeText={(val) => {
+                            label={t("sched.upper")}
+                            minuteInterval={5}
+                            testID={`schedule-cascade-upper-${idx}`}
+                            onChange={(val) => {
                               const copy = [...schedule];
-                              copy[idx].cascadeInitialEndTime = formatTime(val);
+                              copy[idx].cascadeInitialEndTime = val;
                               setSchedule(copy);
                             }}
                           />
@@ -534,17 +521,16 @@ export default function BusinessScheduleScreen() {
 
                         <View style={{ flex: 1, marginHorizontal: 5 }}>
                           <Text style={styles.cascadeFieldLabel}>{t("sched.lower")}</Text>
-                          <TextInput
-                            style={styles.cascadeInput}
+                          <TimePickerField
+                            compact
                             value={day.cascadeSecondBoundaryTime || "18:00"}
                             placeholder="18:00"
-                            placeholderTextColor={c.textMuted}
-                            keyboardType="numbers-and-punctuation"
-                            maxLength={5}
-                            returnKeyType="done"
-                            onChangeText={(val) => {
+                            label={t("sched.lower")}
+                            minuteInterval={5}
+                            testID={`schedule-cascade-lower-${idx}`}
+                            onChange={(val) => {
                               const copy = [...schedule];
-                              copy[idx].cascadeSecondBoundaryTime = formatTime(val);
+                              copy[idx].cascadeSecondBoundaryTime = val;
                               setSchedule(copy);
                             }}
                           />
@@ -552,17 +538,17 @@ export default function BusinessScheduleScreen() {
 
                         <View style={{ flex: 1, marginLeft: 5 }}>
                           <Text style={styles.cascadeFieldLabel}>{t("sched.cutoff")}</Text>
-                          <TextInput
-                            style={styles.cascadeInput}
+                          <TimePickerField
+                            compact
                             value={day.cascadeCutoffTime || "22:00"}
                             placeholder="22:00"
-                            placeholderTextColor={c.textMuted}
-                            keyboardType="numbers-and-punctuation"
-                            maxLength={5}
-                            returnKeyType="done"
-                            onChangeText={(val) => {
+                            label={t("sched.cutoff")}
+                            allowMidnight24
+                            minuteInterval={5}
+                            testID={`schedule-cascade-cutoff-${idx}`}
+                            onChange={(val) => {
                               const copy = [...schedule];
-                              copy[idx].cascadeCutoffTime = formatTime(val);
+                              copy[idx].cascadeCutoffTime = val;
                               setSchedule(copy);
                             }}
                           />
